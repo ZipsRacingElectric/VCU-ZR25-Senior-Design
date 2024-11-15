@@ -68,6 +68,11 @@ void read_driver_input(void);
 uint16_t get_apps_position(void);
 
 /*
+ * Returns APPS voltages in V * 1000. Used for calibration.
+ */
+uint16_t get_apps_voltage(uint16_t channel);
+
+/*
  * Returns front brake pressure in kPa
  */
 uint16_t get_front_brake_pressure(void);
@@ -83,17 +88,17 @@ uint16_t get_rear_brake_pressure(void);
 uint16_t get_steering_angle(void);
 
 /*
- * Calibrates the constants used to determine APPS position
+ * Calibrates the constants used to determine APPS position.  Returns false if calibration failed.
  */
-bool calibrate_apps(void);
+bool calibrate_apps(uint16_t apps_1_pedal_min, uint16_t apps_1_pedal_max, uint16_t apps_2_pedal_min, uint16_t apps_2_pedal_max);
 
 /*
- * Calibrates the constants used to determine BPS pressure
+ * Calibrates the constants used to determine BPS pressure.  Returns false if calibration failed.
  */
 bool calibrate_bps(void);
 
 /*
- * Calibrates the constants used to determine steering angles
+ * Calibrates the constants used to determine steering angles.  Returns false if calibration failed.
  */
 bool calibrate_steering(void);
 

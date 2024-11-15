@@ -44,6 +44,7 @@ BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausib
 BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
 SteeringAngleSensor_t s_steering_angle = {.raw_value = 0, .angle = 0, .plausible = false};
 
+// Static calibration variables
 static uint16_t apps_1_min = 0600; // V * 1000
 static uint16_t apps_1_max = 4400; // V * 1000
 static uint16_t apps_2_min = 0350; // V * 1000
@@ -109,6 +110,25 @@ uint16_t get_apps_position(void)
 }
 
 /*
+ * Returns APPS voltages in V * 1000. Used for calibration.
+ */
+uint16_t get_apps_voltage(uint16_t channel)
+{
+	if (channel == 1)
+	{
+		return s_apps.voltage_1;
+	}
+
+	if (channel == 2)
+	{
+		return s_apps.voltage_2;
+	}
+
+	// If we get a bad channel input
+	return 0;
+}
+
+/*
  * Returns front brake pressure in kPa
  */
 uint16_t get_front_brake_pressure(void)
@@ -133,12 +153,24 @@ uint16_t get_steering_angle(void)
 }
 
 /*
- * Calibrates the constants used to determine APPS position
+ * Calibrates the constants used to determine APPS position. Returns false if calibration failed.
  */
-bool calibrate_apps(void)
+bool calibrate_apps(uint16_t apps_1_pedal_min, uint16_t apps_1_pedal_max, uint16_t apps_2_pedal_min, uint16_t apps_2_pedal_max)
 {
-	// TODO
-	return false;
+	// Check if calibration values are in a valid range
+	if (apps_1_pedal_min > apps_1_pedal_max || apps_2_pedal_min > apps_2_pedal_max)
+	{
+		return false;
+	}
+
+	// Apply limits that are 10% beyond what the driver recorded during calibration
+	// TODO: floor these so they cannot be beyond the sensor voltage limits
+	apps_1_min = (uint16_t)((uint32_t)apps_1_pedal_min * 90) / 100;
+	apps_2_min = (uint16_t)((uint32_t)apps_2_pedal_min * 90) / 100;
+	apps_1_max = (uint16_t)((uint32_t)apps_1_pedal_max * 110) / 100;
+	apps_2_max = (uint16_t)((uint32_t)apps_2_pedal_max * 110) / 100;
+
+	return true;
 }
 
 /*
