@@ -32,8 +32,8 @@
 
 #define BPS_MAX_VOLTAGE       4500 // V * 1000
 #define BPS_MIN_VOLTAGE       0500 // V * 1000
-#define BPS_MAX_PRESSURE      1000 // pressure in ??
-#define BPS_MIN_PRESSURE      0000 // V * 1000
+#define BPS_MAX_PRESSURE      20684 // pressure in kPA
+#define BPS_MIN_PRESSURE      0000 // pressure in kPA
 
 #define STEERING_MAX_ANGLE    4500 // V * 1000
 #define STEERING_MIN_ANGLE    -4500 // V * 1000
@@ -52,9 +52,9 @@ static uint16_t apps_2_max = 2150; // V * 1000
 // Private Function Prototypes
 static uint16_t read_adc(uint16_t channel);
 static uint16_t adc_to_voltage(uint16_t adc_value);
-static void get_apps_position(APPSSensor_t *apps);
-static void get_bps_pressure(BPSSensor_t *bps);
-static void get_steering_angle(SteeringAngleSensor_t *steering_angle);
+static void calc_apps_position(APPSSensor_t *apps);
+static void calc_bps_pressure(BPSSensor_t *bps);
+static void calc_steering_angle(SteeringAngleSensor_t *steering_angle);
 static uint16_t abs_diff(uint16_t v1, uint16_t v2);
 static bool validate_apps(APPSSensor_t apps);
 static bool validate_bps(BPSSensor_t bps);
@@ -88,9 +88,9 @@ void read_driver_input(void)
     s_bps_rear.voltage = adc_to_voltage(s_bps_rear.raw_value);
 
     // Convert Voltages to Physical Values
-    (void)get_apps_position(&s_apps);
-    (void)get_bps_pressure(&s_bps_front);
-    (void)get_bps_pressure(&s_bps_rear);
+    (void)calc_apps_position(&s_apps);
+    (void)calc_bps_pressure(&s_bps_front);
+    (void)calc_bps_pressure(&s_bps_rear);
 
     // Perform Plausibility Checking
     // Handling of plausibility is outside the scope of measuring driver input sensors
@@ -98,6 +98,38 @@ void read_driver_input(void)
     s_bps_front.plausible = validate_bps(s_bps_front);
     s_bps_rear.plausible = validate_bps(s_bps_rear);
     s_steering_angle.plausible = validate_steering_angle(s_steering_angle);
+}
+
+/*
+ * Returns APPS pedal position in % * 10
+ */
+uint16_t get_apps_position(void)
+{
+	return s_apps.position;
+}
+
+/*
+ * Returns front brake pressure in kPa
+ */
+uint16_t get_front_brake_pressure(void)
+{
+	return s_bps_front.pressure;
+}
+
+/*
+ * Returns rear brake pressure in kPa
+ */
+uint16_t get_rear_brake_pressure(void)
+{
+	return s_bps_rear.pressure;
+}
+
+/*
+ * Returns steering angle in radians * 1000
+ */
+uint16_t get_steering_angle(void)
+{
+	return s_steering_angle.angle;
 }
 
 /*
@@ -152,7 +184,7 @@ static uint16_t adc_to_voltage(uint16_t adc_value)
 /*
  * Calculate individual APPS channel percentage and final pedal percentage
  */
-static void get_apps_position(APPSSensor_t *apps)
+static void calc_apps_position(APPSSensor_t *apps)
 {
 	// TODO: sensor calibration values must be verified before calling this function
 
@@ -171,7 +203,7 @@ static void get_apps_position(APPSSensor_t *apps)
 /*
  * Calculate the pressure from the BPS sensor voltage
  */
-static void get_bps_pressure(BPSSensor_t *bps)
+static void calc_bps_pressure(BPSSensor_t *bps)
 {
     // TODO
 }
@@ -179,7 +211,7 @@ static void get_bps_pressure(BPSSensor_t *bps)
 /*
  * Calculate the steering angle in radians
  */
-static void get_steering_angle(SteeringAngleSensor_t *steering_angle)
+static void calc_steering_angle(SteeringAngleSensor_t *steering_angle)
 {
     // TODO
 }

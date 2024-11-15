@@ -63,6 +63,26 @@ void read_driver_input(void);
 
 
 /*
+ * Returns APPS pedal position in % * 10
+ */
+uint16_t get_apps_position(void);
+
+/*
+ * Returns front brake pressure in kPa
+ */
+uint16_t get_front_brake_pressure(void);
+
+/*
+ * Returns rear brake pressure in kPa
+ */
+uint16_t get_rear_brake_pressure(void);
+
+/*
+ * Returns steering angle in radians * 1000
+ */
+uint16_t get_steering_angle(void);
+
+/*
  * Calibrates the constants used to determine APPS position
  */
 bool calibrate_apps(void);
