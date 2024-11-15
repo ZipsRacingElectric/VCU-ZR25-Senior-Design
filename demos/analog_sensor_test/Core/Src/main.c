@@ -22,10 +22,17 @@
 #include "main.h"
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
+#include "driver_input.h"
 
 // Variables for USB testing
 uint8_t TxBuffer[] = "Hello World";
 uint8_t TxBUfferLen = sizeof(TxBuffer);
+
+// Initialize sensor variables
+APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .position = 0, .plausible = false};
+BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
+BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
+SteeringAngleSensor_t s_steering_angle = {.raw_value = 0, .angle = 0, .plausible = false};
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
@@ -51,6 +58,12 @@ int main(void){
 	MX_USB_DEVICE_Init();
 
 	while (1){
+		// Read in sensor ADCs
+
+		// Perform plausibility checking
+
+		// Send information over USB COM port
+
 		CDC_Transmit_FS(TxBuffer, TxBUfferLen);
 		HAL_Delay(100);
 	}
