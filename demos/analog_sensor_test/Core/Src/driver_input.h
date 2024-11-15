@@ -59,23 +59,23 @@ void driver_input_init(void);
 /*
  * Reads in the raw sensor data and updates the sensor variables
  */
-void read_driver_input(APPSSensor_t *apps, BPSSensor_t *bps_front, BPSSensor_t *bps_rear, SteeringAngleSensor_t *steering_angle);
+void read_driver_input(void);
 
 
 /*
  * Calibrates the constants used to determine APPS position
  */
-bool calibrate_apps(APPSSensor_t *apps);
+bool calibrate_apps(void);
 
 /*
  * Calibrates the constants used to determine BPS pressure
  */
-bool calibrate_bps(BPSSensor_t *bps);
+bool calibrate_bps(void);
 
 /*
  * Calibrates the constants used to determine steering angles
  */
-bool calibrate_steering(SteeringAngleSensor_t *steering_angle);
+bool calibrate_steering(void);
 
 // Callback Prototypes
 

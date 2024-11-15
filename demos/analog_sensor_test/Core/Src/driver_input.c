@@ -32,13 +32,18 @@
 
 #define BPS_MAX_VOLTAGE       4500 // V * 1000
 #define BPS_MIN_VOLTAGE       0500 // V * 1000
-#define BPS_MAX_PRESSURE      1000 // pressure in
+#define BPS_MAX_PRESSURE      1000 // pressure in ??
 #define BPS_MIN_PRESSURE      0000 // V * 1000
 
 #define STEERING_MAX_ANGLE    4500 // V * 1000
 #define STEERING_MIN_ANGLE    -4500 // V * 1000
 
 // Static variables
+APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .position = 0, .plausible = false};
+BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
+BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
+SteeringAngleSensor_t s_steering_angle = {.raw_value = 0, .angle = 0, .plausible = false};
+
 static uint16_t apps_1_min = 0600; // V * 1000
 static uint16_t apps_1_max = 4400; // V * 1000
 static uint16_t apps_2_min = 0350; // V * 1000
@@ -51,9 +56,9 @@ static void get_apps_position(APPSSensor_t *apps);
 static void get_bps_pressure(BPSSensor_t *bps);
 static void get_steering_angle(SteeringAngleSensor_t *steering_angle);
 static uint16_t abs_diff(uint16_t v1, uint16_t v2);
-static bool validate_apps(APPSSensor_t *apps);
-static bool validate_bps(BPSSensor_t *bps);
-static bool validate_steering_angle(SteeringAngleSensor_t *steering_angle);
+static bool validate_apps(APPSSensor_t apps);
+static bool validate_bps(BPSSensor_t bps);
+static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
 // Public Functions
 
@@ -68,37 +73,37 @@ void driver_input_init(void)
 /*
  * Reads in the raw sensor data and updates the sensor variables
  */
-void read_driver_input(APPSSensor_t *apps, BPSSensor_t *bps_front, BPSSensor_t *bps_rear, SteeringAngleSensor_t *steering_angle)
+void read_driver_input(void)
 {
     // Read Raw ADC Values
-	apps->raw_value_1 = read_adc(APPS1_CHANNEL);
-    apps->raw_value_2 = read_adc(APPS2_CHANNEL);
-    bps_front->raw_value = read_adc(BPS_FRONT_CHANNEL);
-    bps_rear->raw_value = read_adc(BPS_REAR_CHANNEL);
+	s_apps.raw_value_1 = read_adc(APPS1_CHANNEL);
+    s_apps.raw_value_2 = read_adc(APPS2_CHANNEL);
+    s_bps_front.raw_value = read_adc(BPS_FRONT_CHANNEL);
+    s_bps_rear.raw_value = read_adc(BPS_REAR_CHANNEL);
 
     // Convert Raw Values to Voltages
-    apps->voltage_1 = adc_to_voltage(apps->raw_value_1);
-    apps->voltage_2 = adc_to_voltage(apps->raw_value_2);
-    bps_front->voltage = adc_to_voltage(bps_front->raw_value);
-    bps_rear->voltage = adc_to_voltage(bps_rear->raw_value);
+    s_apps.voltage_1 = adc_to_voltage(s_apps.raw_value_1);
+    s_apps.voltage_2 = adc_to_voltage(s_apps.raw_value_2);
+    s_bps_front.voltage = adc_to_voltage(s_bps_front.raw_value);
+    s_bps_rear.voltage = adc_to_voltage(s_bps_rear.raw_value);
 
     // Convert Voltages to Physical Values
-    (void)get_apps_position(apps);
-    (void)get_bps_pressure(bps_front);
-    (void)get_bps_pressure(bps_rear);
+    (void)get_apps_position(&s_apps);
+    (void)get_bps_pressure(&s_bps_front);
+    (void)get_bps_pressure(&s_bps_rear);
 
     // Perform Plausibility Checking
     // Handling of plausibility is outside the scope of measuring driver input sensors
-    apps->plausible = validate_apps(apps);
-    bps_front->plausible = validate_bps(bps_front);
-    bps_rear->plausible = validate_bps(bps_rear);
-    steering_angle->plausible = validate_steering_angle(steering_angle);
+    s_apps.plausible = validate_apps(s_apps);
+    s_bps_front.plausible = validate_bps(s_bps_front);
+    s_bps_rear.plausible = validate_bps(s_bps_rear);
+    s_steering_angle.plausible = validate_steering_angle(s_steering_angle);
 }
 
 /*
  * Calibrates the constants used to determine APPS position
  */
-bool calibrate_apps(APPSSensor_t *apps)
+bool calibrate_apps(void)
 {
 	// TODO
 	return false;
@@ -107,7 +112,7 @@ bool calibrate_apps(APPSSensor_t *apps)
 /*
  * Calibrates the constants used to determine BPS pressure
  */
-bool calibrate_bps(BPSSensor_t *bps)
+bool calibrate_bps(void)
 {
 	// TODO
 	return false;
@@ -116,7 +121,7 @@ bool calibrate_bps(BPSSensor_t *bps)
 /*
  * Calibrates the constants used to determine steering angles
  */
-bool calibrate_steering(SteeringAngleSensor_t *steering_angle)
+bool calibrate_steering(void)
 {
 	// TODO
 	return false;
@@ -202,40 +207,40 @@ static uint16_t abs_diff(uint16_t v1, uint16_t v2)
  *
  * TODO: it would be nice to report different plausibility faults in the future
  */
-bool validate_apps(APPSSensor_t *apps)
+bool validate_apps(APPSSensor_t apps)
 {
 		// Check for short to ground
-	    if (apps->voltage_1 < APPS_1_MIN_VOLTAGE || apps->voltage_2 < APPS_2_MIN_VOLTAGE)
+	    if (apps.voltage_1 < APPS_1_MIN_VOLTAGE || apps.voltage_2 < APPS_2_MIN_VOLTAGE)
 	    {
 	        return false;
 	    }
 
 	    // Check for short to power
-	    if (apps->voltage_1 > APPS_1_MAX_VOLTAGE || apps->voltage_2 > APPS_2_MAX_VOLTAGE)
+	    if (apps.voltage_1 > APPS_1_MAX_VOLTAGE || apps.voltage_2 > APPS_2_MAX_VOLTAGE)
 	    {
 	        return false;
 	    }
 
 	    // Check for short to sensor output
-	    if ((uint16_t)abs_diff(apps->voltage_1, apps->voltage_2) < APPS_MIN_DELTA_V)
+	    if ((uint16_t)abs_diff(apps.voltage_1, apps.voltage_2) < APPS_MIN_DELTA_V)
 	    {
 	        return false;
 	    }
 
 	    // Check for out of range for APPS1
-	    if (apps->voltage_1 < apps_1_min || apps->voltage_1 > apps_1_max)
+	    if (apps.voltage_1 < apps_1_min || apps.voltage_1 > apps_1_max)
 	    {
 	        return false;
 	    }
 
 	    // Check for out of range for APPS2
-	    if (apps->voltage_2 < apps_2_min || apps->voltage_2 > apps_2_max)
+	    if (apps.voltage_2 < apps_2_min || apps.voltage_2 > apps_2_max)
 	    {
 	        return false;
 	    }
 
 	    // Check for a significant deviation between APPS1 and APPS2 calculated percentages
-	    if ((uint16_t)abs_diff(apps->percent_1, apps->percent_2) > APPS_MAX_DIFFERENCE)
+	    if ((uint16_t)abs_diff(apps.percent_1, apps.percent_2) > APPS_MAX_DIFFERENCE)
 	    {
 	    	return false;
 	    }
@@ -247,7 +252,7 @@ bool validate_apps(APPSSensor_t *apps)
 /*
  * BPS Plausibility Check
  */
-bool validate_bps(BPSSensor_t *bps)
+bool validate_bps(BPSSensor_t bps)
 {
     // TODO: Implement BPS plausibility logic
     return true;
@@ -256,7 +261,7 @@ bool validate_bps(BPSSensor_t *bps)
 /*
  * Steering Angle Plausibility Check
  */
-bool validate_steering_angle(SteeringAngleSensor_t *steering_angle)
+bool validate_steering_angle(SteeringAngleSensor_t steering_angle)
 {
 	// TODO
 	return true;
