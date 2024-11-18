@@ -344,7 +344,12 @@ bool validate_apps(APPSSensor_t apps)
  */
 bool validate_bps(BPSSensor_t bps)
 {
-    // TODO: Implement BPS plausibility logic
+    // Check if out of sensor voltage range, with a deadzone for noise
+	if ((bps->voltage + BPS_DEADZONE) < BPS_MIN_VOLTAGE || (bps->voltage - BPS_DEADZONE) > BPS_MAX_VOLTAGE)
+	{
+		return false;
+	}
+
     return true;
 }
 
