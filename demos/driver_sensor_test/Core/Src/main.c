@@ -20,6 +20,7 @@
 #include "main.h"
 #include "usb_device.h"
 #include "stdio.h"
+#include "stdbool.h"
 #include "driver_sensors.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -86,6 +87,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	APPSSensor_t apps;
+	uint16_t pedal_percent;
 
   /* USER CODE END 1 */
 
@@ -125,8 +127,10 @@ int main(void)
 	  // Read APPS sensor
 	  read_driver_input(&hadc1);
 	  apps = get_apps_data();
+	  pedal_percent = apps.percent;
 
-	  HAL_Delay(500);
+	  printf("\nAPPS sensor percentage: %d", apps.percent);
+	  HAL_Delay(10);
 
     /* USER CODE BEGIN 3 */
   }
