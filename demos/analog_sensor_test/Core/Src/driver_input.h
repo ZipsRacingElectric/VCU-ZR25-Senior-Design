@@ -9,11 +9,13 @@
 
 /*
  * TODO:
- * - error handling
+ * - ADC peripheral
+ * - BPS calibration
+ * - Steering angle calibration
+ * - APPS deadzones
+ * - Steering angle deadzones
  * - filtering
- * - calibration
- * - interrupts / dma
- * - unit testing??
+ * - unit testing
  */
 
 #ifndef SRC_DRIVER_INPUT_H_
@@ -31,7 +33,7 @@ typedef struct {
     uint16_t voltage_2;   // Voltage of channel 2 in V * 1000
     uint16_t percent_1;   // Position in percentage of channel 1
     uint16_t percent_2;   // Position in percentage of channel 2
-    uint16_t position;    // Position in percentage used for
+    uint16_t percent;    // Position in percentage used for
     bool plausible;		  // Plausibility of sensor
 } APPSSensor_t;
 

@@ -28,7 +28,9 @@
 #define APPS_MAX_POSITION     1000 // % * 10
 #define APPS_MIN_POSITION     0000 // % * 10
 #define APPS_MIN_DELTA_V	  0030 // Minimum allowable voltage difference V * 1000
-#define APPS_MAX_DIFFERENCE   0100 // Maximum allowable pedal position difference % * 10
+#define APPS_MAX_DELTA_P   	  0100 // Maximum allowable pedal position difference % * 10
+#define APPS_DEADZONE		  0050 // Upper and lower pedal deadzone in % * 10
+#define APPS_OUT_OF_RANGE     0100 // Allowable voltage beyond calibration limits before fault V * 1000
 
 #define BPS_MAX_VOLTAGE       4500 // V * 1000
 #define BPS_MIN_VOLTAGE       0500 // V * 1000
@@ -39,12 +41,12 @@
 #define STEERING_MIN_ANGLE    -4500 // V * 1000
 
 // Static variables
-APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .position = 0, .plausible = false};
+APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .percent = 0, .plausible = false};
 BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
 BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
 SteeringAngleSensor_t s_steering_angle = {.raw_value = 0, .angle = 0, .plausible = false};
 
-// Static calibration variables
+// Static calibration variables. These hold the 0% and 100% setpoints
 static uint16_t apps_1_min = 0600; // V * 1000
 static uint16_t apps_1_max = 4400; // V * 1000
 static uint16_t apps_2_min = 0350; // V * 1000
@@ -106,7 +108,7 @@ void read_driver_input(void)
  */
 uint16_t get_apps_position(void)
 {
-	return s_apps.position;
+	return s_apps.percent;
 }
 
 /*
@@ -165,10 +167,10 @@ bool calibrate_apps(uint16_t apps_1_pedal_min, uint16_t apps_1_pedal_max, uint16
 
 	// Apply limits that are 10% beyond what the driver recorded during calibration
 	// TODO: floor these so they cannot be beyond the sensor voltage limits
-	apps_1_min = (uint16_t)((uint32_t)apps_1_pedal_min * 90) / 100;
-	apps_2_min = (uint16_t)((uint32_t)apps_2_pedal_min * 90) / 100;
-	apps_1_max = (uint16_t)((uint32_t)apps_1_pedal_max * 110) / 100;
-	apps_2_max = (uint16_t)((uint32_t)apps_2_pedal_max * 110) / 100;
+	apps_1_min = apps_1_pedal_min;
+	apps_2_min = apps_2_pedal_min;
+	apps_1_max = apps_1_pedal_max;
+	apps_2_max = apps_2_pedal_max;
 
 	return true;
 }
@@ -220,16 +222,20 @@ static void calc_apps_position(APPSSensor_t *apps)
 {
 	// TODO: sensor calibration values must be verified before calling this function
 
+	// Calculate pedal position from each channel
+	// TODO: add pedal deadzone
 	// Multiply by 1000 to get percentage * 10, then divide by voltage range defined by calibration
 	uint32_t p1 = (((uint32_t)apps->voltage_1 - apps_1_min) * 1000) / (apps_1_max - apps_1_min);
 	uint32_t p2 = (((uint32_t)apps->voltage_2 - apps_2_min) * 1000) / (apps_2_max - apps_2_min);
 
-	// Average the two channels to determine pedal position
+	// Average the two channels to determine the actual pedal position
+	// TODO: a better algorithm would be nice
 	uint32_t pos = (p1 + p2) / 2;
+
 
 	apps->percent_1 = (uint16_t)p1;
 	apps->percent_2 = (uint16_t)p2;
-	apps->position = (uint16_t)pos;
+	apps->percent = (uint16_t)pos;
 }
 
 /*
@@ -292,19 +298,19 @@ bool validate_apps(APPSSensor_t apps)
 	    }
 
 	    // Check for out of range for APPS1
-	    if (apps.voltage_1 < apps_1_min || apps.voltage_1 > apps_1_max)
+	    if (apps.voltage_1 < (apps_1_min - APPS_OUT_OF_RANGE) || apps.voltage_1 > (apps_1_max + APPS_OUT_OF_RANGE))
 	    {
 	        return false;
 	    }
 
 	    // Check for out of range for APPS2
-	    if (apps.voltage_2 < apps_2_min || apps.voltage_2 > apps_2_max)
+	    if (apps.voltage_2 < (apps_1_min - APPS_OUT_OF_RANGE) || apps.voltage_2 > (apps_1_max + APPS_OUT_OF_RANGE))
 	    {
 	        return false;
 	    }
 
 	    // Check for a significant deviation between APPS1 and APPS2 calculated percentages
-	    if ((uint16_t)abs_diff(apps.percent_1, apps.percent_2) > APPS_MAX_DIFFERENCE)
+	    if ((uint16_t)abs_diff(apps.percent_1, apps.percent_2) > APPS_MAX_DELTA_P)
 	    {
 	    	return false;
 	    }
