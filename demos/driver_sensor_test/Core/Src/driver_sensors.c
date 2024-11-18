@@ -52,7 +52,7 @@ static uint16_t apps_2_min = 0350; // V * 1000
 static uint16_t apps_2_max = 2150; // V * 1000
 
 // Private Function Prototypes
-static uint16_t read_adc(uint16_t channel);
+static uint16_t read_adc(ADC_HandleTypeDef *adc);
 static uint16_t adc_to_voltage(uint16_t adc_value);
 static void calc_apps_percent(APPSSensor_t *apps);
 static void calc_bps_pressure(BPSSensor_t *bps);
@@ -75,13 +75,13 @@ void driver_input_init(void)
 /*
  * Reads in the raw sensor data and updates the sensor variables
  */
-void read_driver_input(void)
+void read_driver_input(ADC_HandleTypeDef *adc)
 {
     // Read Raw ADC Values
-	s_apps.raw_value_1 = read_adc(APPS1_CHANNEL);
-    s_apps.raw_value_2 = read_adc(APPS2_CHANNEL);
-    s_bps_front.raw_value = read_adc(BPS_FRONT_CHANNEL);
-    s_bps_rear.raw_value = read_adc(BPS_REAR_CHANNEL);
+	s_apps.raw_value_1 = read_adc(adc);
+    s_apps.raw_value_2 = read_adc(adc);
+    s_bps_front.raw_value = read_adc(adc);
+    s_bps_rear.raw_value = read_adc(adc);
 
     // Convert Raw Values to Voltages
     s_apps.voltage_1 = adc_to_voltage(s_apps.raw_value_1);
@@ -103,30 +103,11 @@ void read_driver_input(void)
 }
 
 /*
- * Returns APPS pedal position in % * 10
+ * Returns an APPSSensor_t struct with the current APPS data in it
  */
-uint16_t get_apps_position(void)
+APPSSensor_t get_apps_data(void)
 {
-	return s_apps.percent;
-}
-
-/*
- * Returns APPS voltages in V * 1000. Used for calibration.
- */
-uint16_t get_apps_voltage(uint16_t channel)
-{
-	if (channel == 1)
-	{
-		return s_apps.voltage_1;
-	}
-
-	if (channel == 2)
-	{
-		return s_apps.voltage_2;
-	}
-
-	// If we get a bad channel input
-	return 0;
+	return s_apps;
 }
 
 /*
@@ -197,10 +178,12 @@ bool calibrate_steering(void)
 /*
  * Reads in the raw ADC values from hardware
  */
-static uint16_t read_adc(uint16_t channel)
+static uint16_t read_adc(ADC_HandleTypeDef *adc)
 {
-    // TODO: Implement ADC reading based on hardware
-    return 0;
+	// Read ADC value
+	HAL_ADC_Start(adc);
+	HAL_ADC_PollForConversion(adc, HAL_MAX_DELAY);
+	return HAL_ADC_GetValue(adc);
 }
 
 /*

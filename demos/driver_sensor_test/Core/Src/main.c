@@ -19,6 +19,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
+#include "stdio.h"
+#include "driver_sensors.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -58,6 +60,21 @@ static void MX_ADC1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/*
+ * Function for using printf over ITM
+ */
+int _write(int file, char *ptr, int len)
+{
+	int i = 0;
+	for (i = 0; i<len; i++)
+	{
+		ITM_SendChar((*ptr++));
+	}
+	return len;
+}
+
+uint16_t count;
+
 /* USER CODE END 0 */
 
 /**
@@ -68,6 +85,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+	APPSSensor_t apps;
 
   /* USER CODE END 1 */
 
@@ -103,6 +121,11 @@ int main(void)
 
 	  // Heart beat
 	  HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
+
+	  // Read APPS sensor
+	  read_driver_input(&hadc1);
+	  apps = get_apps_data();
+
 	  HAL_Delay(500);
 
     /* USER CODE BEGIN 3 */

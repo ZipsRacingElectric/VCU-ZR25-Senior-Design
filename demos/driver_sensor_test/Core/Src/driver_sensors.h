@@ -21,6 +21,7 @@
 #define SRC_DRIVER_SENSORS_H_
 
 // Includes
+#include <stm32f4xx_hal.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -60,18 +61,13 @@ void driver_input_init(void);
 /*
  * Reads in the raw sensor data and updates the sensor variables
  */
-void read_driver_input(void);
+void read_driver_input(ADC_HandleTypeDef *adc);
 
 
 /*
- * Returns APPS pedal position in % * 10
+ * Returns an APPSSensor_t struct with the current APPS data in it
  */
-uint16_t get_apps_position(void);
-
-/*
- * Returns APPS voltages in V * 1000. Used for calibration.
- */
-uint16_t get_apps_voltage(uint16_t channel);
+APPSSensor_t get_apps_data(void);
 
 /*
  * Returns front brake pressure in kPa
