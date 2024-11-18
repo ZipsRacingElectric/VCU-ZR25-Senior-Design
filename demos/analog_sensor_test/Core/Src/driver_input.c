@@ -25,8 +25,6 @@
 #define APPS_2_MIN_VOLTAGE    0250 // V * 1000
 #define APPS_1_MAX_VOLTAGE    4500 // V * 1000
 #define APPS_2_MAX_VOLTAGE    2250 // V * 1000
-#define APPS_MAX_POSITION     1000 // % * 10
-#define APPS_MIN_POSITION     0000 // % * 10
 #define APPS_MIN_DELTA_V	  0030 // Minimum allowable voltage difference V * 1000
 #define APPS_MAX_DELTA_P   	  0100 // Maximum allowable pedal position difference % * 10
 #define APPS_DEADZONE		  0050 // Upper and lower pedal deadzone in % * 10
@@ -55,7 +53,7 @@ static uint16_t apps_2_max = 2150; // V * 1000
 // Private Function Prototypes
 static uint16_t read_adc(uint16_t channel);
 static uint16_t adc_to_voltage(uint16_t adc_value);
-static void calc_apps_position(APPSSensor_t *apps);
+static void calc_apps_percent(APPSSensor_t *apps);
 static void calc_bps_pressure(BPSSensor_t *bps);
 static void calc_steering_angle(SteeringAngleSensor_t *steering_angle);
 static uint16_t abs_diff(uint16_t v1, uint16_t v2);
@@ -91,7 +89,7 @@ void read_driver_input(void)
     s_bps_rear.voltage = adc_to_voltage(s_bps_rear.raw_value);
 
     // Convert Voltages to Physical Values
-    (void)calc_apps_position(&s_apps);
+    (void)calc_apps_percent(&s_apps);
     (void)calc_bps_pressure(&s_bps_front);
     (void)calc_bps_pressure(&s_bps_rear);
 
@@ -218,24 +216,55 @@ static uint16_t adc_to_voltage(uint16_t adc_value)
 /*
  * Calculate individual APPS channel percentage and final pedal percentage
  */
-static void calc_apps_position(APPSSensor_t *apps)
+static void calc_apps_percent(APPSSensor_t *apps)
 {
-	// TODO: sensor calibration values must be verified before calling this function
 
-	// Calculate pedal position from each channel
-	// TODO: add pedal deadzone
-	// Multiply by 1000 to get percentage * 10, then divide by voltage range defined by calibration
-	uint32_t p1 = (((uint32_t)apps->voltage_1 - apps_1_min) * 1000) / (apps_1_max - apps_1_min);
-	uint32_t p2 = (((uint32_t)apps->voltage_2 - apps_2_min) * 1000) / (apps_2_max - apps_2_min);
+	// Calculate voltage setpoints considering the pedal deadzone
+	uint32_t apps_1_v_min = apps_1_min + ((abs_diff(apps_1_max, apps_1_min) * APPS_DEADZONE) / 1000);
+	uint32_t apps_1_v_max = apps_1_max - ((abs_diff(apps_1_max, apps_1_min) * APPS_DEADZONE) / 1000);
+	uint32_t apps_2_v_min = apps_2_min + ((abs_diff(apps_2_max, apps_2_min) * APPS_DEADZONE) / 1000);
+	uint32_t apps_2_v_max = apps_2_max - ((abs_diff(apps_2_max, apps_2_min) * APPS_DEADZONE) / 1000);
+
+	// Default percent is zero, accounts for <= apps_v_min condition
+	uint32_t p1 = 0;
+	uint32_t p2 = 0;
+
+	// Condition: voltage is within the linear range
+	if (apps->voltage_1 > apps_1_v_min && apps->voltage_1 < apps_1_v_max)
+	{
+		// Multiply by 1000 to get percentage * 10, then divide by voltage range defined by calibration
+		p1 = (((uint32_t)apps->voltage_1 - apps_1_v_min) * 1000) / (apps_1_v_max - apps_1_v_min);
+	}
+
+	// Condition: voltage is within the linear range
+	if (apps->voltage_2 > apps_2_v_min && apps->voltage_2 < apps_2_v_max)
+	{
+		// Multiply by 1000 to get percentage * 10, then divide by voltage range defined by calibration
+		p2 = (((uint32_t)apps->voltage_2 - apps_2_v_min) * 1000) / (apps_2_v_max - apps_2_v_min);
+	}
+
+	// Condition: voltage is above upper limit and into/past the deadzone
+	if(apps->voltage_1 > apps_1_v_max)
+	{
+		// Limit to 100%
+		p1 = 1000;
+	}
+
+	// Condition: voltage is above upper limit and into/past the deadzone
+	if(apps->voltage_2 > apps_2_v_max)
+	{
+		// Limit to 100%
+		p2 = 1000;
+	}
 
 	// Average the two channels to determine the actual pedal position
 	// TODO: a better algorithm would be nice
-	uint32_t pos = (p1 + p2) / 2;
+	uint32_t pedal_percent = (p1 + p2) * 1000 / 2000;
 
 
 	apps->percent_1 = (uint16_t)p1;
 	apps->percent_2 = (uint16_t)p2;
-	apps->percent = (uint16_t)pos;
+	apps->percent = (uint16_t)pedal_percent;
 }
 
 /*
