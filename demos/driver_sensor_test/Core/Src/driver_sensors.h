@@ -9,7 +9,6 @@
 
 /*
  * TODO:
- * - ADC peripheral
  * - BPS calibration
  * - Steering angle calibration
  * - Steering angle deadzones
@@ -37,11 +36,10 @@ typedef struct {
     bool plausible;		  // Plausibility of sensor
 } APPSSensor_t;
 
-// TODO: determine how pressure units should be represented
 typedef struct {
     uint16_t raw_value; // Raw ADC value
     uint16_t voltage;   // Voltage of channel 1 in V * 1000
-    uint16_t pressure;  // Pressure in PSI
+    uint16_t pressure;  // Pressure in kPa
     bool plausible;		// Plausibility of sensor
 } BPSSensor_t;
 
@@ -52,11 +50,6 @@ typedef struct {
 } SteeringAngleSensor_t;
 
 // Function Prototypes
-
-/*
- * Initializes the peripherals used for measuring the driver input sensors
- */
-void driver_input_init(void);
 
 /*
  * Reads in the raw sensor data and updates the sensor variables
@@ -70,19 +63,19 @@ void read_driver_input(ADC_HandleTypeDef *adc);
 APPSSensor_t get_apps_data(void);
 
 /*
- * Returns front brake pressure in kPa
+ *Returns an BPSSensor_t struct with the current front BPS data in it
  */
-uint16_t get_front_brake_pressure(void);
+BPSSensor_t get_bps_front_data(void);
 
 /*
- * Returns rear brake pressure in kPa
+ * Returns an BPSSensor_t struct with the current rear BPS data in it
  */
-uint16_t get_rear_brake_pressure(void);
+BPSSensor_t get_bps_rear_data(void);
 
 /*
- * Returns steering angle in radians * 1000
+ * Returns an SteeringAngleSensor_t struct with the current steering data in it
  */
-uint16_t get_steering_angle(void);
+SteeringAngleSensor_t get_steering_angle_data(void);
 
 /*
  * Calibrates the constants used to determine APPS position.  Returns false if calibration failed.

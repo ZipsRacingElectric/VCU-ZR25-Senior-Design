@@ -19,24 +19,24 @@
 #define BPS_REAR_CHANNEL	  4
 #define STEER_ANGLE_CHANNEL	  5
 
-#define ADC_MAX_VALUE         4095 // 2^12 - 1
-#define ADC_REF_VOLTAGE       3300 // V * 1000
+#define ADC_MAX_VALUE         4095  // 2^12 - 1
+#define ADC_REF_VOLTAGE       3300  // V * 1000
 
-#define APPS_1_MIN_VOLTAGE    0500 // V * 1000
-#define APPS_2_MIN_VOLTAGE    0250 // V * 1000
-#define APPS_1_MAX_VOLTAGE    4500 // V * 1000
-#define APPS_2_MAX_VOLTAGE    2250 // V * 1000
-#define APPS_MIN_DELTA_V	  0030 // Minimum allowable voltage difference V * 1000
-#define APPS_MAX_DELTA_P   	  0100 // Maximum allowable pedal position difference % * 10
-#define APPS_DEADZONE		  0050 // Upper and lower pedal deadzone in % * 10
-#define APPS_OUT_OF_RANGE     0100 // Allowable voltage beyond calibration limits before fault V * 1000
+#define APPS_1_MIN_VOLTAGE    0500  // V * 1000
+#define APPS_2_MIN_VOLTAGE    0250  // V * 1000
+#define APPS_1_MAX_VOLTAGE    4500  // V * 1000
+#define APPS_2_MAX_VOLTAGE    2250  // V * 1000
+#define APPS_MIN_DELTA_V	  0030  // Minimum allowable voltage difference V * 1000
+#define APPS_MAX_DELTA_P   	  0100  // Maximum allowable pedal position difference % * 10
+#define APPS_DEADZONE		  0050  // Upper and lower pedal deadzone in % * 10
+#define APPS_OUT_OF_RANGE     0100  // Allowable voltage beyond calibration limits before fault V * 1000
 
-#define BPS_MAX_VOLTAGE       4500 // V * 1000
-#define BPS_MIN_VOLTAGE       0500 // V * 1000
+#define BPS_MIN_VOLTAGE       0500  // V * 1000
+#define BPS_MAX_VOLTAGE       4500  // V * 1000
 #define BPS_MAX_PRESSURE      20684 // pressure in kPA
-#define BPS_MIN_PRESSURE      0000 // pressure in kPA
+#define BPS_DEADZONE    	  0050  // Deadzone before plausibility fault in V * 1000
 
-#define STEERING_MAX_ANGLE    4500 // V * 1000
+#define STEERING_MAX_ANGLE    4500  // V * 1000
 #define STEERING_MIN_ANGLE    -4500 // V * 1000
 
 // Static variables
@@ -63,14 +63,6 @@ static bool validate_bps(BPSSensor_t bps);
 static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
 // Public Functions
-
-/*
- * Initializes the peripherals used for measuring the driver input sensors
- */
-void driver_input_init(void)
-{
-    // Initialize ADC channels, GPIOs, and other hardware interfaces
-}
 
 /*
  * Reads in the raw sensor data and updates the sensor variables
@@ -111,27 +103,27 @@ APPSSensor_t get_apps_data(void)
 }
 
 /*
- * Returns front brake pressure in kPa
+ * Returns an APPSSensor_t struct with the current APPS data in it
  */
-uint16_t get_front_brake_pressure(void)
+BPSSensor_t get_bps_front_data(void)
 {
-	return s_bps_front.pressure;
+	return s_bps_front;
 }
 
 /*
- * Returns rear brake pressure in kPa
+ *Returns an BPSSensor_t struct with the current front BPS data in it
  */
-uint16_t get_rear_brake_pressure(void)
+BPSSensor_t get_bps_rear_data(void)
 {
-	return s_bps_rear.pressure;
+	return s_bps_rear;
 }
 
 /*
- * Returns steering angle in radians * 1000
+ * Returns an BPSSensor_t struct with the current rear BPS data in it
  */
-uint16_t get_steering_angle(void)
+SteeringAngleSensor_t get_steering_angle_data(void)
 {
-	return s_steering_angle.angle;
+	return s_steering_angle;
 }
 
 /*
@@ -241,8 +233,8 @@ static void calc_apps_percent(APPSSensor_t *apps)
 		p2 = 1000;
 	}
 
-	// Average the two channels to determine the actual pedal position
-	// TODO: a better algorithm would be nice
+	// Averaging allows a usable pedal if one channel is implausible
+	// TODO: better pedal algorithm
 	uint32_t pedal_percent = (p1 + p2) * 1000 / 2000;
 
 
@@ -256,7 +248,22 @@ static void calc_apps_percent(APPSSensor_t *apps)
  */
 static void calc_bps_pressure(BPSSensor_t *bps)
 {
-    // TODO
+    // Condition: voltage < min voltage
+	uint32_t pressure = 0;
+
+	// Condition: voltage in linear range
+    if (bps->voltage > BPS_MIN_VOLTAGE && bps->voltage < BPS_MAX_VOLTAGE)
+    {
+    	pressure = ((uint32_t)bps->voltage - BPS_MIN_VOLTAGE) * (BPS_MAX_PRESSURE  * 1000 / BPS_MAX_VOLTAGE) / 1000;
+    }
+
+    // Condition: voltage > max voltage
+    if (bps->voltage > BPS_MAX_VOLTAGE)
+    {
+    	pressure = BPS_MAX_PRESSURE;
+    }
+
+    bps->pressure = (uint16_t)pressure;
 }
 
 /*
