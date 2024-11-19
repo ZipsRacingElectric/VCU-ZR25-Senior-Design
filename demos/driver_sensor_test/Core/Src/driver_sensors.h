@@ -25,7 +25,8 @@
 #include <stdbool.h>
 
 // Types
-typedef struct {
+typedef struct
+{
     uint16_t raw_value_1; // Raw ADC value, channel 1
     uint16_t raw_value_2; // Raw ADC value, channel 2
     uint16_t voltage_1;   // Voltage of channel 1 in V * 1000
@@ -36,14 +37,16 @@ typedef struct {
     bool plausible;		  // Plausibility of sensor
 } APPSSensor_t;
 
-typedef struct {
+typedef struct
+{
     uint16_t raw_value; // Raw ADC value
     uint16_t voltage;   // Voltage of channel 1 in V * 1000
     uint16_t pressure;  // Pressure in kPa
     bool plausible;		// Plausibility of sensor
 } BPSSensor_t;
 
-typedef struct {
+typedef struct
+{
     uint16_t raw_value; // Raw value from sensor
     uint16_t angle;     // Steering angle in radians * 1000
     bool plausible;		// Plausibility of sensor
