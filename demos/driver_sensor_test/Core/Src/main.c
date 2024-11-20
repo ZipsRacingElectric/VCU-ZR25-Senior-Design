@@ -91,7 +91,9 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	APPSSensor_t apps;
-	uint16_t pedal_percent;
+	BPSSensor_t bps_f;
+	BPSSensor_t bps_r;
+	SteeringAngleSensor_t steering_angle;
 
   /* USER CODE END 1 */
 
@@ -134,27 +136,57 @@ int main(void)
 	  // Read APPS sensor
 	  read_driver_input(&hadc1);
 	  apps = get_apps_data();
-	  pedal_percent = apps.percent;
+	  bps_f = get_bps_front_data();
+	  bps_r = get_bps_rear_data();
+	  steering_angle = get_steering_angle_data();
 
 	  // Format data to send over USB
-	  char msg_buffer[512];
+	  char msg_buffer[1024];
 
 	  uint16_t length = snprintf(msg_buffer, sizeof(msg_buffer),
-			  "\nAPPS sensor:\n"
+			  "\nAccelerator Pedal:\n"
 			  "- Raw Value 1: %u\n"
 			  "- Raw Value 2: %u\n"
 			  "- Voltage 1: %u mV\n"
 			  "- Voltage 2: %u mV\n"
+			  "- Pedal Percentage: %u percent * 10\n"
 			  "- Channel 1: %u percent * 10\n"
 			  "- Channel 2: %u percent * 10\n"
-			  "- Pedal Percentage: %u percent * 10\n",
+			  "- APPS Plausibility: %d\n"
+			  "\n"
+			  "Brake Pressure:\n"
+			  "- Raw Value Front: %u\n"
+			  "- Raw Value Rear: %u\n"
+			  "- Voltage Front: %u mV\n"
+			  "- Voltage Rear: %u mV\n"
+			  "- Pressure Front: %u kPa\n"
+			  "- Pressure Rear: %u kPa\n"
+			  "- Plausibility Front: %d\n"
+			  "- Plausibility Rear: %d\n"
+			  "\n"
+			  "Steering Angle:\n"
+			  "- Raw Value: %u\n"
+			  "- Angle: %u radians * 1000\n"
+			  "- Plausibility Front: %d\n",
 			  apps.raw_value_1,
 			  apps.raw_value_2,
 			  apps.voltage_1,
 			  apps.voltage_2,
+			  apps.percent,
 			  apps.percent_1,
 			  apps.percent_2,
-			  apps.percent);
+			  (uint8_t)apps.plausible,
+			  bps_f.raw_value,
+			  bps_r.raw_value,
+			  bps_f.voltage,
+			  bps_r.voltage,
+			  bps_f.pressure,
+			  bps_r.pressure,
+			  (uint8_t)bps_f.plausible,
+			  (uint8_t)bps_r.plausible,
+			  steering_angle.raw_value,
+			  steering_angle.angle,
+			  (uint8_t)steering_angle.plausible);
 
 	  // Ensure snprintf was successful and message length is valid
 	  if (length > 0 && length < sizeof(msg_buffer)) {

@@ -34,7 +34,7 @@
 #define BPS_MIN_VOLTAGE       0500  // V * 1000
 #define BPS_MAX_VOLTAGE       4500  // V * 1000
 #define BPS_MAX_PRESSURE      20684 // pressure in kPA
-#define BPS_DEADZONE    	  0050  // Deadzone before plausibility fault in V * 1000
+#define BPS_DEADZONE    	  020  // Deadzone before plausibility fault in V * 1000
 
 #define STEERING_MAX_ANGLE    4500  // V * 1000
 #define STEERING_MIN_ANGLE    -4500 // V * 1000
@@ -186,6 +186,10 @@ static uint16_t adc_to_voltage(uint16_t adc_value)
 	// Multiply adc_value by the reference voltage in millivolts
 	// Then divide by the maximum ADC value to get the voltage
     uint32_t mv = ((uint32_t)adc_value * ADC_REF_VOLTAGE) / ADC_MAX_VALUE;
+
+    // Convert from 3.3V to 5V caused by voltage dividers
+    mv = (mv * 5000) / 3300;
+
 	return (uint16_t)mv;
 }
 
@@ -194,40 +198,43 @@ static uint16_t adc_to_voltage(uint16_t adc_value)
  */
 static void calc_apps_percent(APPSSensor_t *apps)
 {
+	// grab apps voltages
+	uint32_t v1 = (uint32_t)apps->voltage_1;
+	uint32_t v2 = (uint32_t)apps->voltage_2;
 
 	// Calculate voltage setpoints considering the pedal deadzone
-	uint32_t apps_1_v_min = apps_1_min + ((abs_diff(apps_1_max, apps_1_min) * APPS_DEADZONE) / 1000);
-	uint32_t apps_1_v_max = apps_1_max - ((abs_diff(apps_1_max, apps_1_min) * APPS_DEADZONE) / 1000);
-	uint32_t apps_2_v_min = apps_2_min + ((abs_diff(apps_2_max, apps_2_min) * APPS_DEADZONE) / 1000);
-	uint32_t apps_2_v_max = apps_2_max - ((abs_diff(apps_2_max, apps_2_min) * APPS_DEADZONE) / 1000);
+	uint32_t apps_1_v_min = apps_1_min + ((uint32_t)(abs_diff(apps_1_max, apps_1_min) * APPS_DEADZONE) / 1000);
+	uint32_t apps_1_v_max = apps_1_max - ((uint32_t)(abs_diff(apps_1_max, apps_1_min) * APPS_DEADZONE) / 1000);
+	uint32_t apps_2_v_min = apps_2_min + ((uint32_t)(abs_diff(apps_2_max, apps_2_min) * APPS_DEADZONE) / 1000);
+	uint32_t apps_2_v_max = apps_2_max - ((uint32_t)(abs_diff(apps_2_max, apps_2_min) * APPS_DEADZONE) / 1000);
 
 	// Default percent is zero, accounts for <= apps_v_min condition
 	uint32_t p1 = 0;
 	uint32_t p2 = 0;
 
 	// Condition: voltage is within the linear range
-	if (apps->voltage_1 > apps_1_v_min && apps->voltage_1 < apps_1_v_max)
+	if (v1 > apps_1_v_min && v1 < apps_1_v_max)
 	{
 		// Multiply by 1000 to get percentage * 10, then divide by voltage range defined by calibration
-		p1 = (((uint32_t)apps->voltage_1 - apps_1_v_min) * 1000) / (apps_1_v_max - apps_1_v_min);
+		p1 = ((v1 - apps_1_v_min) * 1000) / (apps_1_v_max - apps_1_v_min);
 	}
 
 	// Condition: voltage is within the linear range
-	if (apps->voltage_2 > apps_2_v_min && apps->voltage_2 < apps_2_v_max)
+	if (v2 > apps_2_v_min && v2 < apps_2_v_max)
 	{
 		// Multiply by 1000 to get percentage * 10, then divide by voltage range defined by calibration
-		p2 = (((uint32_t)apps->voltage_2 - apps_2_v_min) * 1000) / (apps_2_v_max - apps_2_v_min);
+		p2 = ((v2 - apps_2_v_min) * 1000) / (apps_2_v_max - apps_2_v_min);
 	}
 
 	// Condition: voltage is above upper limit and into/past the deadzone
-	if(apps->voltage_1 > apps_1_v_max)
+	if(v1 > apps_1_v_max)
 	{
 		// Limit to 100%
 		p1 = 1000;
 	}
 
 	// Condition: voltage is above upper limit and into/past the deadzone
-	if(apps->voltage_2 > apps_2_v_max)
+	if(v2 > apps_2_v_max)
 	{
 		// Limit to 100%
 		p2 = 1000;
@@ -344,7 +351,9 @@ bool validate_apps(APPSSensor_t apps)
  */
 bool validate_bps(BPSSensor_t bps)
 {
-    // Check if out of sensor voltage range, with a deadzone for noise
+    //TODO: reverse logic, assume false plausibility
+
+	// Check if out of sensor voltage range, with a deadzone for noise
 	if ((bps.voltage + BPS_DEADZONE) < BPS_MIN_VOLTAGE || (bps.voltage - BPS_DEADZONE) > BPS_MAX_VOLTAGE)
 	{
 		return false;

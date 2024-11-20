@@ -3,6 +3,8 @@
  *
  * Driver functions for the AM4096 magnetic encoder.
  * The steering sensor PCB has I2C and Data lines pinned out.
+ * TODO: driver is written for I2C blocking mode, should be made
+ * non-block with DMA when integrating with RTOS
  *
  *  Created on: Nov 19, 2024
  *      Author: bglen
