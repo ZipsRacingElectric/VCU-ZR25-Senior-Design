@@ -19,12 +19,13 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-#include "stdio.h"
-#include "stdbool.h"
-#include "driver_sensors.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdio.h"
+#include "stdbool.h"
+#include "usbd_cdc_if.h"
+#include "driver_sensors.h"
 
 /* USER CODE END Includes */
 
@@ -46,6 +47,8 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+I2C_HandleTypeDef hi2c1;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -54,6 +57,7 @@ ADC_HandleTypeDef hadc1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -111,7 +115,9 @@ int main(void)
   MX_GPIO_Init();
   MX_ADC1_Init();
   MX_USB_DEVICE_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+
 
   /* USER CODE END 2 */
 
@@ -121,6 +127,7 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
+    /* USER CODE BEGIN 3 */
 	  // Heart beat
 	  HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
 
@@ -129,10 +136,35 @@ int main(void)
 	  apps = get_apps_data();
 	  pedal_percent = apps.percent;
 
-	  printf("\nAPPS sensor percentage: %d", apps.percent);
-	  HAL_Delay(10);
+	  // Format data to send over USB
+	  char msg_buffer[512];
 
-    /* USER CODE BEGIN 3 */
+	  uint16_t length = snprintf(msg_buffer, sizeof(msg_buffer),
+			  "\nAPPS sensor:\n"
+			  "- Raw Value 1: %u\n"
+			  "- Raw Value 2: %u\n"
+			  "- Voltage 1: %u mV\n"
+			  "- Voltage 2: %u mV\n"
+			  "- Channel 1: %u percent * 10\n"
+			  "- Channel 2: %u percent * 10\n"
+			  "- Pedal Percentage: %u percent * 10\n",
+			  apps.raw_value_1,
+			  apps.raw_value_2,
+			  apps.voltage_1,
+			  apps.voltage_2,
+			  apps.percent_1,
+			  apps.percent_2,
+			  apps.percent);
+
+	  // Ensure snprintf was successful and message length is valid
+	  if (length > 0 && length < sizeof(msg_buffer)) {
+	      // Send only the formatted message length over USB
+	      CDC_Transmit_FS((uint8_t *)msg_buffer, length);
+	  } else {
+	      // Handle error in formatting or length (optional)
+	  }
+
+	  HAL_Delay(50);
   }
   /* USER CODE END 3 */
 }
@@ -235,6 +267,40 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 400000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -251,7 +317,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(OTG_FS_PowerSwitchOn_GPIO_Port, OTG_FS_PowerSwitchOn_Pin, GPIO_PIN_SET);
@@ -267,49 +332,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(OTG_FS_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PDM_OUT_Pin */
-  GPIO_InitStruct.Pin = PDM_OUT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-  HAL_GPIO_Init(PDM_OUT_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : I2S3_WS_Pin */
-  GPIO_InitStruct.Pin = I2S3_WS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-  HAL_GPIO_Init(I2S3_WS_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : SPI1_SCK_Pin SPI1_MISO_Pin SPI1_MOSI_Pin */
-  GPIO_InitStruct.Pin = SPI1_SCK_Pin|SPI1_MISO_Pin|SPI1_MOSI_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pin : BOOT1_Pin */
   GPIO_InitStruct.Pin = BOOT1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BOOT1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : CLK_IN_Pin */
-  GPIO_InitStruct.Pin = CLK_IN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-  HAL_GPIO_Init(CLK_IN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD4_Pin LD3_Pin LD5_Pin LD6_Pin
                            Audio_RST_Pin */
@@ -320,33 +353,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : I2S3_MCK_Pin I2S3_SCK_Pin I2S3_SD_Pin */
-  GPIO_InitStruct.Pin = I2S3_MCK_Pin|I2S3_SCK_Pin|I2S3_SD_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
   /*Configure GPIO pin : OTG_FS_OverCurrent_Pin */
   GPIO_InitStruct.Pin = OTG_FS_OverCurrent_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(OTG_FS_OverCurrent_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : Audio_SCL_Pin Audio_SDA_Pin */
-  GPIO_InitStruct.Pin = Audio_SCL_Pin|Audio_SDA_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : MEMS_INT2_Pin */
-  GPIO_InitStruct.Pin = MEMS_INT2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(MEMS_INT2_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
