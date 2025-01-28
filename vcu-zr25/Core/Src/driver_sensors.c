@@ -9,15 +9,14 @@
 
 // Includes
 #include "driver_sensors.h"
-
+#include "am4096_encoder.h"
 #include <math.h>
 
 // Constants for Conversion and Validation
-#define APPS1_CHANNEL	 	  1
-#define APPS2_CHANNEL	      2
-#define BPS_FRONT_CHANNEL	  3
-#define BPS_REAR_CHANNEL	  4
-#define STEER_ANGLE_CHANNEL	  5
+#define APPS_1_CHANNEL	 	  ADC_CHANNEL_1
+#define APPS_2_CHANNEL	      ADC_CHANNEL_2
+#define BPS_FRONT_CHANNEL	  ADC_CHANNEL_3
+#define BPS_REAR_CHANNEL	  ADC_CHANNEL_4
 
 #define ADC_MAX_VALUE         4095  // 2^12 - 1
 #define ADC_REF_VOLTAGE       3300  // V * 1000
@@ -33,17 +32,17 @@
 
 #define BPS_MIN_VOLTAGE       0500  // V * 1000
 #define BPS_MAX_VOLTAGE       4500  // V * 1000
-#define BPS_MAX_PRESSURE      20684 // pressure in kPA
-#define BPS_DEADZONE    	  020  // Deadzone before plausibility fault in V * 1000
+#define BPS_MAX_PRESSURE      2500 // pressure in PSI
+#define BPS_DEADZONE    	  0050  // Deadzone before plausibility fault in V * 1000
 
-#define STEERING_MAX_ANGLE    4500  // V * 1000
-#define STEERING_MIN_ANGLE    -4500 // V * 1000
+#define STEERING_MAX_ANGLE    3200  // radians * 1000
+#define STEERING_MIN_ANGLE    -3200 // radians * 1000
 
 // Static variables
 APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .percent = 0, .plausible = false};
 BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
 BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
-SteeringAngleSensor_t s_steering_angle = {.raw_value = 0, .angle = 0, .plausible = false};
+SteeringAngleSensor_t s_steering_angle = {.angle = 0, .angular_velocity = 0, .plausible = false};
 
 // Static calibration variables. These hold the 0% and 100% setpoints
 static uint16_t apps_1_min = 0600; // V * 1000
@@ -52,11 +51,10 @@ static uint16_t apps_2_min = 0350; // V * 1000
 static uint16_t apps_2_max = 2150; // V * 1000
 
 // Private Function Prototypes
-static uint16_t read_adc(ADC_HandleTypeDef *adc);
+static uint16_t read_adc(ADC_HandleTypeDef *adc, uint32_t channel);
 static uint16_t adc_to_voltage(uint16_t adc_value);
 static void calc_apps_percent(APPSSensor_t *apps);
 static void calc_bps_pressure(BPSSensor_t *bps);
-static void calc_steering_angle(SteeringAngleSensor_t *steering_angle);
 static uint16_t abs_diff(uint16_t v1, uint16_t v2);
 static bool validate_apps(APPSSensor_t apps);
 static bool validate_bps(BPSSensor_t bps);
@@ -65,15 +63,31 @@ static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 // Public Functions
 
 /*
+ * Initializes the driver input sensors
+ */
+void init_driver_input(I2C_HandleTypeDef *i2c)
+{
+	// TODO: pass adc handle to sensor structs
+
+	// Initialize the AM4096
+	// TODO: handle HAL ERROR
+	(void)am4096_init(&s_steering_angle.i2c_device, i2c);
+}
+
+/*
  * Reads in the raw sensor data and updates the sensor variables
  */
 void read_driver_input(ADC_HandleTypeDef *adc)
 {
     // Read Raw ADC Values
-	s_apps.raw_value_1 = read_adc(adc);
-    s_apps.raw_value_2 = read_adc(adc);
-    s_bps_front.raw_value = read_adc(adc);
-    s_bps_rear.raw_value = read_adc(adc);
+	s_apps.raw_value_1 = read_adc(adc, APPS_1_CHANNEL);
+    s_apps.raw_value_2 = read_adc(adc, APPS_2_CHANNEL);
+    s_bps_front.raw_value = read_adc(adc, BPS_FRONT_CHANNEL);
+    s_bps_rear.raw_value = read_adc(adc, BPS_REAR_CHANNEL);
+
+    // Get raw steering angle values
+    (void)am4096_read_angle(&s_steering_angle.i2c_device);
+    (void)am4096_read_angular_velocity(&s_steering_angle.i2c_device);
 
     // Convert Raw Values to Voltages
     s_apps.voltage_1 = adc_to_voltage(s_apps.raw_value_1);
@@ -148,7 +162,7 @@ bool calibrate_apps(uint16_t apps_1_pedal_min, uint16_t apps_1_pedal_max, uint16
 }
 
 /*
- * Calibrates the constants used to determine BPS pressure
+ * Calibrates the constants used to determine BPS pressure, percent braking, brake light setpoint, and hard braking condition
  */
 bool calibrate_bps(void)
 {
@@ -170,11 +184,29 @@ bool calibrate_steering(void)
 /*
  * Reads in the raw ADC values from hardware
  */
-static uint16_t read_adc(ADC_HandleTypeDef *adc)
+static uint16_t read_adc(ADC_HandleTypeDef *adc, uint32_t channel)
 {
+	ADC_ChannelConfTypeDef sConfig = {0};
+
+	// Set the ADC channel
+	sConfig.Channel = channel;
+	sConfig.Rank = 1; // Regular group rank
+	sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+
+	if (HAL_ADC_ConfigChannel(adc, &sConfig) != HAL_OK)
+	{
+		// Return error value
+		return 0xFFFF;
+	}
+
 	// Read ADC value
 	HAL_ADC_Start(adc);
-	HAL_ADC_PollForConversion(adc, HAL_MAX_DELAY);
+	if (HAL_ADC_PollForConversion(adc, HAL_MAX_DELAY) != HAL_OK)
+	{
+		// Return error value
+		return 0xFFFF;
+	}
+
 	return HAL_ADC_GetValue(adc);
 }
 
@@ -259,9 +291,9 @@ static void calc_bps_pressure(BPSSensor_t *bps)
 	uint32_t pressure = 0;
 
 	// Condition: voltage in linear range
-    if (bps->voltage > BPS_MIN_VOLTAGE && bps->voltage < BPS_MAX_VOLTAGE)
+    if ((bps->voltage - BPS_DEADZONE) > BPS_MIN_VOLTAGE && (bps->voltage + BPS_DEADZONE) < BPS_MAX_VOLTAGE)
     {
-    	pressure = ((uint32_t)bps->voltage - BPS_MIN_VOLTAGE) * (BPS_MAX_PRESSURE  * 1000 / BPS_MAX_VOLTAGE) / 1000;
+    	pressure = ((uint32_t)bps->voltage - (BPS_MIN_VOLTAGE + BPS_DEADZONE)) * (BPS_MAX_PRESSURE  * 1000 / (BPS_MAX_VOLTAGE - BPS_DEADZONE)) / 1000;
     }
 
     // Condition: voltage > max voltage
@@ -271,14 +303,6 @@ static void calc_bps_pressure(BPSSensor_t *bps)
     }
 
     bps->pressure = (uint16_t)pressure;
-}
-
-/*
- * Calculate the steering angle in radians
- */
-static void calc_steering_angle(SteeringAngleSensor_t *steering_angle)
-{
-    // TODO
 }
 
 /*
@@ -351,15 +375,13 @@ bool validate_apps(APPSSensor_t apps)
  */
 bool validate_bps(BPSSensor_t bps)
 {
-    //TODO: reverse logic, assume false plausibility
-
-	// Check if out of sensor voltage range, with a deadzone for noise
-	if ((bps.voltage + BPS_DEADZONE) < BPS_MIN_VOLTAGE || (bps.voltage - BPS_DEADZONE) > BPS_MAX_VOLTAGE)
+	// Check if voltage out of expected range, with a deadzone for noise
+	if ((bps.voltage + BPS_DEADZONE) >= BPS_MIN_VOLTAGE && (bps.voltage - BPS_DEADZONE) <= BPS_MAX_VOLTAGE)
 	{
-		return false;
+		return true;
 	}
 
-    return true;
+    return false;
 }
 
 /*
@@ -367,7 +389,12 @@ bool validate_bps(BPSSensor_t bps)
  */
 bool validate_steering_angle(SteeringAngleSensor_t steering_angle)
 {
-	// TODO
-	return true;
+	// Check if the calculated angle is outside the expected range
+	if (steering_angle.angle >= STEERING_MIN_ANGLE && steering_angle.angle <= STEERING_MAX_ANGLE)
+	{
+		return true;
+	}
+
+	return false;
 }
 

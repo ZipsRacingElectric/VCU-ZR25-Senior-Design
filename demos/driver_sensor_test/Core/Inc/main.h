@@ -73,6 +73,10 @@ void Error_Handler(void);
 #define APPS1_GPIO_Port GPIOA
 #define APPS2_Pin GPIO_PIN_2
 #define APPS2_GPIO_Port GPIOA
+#define BPS_FRONT_Pin GPIO_PIN_3
+#define BPS_FRONT_GPIO_Port GPIOA
+#define BPS_REAR_Pin GPIO_PIN_4
+#define BPS_REAR_GPIO_Port GPIOA
 #define BOOT1_Pin GPIO_PIN_2
 #define BOOT1_GPIO_Port GPIOB
 #define LD4_Pin GPIO_PIN_12

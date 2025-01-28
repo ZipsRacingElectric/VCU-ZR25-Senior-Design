@@ -159,13 +159,13 @@ int main(void)
 			  "- Raw Value Rear: %u\n"
 			  "- Voltage Front: %u mV\n"
 			  "- Voltage Rear: %u mV\n"
-			  "- Pressure Front: %u kPa\n"
-			  "- Pressure Rear: %u kPa\n"
+			  "- Pressure Front: %u PSI\n"
+			  "- Pressure Rear: %u PSI\n"
 			  "- Plausibility Front: %d\n"
 			  "- Plausibility Rear: %d\n"
 			  "\n"
 			  "Steering Angle:\n"
-			  "- Raw Value: %u\n"
+			  "- Device status: %u\n"
 			  "- Angle: %u radians * 1000\n"
 			  "- Plausibility Front: %d\n",
 			  apps.raw_value_1,
@@ -176,6 +176,7 @@ int main(void)
 			  apps.percent_1,
 			  apps.percent_2,
 			  (uint8_t)apps.plausible,
+
 			  bps_f.raw_value,
 			  bps_r.raw_value,
 			  bps_f.voltage,
@@ -184,7 +185,8 @@ int main(void)
 			  bps_r.pressure,
 			  (uint8_t)bps_f.plausible,
 			  (uint8_t)bps_r.plausible,
-			  steering_angle.raw_value,
+
+			  steering_angle.i2c_device.device_status,
 			  steering_angle.angle,
 			  (uint8_t)steering_angle.plausible);
 

@@ -11,7 +11,9 @@
  * TODO:
  * - BPS calibration
  * - Steering angle calibration
- * - Steering angle deadzones
+ * - brake light set point
+ * - hard braking condition
+ * - Steering angle dead zone
  * - filtering
  * - unit testing
  */
@@ -20,6 +22,11 @@
 #define SRC_DRIVER_SENSORS_H_
 
 // Includes
+#ifdef TEST
+#include <stm32f4xx_hal.h>
+#endif
+
+#include "am4096_encoder.h"
 #include <stm32f4xx_hal.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -33,7 +40,7 @@ typedef struct
     uint16_t voltage_2;   // Voltage of channel 2 in V * 1000
     uint16_t percent_1;   // Position in percentage of channel 1
     uint16_t percent_2;   // Position in percentage of channel 2
-    uint16_t percent;    // Position in percentage used for
+    uint16_t percent;     // Position in percentage used for
     bool plausible;		  // Plausibility of sensor
 } APPSSensor_t;
 
@@ -47,12 +54,18 @@ typedef struct
 
 typedef struct
 {
-    uint16_t raw_value; // Raw value from sensor
-    uint16_t angle;     // Steering angle in radians * 1000
-    bool plausible;		// Plausibility of sensor
+	AM4096_t i2c_device;       // AM4096 device
+    uint16_t angle;            // Steering angle in radians * 1000
+    uint16_t angular_velocity; // Angular velocity in rad * 1000 / s
+    bool plausible;		       // Plausibility of sensor
 } SteeringAngleSensor_t;
 
 // Function Prototypes
+
+/*
+ * Initializes the driver input sensors
+ */
+void init_driver_input(I2C_HandleTypeDef *i2c);
 
 /*
  * Reads in the raw sensor data and updates the sensor variables
