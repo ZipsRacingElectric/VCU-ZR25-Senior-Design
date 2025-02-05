@@ -53,6 +53,7 @@ WWDG_HandleTypeDef hwwdg;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
+osThreadId_t fsmTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
@@ -61,6 +62,14 @@ const osThreadAttr_t defaultTask_attributes = {
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
+
+typedef enum {
+  VEHICLE_OFF,
+  LOW_VOLTAGE_STATE,
+  TRACTIVE_SYSTEM_ACTIVE_STATE,
+  READY_TO_DRIVE_STATE,
+  LOCKOUT_STATE
+} VCU_State_t;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -71,6 +80,8 @@ static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_WWDG_Init(void);
 void StartDefaultTask(void *argument);
+void StartFSMTask(void *argument);
+void TransitionState(VCU_State_t newState);
 
 /* USER CODE BEGIN PFP */
 
@@ -78,6 +89,147 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+VCU_State_t currentState = VEHICLE_OFF;
+/* Interrupt flags */
+volatile uint8_t GLVMS_Turned_On = 0;
+volatile uint8_t GLVMS_Turned_Off = 1;
+volatile uint8_t Shutdown_Loop_Open = 0;
+volatile uint8_t External_Button_Pressed = 0;
+volatile uint8_t Brake_Pressed = 0;
+volatile uint8_t Start_Button_Pressed = 0;
+volatile uint8_t Fault_Cleared = 0;
+volatile uint8_t External_Reset_Pressed = 0;
+
+void StartFSMTask(void *argument)
+{
+  for(;;)
+  {
+    switch(currentState)
+    {
+      case VEHICLE_OFF:
+        if (GLVMS_Turned_On)
+        {
+          TransitionState(LOW_VOLTAGE_STATE);
+        }
+        break;
+
+      case LOW_VOLTAGE_STATE:
+		if (GLVMS_Turned_Off)
+		{
+		  TransitionState(VEHICLE_OFF);
+		}
+        if (!Shutdown_Loop_Open && External_Button_Pressed)
+        {
+          TransitionState(TRACTIVE_SYSTEM_ACTIVE_STATE);
+        }
+        break;
+
+      case TRACTIVE_SYSTEM_ACTIVE_STATE:
+    	if (GLVMS_Turned_Off)
+    	{
+    	  TransitionState(VEHICLE_OFF);
+    	}
+        if (Brake_Pressed && Start_Button_Pressed)
+        {
+          TransitionState(READY_TO_DRIVE_STATE);
+        }
+        else if (Shutdown_Loop_Open)
+        {
+          TransitionState(LOW_VOLTAGE_STATE);
+        }
+        break;
+
+      case READY_TO_DRIVE_STATE:
+      	if (GLVMS_Turned_Off)
+      	{
+      	  TransitionState(VEHICLE_OFF);
+      	}
+        if (Shutdown_Loop_Open)
+        {
+          TransitionState(LOCKOUT_STATE);
+        }
+        break;
+
+      case LOCKOUT_STATE:
+		if (GLVMS_Turned_Off)
+		{
+		  TransitionState(VEHICLE_OFF);
+		}
+        if (Fault_Cleared && External_Reset_Pressed)
+        {
+          TransitionState(TRACTIVE_SYSTEM_ACTIVE_STATE);
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    osDelay(1);
+  }
+}
+
+void TransitionState(VCU_State_t newState)
+{
+  currentState = newState;
+
+  switch(newState)
+  {
+    case VEHICLE_OFF:
+      HAL_GPIO_WritePin(GPIOA, HEARTBEAT_LED_Pin, GPIO_PIN_RESET);
+      break;
+
+    case LOW_VOLTAGE_STATE:
+      HAL_GPIO_WritePin(GPIOA, STATUS_LED_1_Pin, GPIO_PIN_SET);
+      break;
+
+    case TRACTIVE_SYSTEM_ACTIVE_STATE:
+      HAL_GPIO_WritePin(GPIOB, FAN_1_Pin, GPIO_PIN_SET);
+      break;
+
+    case READY_TO_DRIVE_STATE:
+      HAL_GPIO_WritePin(GPIOA, STATUS_LED_2_Pin, GPIO_PIN_SET);
+      break;
+
+    case LOCKOUT_STATE:
+      HAL_GPIO_WritePin(GPIOB, WATER_PUMP_2_Pin, GPIO_PIN_RESET);
+      break;
+
+    default:
+      break;
+  }
+}
+
+/* interrupts */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  /* just using random variable names for them right now */
+  if (GPIO_Pin == GLVMS_PIN)
+  {
+    GLVMS_Turned_On = 1;
+  }
+  else if (GPIO_Pin == SHUTDOWN_LOOP_PIN)
+  {
+    Shutdown_Loop_Open = 1;
+  }
+  else if (GPIO_Pin == EXTERNAL_BUTTON_PIN)
+  {
+    External_Button_Pressed = 1;
+  }
+  else if (GPIO_Pin == BRAKE_PIN)
+  {
+    Brake_Pressed = 1;
+  }
+  else if (GPIO_Pin == START_BUTTON_PIN)
+  {
+    Start_Button_Pressed = 1;
+  }
+  else if (GPIO_Pin == FAULT_PIN)
+  {
+    Shutdown_Loop_Open = 1;
+  }
+}
 
 /* USER CODE END 0 */
 
@@ -141,6 +293,7 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
