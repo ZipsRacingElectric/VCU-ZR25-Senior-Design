@@ -177,7 +177,7 @@ void TransitionState(VCU_State_t newState)
   switch(newState)
   {
     case VEHICLE_OFF:
-      HAL_GPIO_WritePin(GPIOA, HEARTBEAT_LED_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOA, STATUS_LED_1_Pin, GPIO_PIN_RESET);
       break;
 
     case LOW_VOLTAGE_STATE:
@@ -185,15 +185,15 @@ void TransitionState(VCU_State_t newState)
       break;
 
     case TRACTIVE_SYSTEM_ACTIVE_STATE:
-      HAL_GPIO_WritePin(GPIOB, FAN_1_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOB, STATUS_LED_1_Pin, GPIO_PIN_SET);
       break;
 
     case READY_TO_DRIVE_STATE:
-      HAL_GPIO_WritePin(GPIOA, STATUS_LED_2_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOA, STATUS_LED_1_Pin, GPIO_PIN_SET);
       break;
 
     case LOCKOUT_STATE:
-      HAL_GPIO_WritePin(GPIOB, WATER_PUMP_2_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOB, STATUS_LED_1_Pin, GPIO_PIN_RESET);
       break;
 
     default:
@@ -205,27 +205,27 @@ void TransitionState(VCU_State_t newState)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   /* just using random variable names for them right now */
-  if (GPIO_Pin == GLVMS_PIN)
+  if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     GLVMS_Turned_On = 1;
   }
-  else if (GPIO_Pin == SHUTDOWN_LOOP_PIN)
+  else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     Shutdown_Loop_Open = 1;
   }
-  else if (GPIO_Pin == EXTERNAL_BUTTON_PIN)
+  else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     External_Button_Pressed = 1;
   }
-  else if (GPIO_Pin == BRAKE_PIN)
+  else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     Brake_Pressed = 1;
   }
-  else if (GPIO_Pin == START_BUTTON_PIN)
+  else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     Start_Button_Pressed = 1;
   }
-  else if (GPIO_Pin == FAULT_PIN)
+  else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     Shutdown_Loop_Open = 1;
   }
