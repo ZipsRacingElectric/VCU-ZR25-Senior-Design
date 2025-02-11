@@ -24,6 +24,7 @@
 #include "stdbool.h"
 #include "usbd_cdc_if.h"
 #include "driver_sensors.h"
+#include "stm32f4xx_hal_adc.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -46,6 +47,13 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
+// ADC thresholds for 5V and 3.3V rails
+#define ADC_5V_THRESHOLD_LOW   3123   // ADC value for 4.8V
+#define ADC_5V_THRESHOLD_HIGH  3383   // ADC value for 5.2V
+#define ADC_3V3_THRESHOLD_LOW  2712   // ADC value for 2.8V
+#define ADC_3V3_THRESHOLD_HIGH 3390   // ADC value for 3.5V
+
 ADC_HandleTypeDef hadc1;
 
 CAN_HandleTypeDef hcan1;
@@ -338,6 +346,9 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t adc_value_5V = 0;
+  uint32_t adc_value_3V3 = 0;
+
   while (1)
   {
      /* USER CODE END WHILE */
@@ -346,8 +357,40 @@ int main(void)
  	  // Heart beat
 	  HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
 
- 	  // Read APPS sensor
+	  // Read 5V signal on PA0
 	  temp_channel = sConfig.Channel;
+	  sConfig.Channel = ADC_CHANNEL_0;
+	  HAL_ADC_Start(&hadc1);
+	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	  adc_value_5V = HAL_ADC_GetValue(&hadc1);
+
+	  // Check if 5V signal within range
+	  if (adc_value_5V >= ADC_5V_THRESHOLD_LOW && adc_value_5V <= ADC_5V_THRESHOLD_HIGH) {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+	  } else {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+	  }
+
+	  // Change to PA1 for 3.3V signal
+	  ADC_ChannelConfTypeDef sConfig = {0};
+	  sConfig.Channel = ADC_CHANNEL_1;
+	  sConfig.Rank = 1;
+	  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+	  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+	  // Read 3.3V signal on PA1
+	  HAL_ADC_Start(&hadc1);
+	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	  adc_value_3V3 = HAL_ADC_GetValue(&hadc1);
+
+	  // Check if 3.3V signal within the range
+	  if (adc_value_3V3 >= ADC_3V3_THRESHOLD_LOW && adc_value_3V3 <= ADC_3V3_THRESHOLD_HIGH) {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+	  } else {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+	  }
+
+ 	  // Read APPS sensor
 	  sConfig.Channel = ADC_CHANNEL_1;
  	  read_driver_input(&hadc1);
  	  apps = get_apps_data();
