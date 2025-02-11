@@ -93,8 +93,8 @@ void TransitionState(VCU_State_t newState);
 VCU_State_t currentState = VEHICLE_OFF;
 /* Interrupt flags */
 volatile uint8_t GLVMS_Turned_On = 0;
-volatile uint8_t GLVMS_Turned_Off = 1;
 volatile uint8_t Shutdown_Loop_Open = 0;
+volatile uint8_t Shutdown_Loop_Open_Critical = 0;
 volatile uint8_t External_Button_Pressed = 0;
 volatile uint8_t Brake_Pressed = 0;
 volatile uint8_t Start_Button_Pressed = 0;
@@ -115,44 +115,52 @@ void StartFSMTask(void *argument)
         break;
 
       case LOW_VOLTAGE_STATE:
-		if (GLVMS_Turned_Off)
+		if (!GLVMS_Turned_On)
 		{
 		  TransitionState(VEHICLE_OFF);
 		}
-        if (!Shutdown_Loop_Open && External_Button_Pressed)
+		else if (!Shutdown_Loop_Open && External_Button_Pressed)
         {
           TransitionState(TRACTIVE_SYSTEM_ACTIVE_STATE);
         }
         break;
 
       case TRACTIVE_SYSTEM_ACTIVE_STATE:
-    	if (GLVMS_Turned_Off)
+    	if (!GLVMS_Turned_On)
     	{
     	  TransitionState(VEHICLE_OFF);
     	}
-        if (Brake_Pressed && Start_Button_Pressed)
+        else if (Shutdown_Loop_Open_Critical)
+		{
+		  TransitionState(LOCKOUT_STATE);
+		}
+        else if (Shutdown_Loop_Open)
+        {
+          TransitionState(LOW_VOLTAGE_STATE);
+        }
+    	else if (Brake_Pressed && Start_Button_Pressed)
         {
           TransitionState(READY_TO_DRIVE_STATE);
         }
+        break;
+
+      case READY_TO_DRIVE_STATE:
+      	if (!GLVMS_Turned_On)
+      	{
+      	  TransitionState(VEHICLE_OFF);
+      	}
+      	if (Shutdown_Loop_Open_Critical)
+		{
+		  TransitionState(LOCKOUT_STATE);
+		}
         else if (Shutdown_Loop_Open)
         {
           TransitionState(LOW_VOLTAGE_STATE);
         }
         break;
 
-      case READY_TO_DRIVE_STATE:
-      	if (GLVMS_Turned_Off)
-      	{
-      	  TransitionState(VEHICLE_OFF);
-      	}
-        if (Shutdown_Loop_Open)
-        {
-          TransitionState(LOCKOUT_STATE);
-        }
-        break;
-
       case LOCKOUT_STATE:
-		if (GLVMS_Turned_Off)
+		if (!GLVMS_Turned_On)
 		{
 		  TransitionState(VEHICLE_OFF);
 		}
@@ -170,6 +178,7 @@ void StartFSMTask(void *argument)
   }
 }
 
+/* TODO: Determine Pin writes and reads for transitions and exceptions */
 void TransitionState(VCU_State_t newState)
 {
   currentState = newState;
@@ -201,33 +210,31 @@ void TransitionState(VCU_State_t newState)
   }
 }
 
-/* interrupts */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  /* just using random variable names for them right now */
-  if (GPIO_Pin == STATUS_LED_1_Pin)
+  if (GPIO_Pin == GLV_BATTERY_Pin)
   {
     GLVMS_Turned_On = 1;
   }
-  else if (GPIO_Pin == STATUS_LED_1_Pin)
+  else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_Pin)
   {
     Shutdown_Loop_Open = 1;
   }
+  else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_Pin)
+{
+  Shutdown_Loop_Open_Critical = 1;
+}
   else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     External_Button_Pressed = 1;
   }
-  else if (GPIO_Pin == STATUS_LED_1_Pin)
+  else if (GPIO_Pin == (BPS_FRONT_Pin | BPS_REAR_Pin))
   {
     Brake_Pressed = 1;
   }
   else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
     Start_Button_Pressed = 1;
-  }
-  else if (GPIO_Pin == STATUS_LED_1_Pin)
-  {
-    Shutdown_Loop_Open = 1;
   }
 }
 
