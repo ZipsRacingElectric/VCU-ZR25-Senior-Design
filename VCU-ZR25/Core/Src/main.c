@@ -20,6 +20,11 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "usb_device.h"
+#include "stdio.h"
+#include "stdbool.h"
+#include "usbd_cdc_if.h"
+#include "driver_sensors.h"
+#include "stm32f4xx_hal_adc.h"
 #include "vehicle_fsm.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -43,6 +48,13 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
+// ADC thresholds for 5V and 3.3V rails
+#define ADC_5V_THRESHOLD_LOW   3123   // ADC value for 4.8V
+#define ADC_5V_THRESHOLD_HIGH  3383   // ADC value for 5.2V
+#define ADC_3V3_THRESHOLD_LOW  2712   // ADC value for 2.8V
+#define ADC_3V3_THRESHOLD_HIGH 3390   // ADC value for 3.5V
+
 ADC_HandleTypeDef hadc1;
 
 CAN_HandleTypeDef hcan1;
@@ -94,11 +106,27 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   * @brief  The application entry point.
   * @retval int
   */
+
+int _write(int file, char *ptr, int len)
+{
+  int i = 0;
+  for (i = 0; i<len; i++)
+  {
+    ITM_SendChar((*ptr++));
+  }
+  return len;
+}
+
+uint16_t count;
+
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+  APPSSensor_t apps;
+  BPSSensor_t bps_f;
+  BPSSensor_t bps_r;
+  SteeringAngleSensor_t steering_angle;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -124,6 +152,7 @@ int main(void)
   MX_I2C1_Init();
   MX_ADC1_Init();
   MX_WWDG_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -167,14 +196,121 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t adc_value_5V = 0;
+  uint32_t adc_value_3V3 = 0;
+
   while (1)
   {
-    /* USER CODE END WHILE */
+     /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
-}
+     /* USER CODE BEGIN 3 */
+ 	  // Heart beat
+	  HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
+
+	  // Read 5V signal on PA0
+	  temp_channel = sConfig.Channel;
+	  sConfig.Channel = ADC_CHANNEL_0;
+	  HAL_ADC_Start(&hadc1);
+	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	  adc_value_5V = HAL_ADC_GetValue(&hadc1);
+
+	  // Check if 5V signal within range
+	  if (adc_value_5V >= ADC_5V_THRESHOLD_LOW && adc_value_5V <= ADC_5V_THRESHOLD_HIGH) {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+	  } else {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+	  }
+
+	  // Change to PA1 for 3.3V signal
+	  ADC_ChannelConfTypeDef sConfig = {0};
+	  sConfig.Channel = ADC_CHANNEL_1;
+	  sConfig.Rank = 1;
+	  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+	  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+	  // Read 3.3V signal on PA1
+	  HAL_ADC_Start(&hadc1);
+	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	  adc_value_3V3 = HAL_ADC_GetValue(&hadc1);
+
+	  // Check if 3.3V signal within the range
+	  if (adc_value_3V3 >= ADC_3V3_THRESHOLD_LOW && adc_value_3V3 <= ADC_3V3_THRESHOLD_HIGH) {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+	  } else {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+	  }
+
+ 	  // Read APPS sensor
+	  sConfig.Channel = ADC_CHANNEL_1;
+ 	  read_driver_input(&hadc1);
+ 	  apps = get_apps_data();
+ 	  bps_f = get_bps_front_data();
+ 	  bps_r = get_bps_rear_data();
+ 	  steering_angle = get_steering_angle_data();
+ 	  sConfig.Channel = temp_channel;
+
+ 	  // Format data to send over USB
+ 	  char msg_buffer[1024];
+
+ 	  uint16_t length = snprintf(msg_buffer, sizeof(msg_buffer),
+ 			  "\nAccelerator Pedal:\n"
+ 			  "- Raw Value 1: %u\n"
+ 			  "- Raw Value 2: %u\n"
+ 			  "- Voltage 1: %u mV\n"
+ 			  "- Voltage 2: %u mV\n"
+ 			  "- Pedal Percentage: %u percent * 10\n"
+ 			  "- Channel 1: %u percent * 10\n"
+ 			  "- Channel 2: %u percent * 10\n"
+ 			  "- APPS Plausibility: %d\n"
+ 			  "\n"
+ 			  "Brake Pressure:\n"
+ 			  "- Raw Value Front: %u\n"
+ 			  "- Raw Value Rear: %u\n"
+ 			  "- Voltage Front: %u mV\n"
+ 			  "- Voltage Rear: %u mV\n"
+ 			  "- Pressure Front: %u PSI\n"
+ 			  "- Pressure Rear: %u PSI\n"
+ 			  "- Plausibility Front: %d\n"
+ 			  "- Plausibility Rear: %d\n"
+ 			  "\n"
+ 			  "Steering Angle:\n"
+ 			  "- Device status: %u\n"
+ 			  "- Angle: %u radians * 1000\n"
+ 			  "- Plausibility Front: %d\n",
+ 			  apps.raw_value_1,
+ 			  apps.raw_value_2,
+ 			  apps.voltage_1,
+ 			  apps.voltage_2,
+ 			  apps.percent,
+ 			  apps.percent_1,
+ 			  apps.percent_2,
+ 			  (uint8_t)apps.plausible,
+
+ 			  bps_f.raw_value,
+ 			  bps_r.raw_value,
+ 			  bps_f.voltage,
+ 			  bps_r.voltage,
+ 			  bps_f.pressure,
+ 			  bps_r.pressure,
+ 			  (uint8_t)bps_f.plausible,
+ 			  (uint8_t)bps_r.plausible,
+
+ 			  steering_angle.i2c_device.device_status,
+ 			  steering_angle.angle,
+ 			  (uint8_t)steering_angle.plausible);
+
+ 	  // Ensure snprintf was successful and message length is valid
+ 	  if (length > 0 && length < sizeof(msg_buffer)) {
+ 	      // Send only the formatted message length over USB
+ 	      CDC_Transmit_FS((uint8_t *)msg_buffer, length);
+ 	  } else {
+ 	      // Handle error in formatting or length (optional)
+ 	  }
+
+ 	  HAL_Delay(50);
+   }
+   /* USER CODE END 3 */
+ }
 
 /**
   * @brief System Clock Configuration
@@ -427,16 +563,23 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, HEARTBEAT_LED_Pin|STATUS_LED_1_Pin|STATUS_LED_2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, WATER_PUMP_2_Pin|FAN_1_Pin|FAN_2_Pin|CAN2_STANDBY_Pin
+                            |CAN1_STANDBY_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, VCU_SHUTDOWN_LOOP_Pin|WATER_PUMP_1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, WATER_PUMP_2_Pin|FAN_1_Pin|FAN_2_Pin|CAN2_STANDBY_Pin
-                          |CAN1_STANDBY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
+                          |Audio_RST_Pin, GPIO_PIN_RESET);
+
+  HAL_GPIO_WritePin(OTG_FS_PowerSwitchOn_GPIO_Port, OTG_FS_PowerSwitchOn_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : HEARTBEAT_LED_Pin STATUS_LED_1_Pin STATUS_LED_2_Pin */
   GPIO_InitStruct.Pin = HEARTBEAT_LED_Pin|STATUS_LED_1_Pin|STATUS_LED_2_Pin;
@@ -460,6 +603,40 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : OTG_FS_PowerSwitchOn_Pin */
+  GPIO_InitStruct.Pin = OTG_FS_PowerSwitchOn_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(OTG_FS_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : B1_Pin */
+  GPIO_InitStruct.Pin = B1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BOOT1_Pin */
+  GPIO_InitStruct.Pin = BOOT1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BOOT1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LD4_Pin LD3_Pin LD5_Pin LD6_Pin
+                           Audio_RST_Pin */
+  GPIO_InitStruct.Pin = LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
+                          |Audio_RST_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : OTG_FS_OverCurrent_Pin */
+  GPIO_InitStruct.Pin = OTG_FS_OverCurrent_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(OTG_FS_OverCurrent_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
