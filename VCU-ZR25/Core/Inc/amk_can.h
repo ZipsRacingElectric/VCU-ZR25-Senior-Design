@@ -103,5 +103,27 @@ struct AMKStatusWord {
 	uint8_t derating : 1;
 };
 
+// Vehicle state module
+typedef struct {
+	// SM1
+	uint16_t status_word;             // Index 3, see AMKStatusWord
+	int16_t actual_torque;            // Index 19
+	int32_t actual_speed;             // Index 20
+	// SM2
+	uint16_t dc_bus_voltage;          // Index 32836
+	int16_t torque_current_feedback;  // Index 32834
+	uint32_t actual_power;            // Index 33100
+	// SM3
+	int16_t internal_temp;            // Index 33116
+	int16_t external_temp;            // Index 33117
+	uint16_t motor_temp;              // Index 34166
+	int16_t igbt_temp;                // Index 27
+	// SM4
+	uint32_t diagnostic;              // Index 21
+	uint32_t error_info_1;            // Index 22
+	// SM5
+	uint32_t error_info_2;            // Index 23
+	uint32_t error_info_3;            // Index 24
+} AMKState_t;
 
 #endif /* INC_AMK_CAN_H_ */
