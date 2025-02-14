@@ -63,6 +63,7 @@ WWDG_HandleTypeDef hwwdg;
 osThreadId_t defaultTaskHandle;
 osThreadId_t fsmTaskHandle;
 osThreadId_t powsupTaskHandle;
+osThreadId_t driversensorTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
@@ -181,6 +182,12 @@ int main(void)
 		  NULL,
 		  &powersupTask_attributes
   );
+  driversensorTaskHandle = osThreadNew(
+		  StartDriverSensorTask(hadc1, sConfig),
+		  NULL,
+		  &driversensorTask_attributes
+  );
+
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -205,74 +212,6 @@ int main(void)
      /* USER CODE BEGIN 3 */
  	  // Heart beat
 	  HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
-
- 	  // Read APPS sensor
-	  temp_channel = sConfig.Channel;
-	  sConfig.Channel = ADC_CHANNEL_1;
- 	  read_driver_input(&hadc1);
- 	  apps = get_apps_data();
- 	  bps_f = get_bps_front_data();
- 	  bps_r = get_bps_rear_data();
- 	  steering_angle = get_steering_angle_data();
- 	  sConfig.Channel = temp_channel;
-
- 	  // Format data to send over USB
- 	  char msg_buffer[1024];
-
- 	  uint16_t length = snprintf(msg_buffer, sizeof(msg_buffer),
- 			  "\nAccelerator Pedal:\n"
- 			  "- Raw Value 1: %u\n"
- 			  "- Raw Value 2: %u\n"
- 			  "- Voltage 1: %u mV\n"
- 			  "- Voltage 2: %u mV\n"
- 			  "- Pedal Percentage: %u percent * 10\n"
- 			  "- Channel 1: %u percent * 10\n"
- 			  "- Channel 2: %u percent * 10\n"
- 			  "- APPS Plausibility: %d\n"
- 			  "\n"
- 			  "Brake Pressure:\n"
- 			  "- Raw Value Front: %u\n"
- 			  "- Raw Value Rear: %u\n"
- 			  "- Voltage Front: %u mV\n"
- 			  "- Voltage Rear: %u mV\n"
- 			  "- Pressure Front: %u PSI\n"
- 			  "- Pressure Rear: %u PSI\n"
- 			  "- Plausibility Front: %d\n"
- 			  "- Plausibility Rear: %d\n"
- 			  "\n"
- 			  "Steering Angle:\n"
- 			  "- Device status: %u\n"
- 			  "- Angle: %u radians * 1000\n"
- 			  "- Plausibility Front: %d\n",
- 			  apps.raw_value_1,
- 			  apps.raw_value_2,
- 			  apps.voltage_1,
- 			  apps.voltage_2,
- 			  apps.percent,
- 			  apps.percent_1,
- 			  apps.percent_2,
- 			  (uint8_t)apps.plausible,
-
- 			  bps_f.raw_value,
- 			  bps_r.raw_value,
- 			  bps_f.voltage,
- 			  bps_r.voltage,
- 			  bps_f.pressure,
- 			  bps_r.pressure,
- 			  (uint8_t)bps_f.plausible,
- 			  (uint8_t)bps_r.plausible,
-
- 			  steering_angle.i2c_device.device_status,
- 			  steering_angle.angle,
- 			  (uint8_t)steering_angle.plausible);
-
- 	  // Ensure snprintf was successful and message length is valid
- 	  if (length > 0 && length < sizeof(msg_buffer)) {
- 	      // Send only the formatted message length over USB
- 	      CDC_Transmit_FS((uint8_t *)msg_buffer, length);
- 	  } else {
- 	      // Handle error in formatting or length (optional)
- 	  }
 
  	  HAL_Delay(50);
    }
