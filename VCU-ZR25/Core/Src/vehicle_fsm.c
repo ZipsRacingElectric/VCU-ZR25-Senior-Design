@@ -11,92 +11,95 @@
 
 VCU_State_t currentState = VEHICLE_OFF;
 /* Interrupt flags */
-typedef struct {
-	uint8_t GLVMS_Turned_On : 1;
-	uint8_t Shutdown_Loop_Open : 1;
-	uint8_t Shutdown_Loop_Open_Critical : 1;
-	uint8_t External_Button_Pressed : 1;
-	uint8_t Brake_Pressed : 1;
-	uint8_t Start_Button_Pressed : 1;
-	uint8_t Fault_Cleared : 1;
-	uint8_t External_Reset_Pressed : 1;
+typedef union {
+	struct FSMInterruptFlagBits{
+		uint8_t GLVMS_Turned_On : 1;
+		uint8_t Shutdown_Loop_Open : 1;
+		uint8_t Shutdown_Loop_Open_Critical : 1;
+		uint8_t External_Button_Pressed : 1;
+		uint8_t Brake_Pressed : 1;
+		uint8_t Start_Button_Pressed : 1;
+		uint8_t Fault_Cleared : 1;
+		uint8_t External_Reset_Pressed : 1;
+	} flagBits;
+	uint32_t flagInt;
 } FSMInterruptFlags_t;
 
-const FSMInterruptFlags_t FSM_FLAGS_ALL = {1,1,1,1,1,1,1,1};
-const FSMInterruptFlags_t FSM_FLAGS_NONE = {0,0,0,0,0,0,0,0};
+const struct FSMInterruptFlagBits FSM_FLAGS_ALL = {1,1,1,1,1,1,1,1};
+const struct FSMInterruptFlagBits FSM_FLAGS_NONE = {0,0,0,0,0,0,0,0};
 
 static osThreadId_t thread_id;
 
 void StartFSMTask(void *argument)
 {
   thread_id = osThreadGetId();
-  FSMInterruptFlags_t flags = FSM_FLAGS_NONE;
-  osThreadFlagsSet(thread_id, (uint32_t)flags);
+  FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
+  osThreadFlagsSet(thread_id, flags.flagInt);
 
   for(;;)
   {
-	flags = osThreadFlagsGet();
+	flags.flagInt = osThreadFlagsGet();
 
     switch(currentState)
     {
       case VEHICLE_OFF:
-        if (flags->GLVMS_Turned_On)
+        if (flags.flagBits.GLVMS_Turned_On)
         {
           TransitionState(LOW_VOLTAGE_STATE);
         }
         break;
 
       case LOW_VOLTAGE_STATE:
-		if (!flags->GLVMS_Turned_On)
+		if (!flags.flagBits.GLVMS_Turned_On)
 		{
 		  TransitionState(VEHICLE_OFF);
 		}
-		else if (!flags->Shutdown_Loop_Open && flags->External_Button_Pressed)
+		else if (!flags.flagBits.Shutdown_Loop_Open && flags.flagBits.External_Button_Pressed)
         {
           TransitionState(TRACTIVE_SYSTEM_ACTIVE_STATE);
         }
         break;
 
       case TRACTIVE_SYSTEM_ACTIVE_STATE:
-    	if (!flags->GLVMS_Turned_On)
+    	if (!flags.flagBits.GLVMS_Turned_On)
     	{
     	  TransitionState(VEHICLE_OFF);
     	}
-        else if (flags->Shutdown_Loop_Open_Critical)
+        else if (flags.flagBits.Shutdown_Loop_Open_Critical)
 		{
 		  TransitionState(LOCKOUT_STATE);
 		}
-        else if (flags->Shutdown_Loop_Open)
+        else if (flags.flagBits.Shutdown_Loop_Open)
         {
           TransitionState(LOW_VOLTAGE_STATE);
         }
-    	else if (flags->Brake_Pressed && flags->Start_Button_Pressed)
+    	else if (flags.flagBits.Brake_Pressed && flags.flagBits.Start_Button_Pressed)
         {
           TransitionState(READY_TO_DRIVE_STATE);
         }
         break;
 
       case READY_TO_DRIVE_STATE:
-      	if (!flags->GLVMS_Turned_On)
+      	if (!flags.flagBits.GLVMS_Turned_On)
       	{
       	  TransitionState(VEHICLE_OFF);
       	}
-      	if (flags->Shutdown_Loop_Open_Critical)
+      	if (flags.flagBits.Shutdown_Loop_Open_Critical)
 		{
 		  TransitionState(LOCKOUT_STATE);
 		}
-        else if (flags->Shutdown_Loop_Open)
+        else if (flags.flagBits.Shutdown_Loop_Open)
         {
           TransitionState(LOW_VOLTAGE_STATE);
         }
         break;
 
       case LOCKOUT_STATE:
-		if (!flags->GLVMS_Turned_On)
+		if (!flags.flagBits.GLVMS_Turned_On)
 		{
 		  TransitionState(VEHICLE_OFF);
 		}
-        if (flags->Fault_Cleared && flags->External_Reset_Pressed)
+        if (flags.flagBits.Fault_Cleared && flags.flagBits.External_Reset_Pressed)
         {
           TransitionState(TRACTIVE_SYSTEM_ACTIVE_STATE);
         }
@@ -106,7 +109,8 @@ void StartFSMTask(void *argument)
         break;
     }
 
-    flags = osThreadFlagsWait(FSM_FLAGS_ALL, osFlagsWaitAny, 10);
+    const FSMInterruptFlags_t mask = {.flagBits = FSM_FLAGS_ALL};
+    flags.flagInt = osThreadFlagsWait(mask.flagInt, osFlagsWaitAny, 10);
   }
 }
 
@@ -143,31 +147,31 @@ void TransitionState(VCU_State_t newState)
 }
 
 void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
-  FSMInterruptFlags_t flags = FSM_FLAGS_NONE;
+  FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
   if (GPIO_Pin == GLV_BATTERY_Pin)
   {
-	flags->GLVMS_Turned_On = 1;
+	flags.flagBits.GLVMS_Turned_On = 1;
   }
   else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_Pin)
   {
-	flags->Shutdown_Loop_Open = 1;
+	flags.flagBits.Shutdown_Loop_Open = 1;
   }
   else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_Pin)
   {
-	flags->Shutdown_Loop_Open_Critical = 1;
+	flags.flagBits.Shutdown_Loop_Open_Critical = 1;
   }
   else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
-	flags->External_Button_Pressed = 1;
+	flags.flagBits.External_Button_Pressed = 1;
   }
   else if (GPIO_Pin == (BPS_FRONT_Pin | BPS_REAR_Pin))
   {
-	flags->Brake_Pressed = 1;
+	flags.flagBits.Brake_Pressed = 1;
   }
   else if (GPIO_Pin == STATUS_LED_1_Pin)
   {
-	flags->Start_Button_Pressed = 1;
+	flags.flagBits.Start_Button_Pressed = 1;
   }
-  osThreadFlagsSet(thread_id, flags);
+  osThreadFlagsSet(thread_id, flags.flagInt);
 }
 
