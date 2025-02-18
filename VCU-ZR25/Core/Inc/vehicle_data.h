@@ -29,8 +29,10 @@ typedef struct {
   osMutexId_t inverter_lock;
 
   VCU_State_t fsm_state;
-  PowSupData_t powsup;
   osMutexId_t fsm_state_lock;
+
+  PowSupData_t powsup;
+  osMutexId_t powsup_lock;
 } VehicleData_t;
 
 void initVehicleData();
