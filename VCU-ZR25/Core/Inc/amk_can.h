@@ -13,6 +13,7 @@
 #ifndef INC_AMK_CAN_H_
 #define INC_AMK_CAN_H_
 
+#include "cmsis_os.h"
 #include <stdint.h>
 
 enum AMKCanIdBase {
@@ -125,5 +126,14 @@ typedef struct {
 	uint32_t error_info_2;            // Index 23
 	uint32_t error_info_3;            // Index 24
 } AMKState_t;
+
+// AMK Task interface
+const osThreadAttr_t amkTask_attributes = {
+  .name = "amkTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityRealtime
+};
+
+void StartAMKTask(void *argument);
 
 #endif /* INC_AMK_CAN_H_ */
