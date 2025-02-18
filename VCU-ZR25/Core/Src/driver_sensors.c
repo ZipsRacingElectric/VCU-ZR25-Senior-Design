@@ -67,14 +67,12 @@ void StartDriverSensorTask(
 		ADC_HandleTypeDef hadc1,
 		ADC_ChannelConfTypeDef sConfig
 ){
-	temp_channel = sConfig.Channel;
-	sConfig.Channel = ADC_CHANNEL_1;
-	read_driver_input(&hadc1);
-	sConfig.Channel = temp_channel;
+	while (1) {
+		read_driver_input(&hadc1);
+		print_driver_input();
 
-	print_driver_input();
-
-	HAL_Delay(50);
+		HAL_Delay(50);
+	}
 }
 
 /*
@@ -153,27 +151,27 @@ void print_driver_input(void)
 		  "- Device status: %u\n"
 		  "- Angle: %u radians * 1000\n"
 		  "- Plausibility Front: %d\n",
-		  apps.raw_value_1,
-		  apps.raw_value_2,
-		  apps.voltage_1,
-		  apps.voltage_2,
-		  apps.percent,
-		  apps.percent_1,
-		  apps.percent_2,
-		  (uint8_t)apps.plausible,
+		  s_apps.raw_value_1,
+		  s_apps.raw_value_2,
+		  s_apps.voltage_1,
+		  s_apps.voltage_2,
+		  s_apps.percent,
+		  s_apps.percent_1,
+		  s_apps.percent_2,
+		  (uint8_t)s_apps.plausible,
 
-		  bps_f.raw_value,
-		  bps_r.raw_value,
-		  bps_f.voltage,
-		  bps_r.voltage,
-		  bps_f.pressure,
-		  bps_r.pressure,
-		  (uint8_t)bps_f.plausible,
-		  (uint8_t)bps_r.plausible,
+		  s_bps_front.raw_value,
+		  s_bps_rear.raw_value,
+		  s_bps_front.voltage,
+		  s_bps_rear.voltage,
+		  s_bps_front.pressure,
+		  s_bps_rear.pressure,
+		  (uint8_t)s_bps_front.plausible,
+		  (uint8_t)s_bps_rear.plausible,
 
-		  steering_angle.i2c_device.device_status,
-		  steering_angle.angle,
-		  (uint8_t)steering_angle.plausible);
+		  s_steering_angle.i2c_device.device_status,
+		  s_steering_angle.angle,
+		  (uint8_t)s_steering_angle.plausible);
 
 	// Ensure snprintf was successful and message length is valid
 	if (length > 0 && length < sizeof(msg_buffer)) {

@@ -22,9 +22,8 @@ const osMutexAttr_t inverterMutexAttrs = VD_MUTEX_ATTRS("inverterVDMutex");
 const osMutexAttr_t fsmStateMutexAttrs = VD_MUTEX_ATTRS("fsmStateVDMutex");
 const osMutexAttr_t powSupMutexAttrs = VD_MUTEX_ATTRS("powSupVDMutex");
 
-static VehicleData_t VehicleData = {0};
-
 void initVehicleData() {
+	VehicleData = {0};
 	VehicleData.apps_lock = osMutexNew(&appsMutexAttrs);
 	VehicleData.bps_lock = osMutexNew(&bpsMutexAttrs);
 	VehicleData.sas_lock = osMutexNew(&sasMutexAttrs);
