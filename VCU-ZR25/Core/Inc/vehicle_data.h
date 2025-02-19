@@ -35,7 +35,7 @@ typedef struct {
   osMutexId_t powsup_lock;
 } VehicleData_t;
 
-VehicleData_t VehicleData;
+extern VehicleData_t VehicleData;
 
 void initVehicleData();
 

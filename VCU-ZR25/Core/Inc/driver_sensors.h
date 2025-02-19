@@ -30,6 +30,7 @@
 #include <stm32f4xx_hal.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <cmsis_os.h>
 
 typedef struct
 {
@@ -41,11 +42,7 @@ void StartDriverSensorTask(
     DriverSensorTaskArgs_t *args
 );
 
-const osThreadAttr_t driversensorTask_attributes = {
-  .name = "driversensorTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
+extern const osThreadAttr_t driversensorTask_attributes;
 
 // Types
 typedef struct

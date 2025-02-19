@@ -18,16 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
 #include "usb_device.h"
 #include "stdio.h"
-#include "stdbool.h"
 #include "usbd_cdc_if.h"
-#include "driver_sensors.h"
-#include "stm32f4xx_hal_adc.h"
-#include "vehicle_fsm.h"
+#include "vehicle_data.h"
 #include "gpio.h"
-#include "power_supply.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -80,6 +75,16 @@ const osThreadAttr_t amkTask_attributes = {
   .name = "amkTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityRealtime
+};
+const osThreadAttr_t driversensorTask_attributes = {
+  .name = "driversensorTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+const osThreadAttr_t powsupTask_attributes = {
+  .name = "powsupTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t)osPriorityNormal
 };
 /* USER CODE BEGIN PV */
 
@@ -162,6 +167,7 @@ int main(void)
   MX_ADC1_Init();
   MX_WWDG_Init();
   MX_USB_DEVICE_Init();
+  initVehicleData();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */

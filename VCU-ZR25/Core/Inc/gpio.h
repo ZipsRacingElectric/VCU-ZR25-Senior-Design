@@ -8,7 +8,7 @@
 #ifndef INC_GPIO_H_
 #define INC_GPIO_H_
 
-#include "stm32f4xx_hal.h"
+#include "main.h"
 
 #define APPS_1_Pin GPIO_PIN_0
 #define APPS_1_GPIO_Port GPIOA

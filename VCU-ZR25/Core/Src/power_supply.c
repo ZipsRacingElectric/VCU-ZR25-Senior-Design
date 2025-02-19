@@ -5,9 +5,9 @@
  *      Author: John
  */
 
+#include "vehicle_data.h"
 #include "power_supply.h"
 #include "main.h"
-#include "vehicle_data.h"
 #include <stm32f4xx_hal_adc.h>
 
 // ADC thresholds for 5V and 3.3V rails
@@ -29,7 +29,6 @@ PowSupData_t check_power_supply(ADC_HandleTypeDef hadc1, ADC_ChannelConfTypeDef 
 	PowSupData_t powsup = {false, false};
 
 	// Read 5V signal on PA0
-	uint32_t temp_channel = sConfig.Channel;
 	sConfig.Channel = ADC_CHANNEL_0;
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
@@ -43,8 +42,6 @@ PowSupData_t check_power_supply(ADC_HandleTypeDef hadc1, ADC_ChannelConfTypeDef 
 	}
 
 	// Change to PA1 for 3.3V signal
-
-	ADC_ChannelConfTypeDef sConfig = {0};
 	sConfig.Channel = ADC_CHANNEL_1;
 	sConfig.Rank = 1;
 	sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;

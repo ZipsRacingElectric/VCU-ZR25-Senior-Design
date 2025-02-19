@@ -9,6 +9,8 @@
 #define INC_POWER_SUPPLY_H_
 
 #include "stdbool.h"
+#include "main.h"
+#include "cmsis_os.h"
 
 #define POWER_SUPPLY_TASK_PERIOD 50
 
@@ -19,11 +21,7 @@ typedef struct {
 
 void StartPwrSupTask(powSupTaskArgs_t* args);
 
-const osThreadAttr_t powsupTask_attributes = {
-  .name = "powsupTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t)osPriorityNormal
-};
+extern const osThreadAttr_t powsupTask_attributes;
 
 typedef struct {
   bool value5V;
