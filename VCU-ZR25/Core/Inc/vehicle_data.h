@@ -13,6 +13,7 @@
 #include "driver_sensors.h"
 #include "amk_can.h"
 #include "vehicle_fsm.h"
+#include "power_supply.h"
 
 typedef struct {
   APPSSensor_t apps;
@@ -29,7 +30,12 @@ typedef struct {
 
   VCU_State_t fsm_state;
   osMutexId_t fsm_state_lock;
+
+  PowSupData_t powsup;
+  osMutexId_t powsup_lock;
 } VehicleData_t;
+
+VehicleData_t VehicleData;
 
 void initVehicleData();
 
