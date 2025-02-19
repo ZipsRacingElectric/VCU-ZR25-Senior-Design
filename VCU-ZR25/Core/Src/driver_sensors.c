@@ -61,12 +61,10 @@ static bool validate_bps(BPSSensor_t bps);
 static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
 // Public Functions
-
-
 void StartDriverSensorTask(
-		ADC_HandleTypeDef hadc1,
-		ADC_ChannelConfTypeDef sConfig
+	DriverSensorTaskArgs_t *args
 ){
+	ADC_HandleTypeDef hadc1 = args->hadc1;
 	while (1) {
 		read_driver_input(&hadc1);
 		print_driver_input();
