@@ -177,17 +177,10 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
   fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
-  powsupTaskHandle = osThreadNew(
-		  StartPowSupTask(hadc1, sConfig),
-		  NULL,
-		  &powersupTask_attributes
-  );
-  driversensorTaskHandle = osThreadNew(
-		  StartDriverSensorTask(hadc1, sConfig),
-		  NULL,
-		  &driversensorTask_attributes
-  );
-
+  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = sConfig};
+  powsupTaskHandle = osThreadNew(StartPwrSupTask, &powsupargs, &powsupTask_attributes);
+  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = sConfig};
+  driversensorTaskHandle = osThreadNew(StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

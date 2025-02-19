@@ -31,9 +31,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef struct
+{
+    ADC_HandleTypeDef hadc1;
+    ADC_ChannelConfTypeDef sConfig;
+} DriverSensorTaskArgs_t;
+
 void StartDriverSensorTask(
-		ADC_HandleTypeDef hadc1,
-		ADC_ChannelConfTypeDef sConfig
+    DriverSensorTaskArgs_t *args
 );
 
 const osThreadAttr_t driversensorTask_attributes = {
