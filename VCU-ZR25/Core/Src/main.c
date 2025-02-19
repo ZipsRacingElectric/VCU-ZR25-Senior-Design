@@ -27,6 +27,7 @@
 #include "stm32f4xx_hal_adc.h"
 #include "vehicle_fsm.h"
 #include "gpio.h"
+#include "power_supply.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -50,12 +51,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-// ADC thresholds for 5V and 3.3V rails
-#define ADC_5V_THRESHOLD_LOW   3123   // ADC value for 4.8V
-#define ADC_5V_THRESHOLD_HIGH  3383   // ADC value for 5.2V
-#define ADC_3V3_THRESHOLD_LOW  2712   // ADC value for 2.8V
-#define ADC_3V3_THRESHOLD_HIGH 3390   // ADC value for 3.5V
-
 ADC_HandleTypeDef hadc1;
 ADC_ChannelConfTypeDef sConfig = {0};
 
@@ -69,6 +64,8 @@ WWDG_HandleTypeDef hwwdg;
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 osThreadId_t fsmTaskHandle;
+osThreadId_t powsupTaskHandle;
+osThreadId_t driversensorTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
@@ -192,6 +189,10 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
   fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
+  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = sConfig};
+  powsupTaskHandle = osThreadNew(StartPwrSupTask, &powsupargs, &powsupTask_attributes);
+  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = sConfig};
+  driversensorTaskHandle = osThreadNew(StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -208,8 +209,6 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t adc_value_5V = 0;
-  uint32_t adc_value_3V3 = 0;
 
   while (1)
   {
@@ -218,105 +217,6 @@ int main(void)
      /* USER CODE BEGIN 3 */
  	  // Heart beat
 	  HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_3_Pin);
-
-	  // Read 5V signal on PA0
-	  uint32_t temp_channel = sConfig.Channel;
-	  sConfig.Channel = ADC_CHANNEL_0;
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	  adc_value_5V = HAL_ADC_GetValue(&hadc1);
-
-	  // Check if 5V signal within range
-	  if (adc_value_5V >= ADC_5V_THRESHOLD_LOW && adc_value_5V <= ADC_5V_THRESHOLD_HIGH) {
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-	  } else {
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-	  }
-
-	  // Change to PA1 for 3.3V signal
-	  sConfig.Channel = ADC_CHANNEL_1;
-	  sConfig.Rank = 1;
-	  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-	  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-
-	  // Read 3.3V signal on PA1
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	  adc_value_3V3 = HAL_ADC_GetValue(&hadc1);
-
-	  // Check if 3.3V signal within the range
-	  if (adc_value_3V3 >= ADC_3V3_THRESHOLD_LOW && adc_value_3V3 <= ADC_3V3_THRESHOLD_HIGH) {
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
-	  } else {
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
-	  }
-
- 	  // Read APPS sensor
-	  sConfig.Channel = ADC_CHANNEL_1;
- 	  read_driver_input(&hadc1);
- 	  apps = get_apps_data();
- 	  bps_f = get_bps_front_data();
- 	  bps_r = get_bps_rear_data();
- 	  steering_angle = get_steering_angle_data();
- 	  sConfig.Channel = temp_channel;
-
- 	  // Format data to send over USB
- 	  char msg_buffer[1024];
-
- 	  uint16_t length = snprintf(msg_buffer, sizeof(msg_buffer),
- 			  "\nAccelerator Pedal:\n"
- 			  "- Raw Value 1: %u\n"
- 			  "- Raw Value 2: %u\n"
- 			  "- Voltage 1: %u mV\n"
- 			  "- Voltage 2: %u mV\n"
- 			  "- Pedal Percentage: %u percent * 10\n"
- 			  "- Channel 1: %u percent * 10\n"
- 			  "- Channel 2: %u percent * 10\n"
- 			  "- APPS Plausibility: %d\n"
- 			  "\n"
- 			  "Brake Pressure:\n"
- 			  "- Raw Value Front: %u\n"
- 			  "- Raw Value Rear: %u\n"
- 			  "- Voltage Front: %u mV\n"
- 			  "- Voltage Rear: %u mV\n"
- 			  "- Pressure Front: %u PSI\n"
- 			  "- Pressure Rear: %u PSI\n"
- 			  "- Plausibility Front: %d\n"
- 			  "- Plausibility Rear: %d\n"
- 			  "\n"
- 			  "Steering Angle:\n"
- 			  "- Device status: %u\n"
- 			  "- Angle: %u radians * 1000\n"
- 			  "- Plausibility Front: %d\n",
- 			  apps.raw_value_1,
- 			  apps.raw_value_2,
- 			  apps.voltage_1,
- 			  apps.voltage_2,
- 			  apps.percent,
- 			  apps.percent_1,
- 			  apps.percent_2,
- 			  (uint8_t)apps.plausible,
-
- 			  bps_f.raw_value,
- 			  bps_r.raw_value,
- 			  bps_f.voltage,
- 			  bps_r.voltage,
- 			  bps_f.pressure,
- 			  bps_r.pressure,
- 			  (uint8_t)bps_f.plausible,
- 			  (uint8_t)bps_r.plausible,
-
- 			  steering_angle.i2c_device.device_status,
- 			  steering_angle.angle,
- 			  (uint8_t)steering_angle.plausible);
-
- 	  // Ensure snprintf was successful and message length is valid
- 	  if (length > 0 && length < sizeof(msg_buffer)) {
- 	      // Send only the formatted message length over USB
- 	      CDC_Transmit_FS((uint8_t *)msg_buffer, length);
- 	  } else {
- 	      // Handle error in formatting or length (optional)
- 	  }
 
  	  HAL_Delay(50);
    }

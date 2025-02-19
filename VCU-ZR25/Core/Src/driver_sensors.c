@@ -61,6 +61,17 @@ static bool validate_bps(BPSSensor_t bps);
 static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
 // Public Functions
+void StartDriverSensorTask(
+	DriverSensorTaskArgs_t *args
+){
+	ADC_HandleTypeDef hadc1 = args->hadc1;
+	while (1) {
+		read_driver_input(&hadc1);
+		print_driver_input();
+
+		HAL_Delay(50);
+	}
+}
 
 /*
  * Initializes the driver input sensors
@@ -106,6 +117,67 @@ void read_driver_input(ADC_HandleTypeDef *adc)
     s_bps_front.plausible = validate_bps(s_bps_front);
     s_bps_rear.plausible = validate_bps(s_bps_rear);
     s_steering_angle.plausible = validate_steering_angle(s_steering_angle);
+}
+
+void print_driver_input(void)
+{
+	// Format data to send over USB
+	char msg_buffer[1024];
+
+	uint16_t length = snprintf(msg_buffer, sizeof(msg_buffer),
+		  "\nAccelerator Pedal:\n"
+		  "- Raw Value 1: %u\n"
+		  "- Raw Value 2: %u\n"
+		  "- Voltage 1: %u mV\n"
+		  "- Voltage 2: %u mV\n"
+		  "- Pedal Percentage: %u percent * 10\n"
+		  "- Channel 1: %u percent * 10\n"
+		  "- Channel 2: %u percent * 10\n"
+		  "- APPS Plausibility: %d\n"
+		  "\n"
+		  "Brake Pressure:\n"
+		  "- Raw Value Front: %u\n"
+		  "- Raw Value Rear: %u\n"
+		  "- Voltage Front: %u mV\n"
+		  "- Voltage Rear: %u mV\n"
+		  "- Pressure Front: %u PSI\n"
+		  "- Pressure Rear: %u PSI\n"
+		  "- Plausibility Front: %d\n"
+		  "- Plausibility Rear: %d\n"
+		  "\n"
+		  "Steering Angle:\n"
+		  "- Device status: %u\n"
+		  "- Angle: %u radians * 1000\n"
+		  "- Plausibility Front: %d\n",
+		  s_apps.raw_value_1,
+		  s_apps.raw_value_2,
+		  s_apps.voltage_1,
+		  s_apps.voltage_2,
+		  s_apps.percent,
+		  s_apps.percent_1,
+		  s_apps.percent_2,
+		  (uint8_t)s_apps.plausible,
+
+		  s_bps_front.raw_value,
+		  s_bps_rear.raw_value,
+		  s_bps_front.voltage,
+		  s_bps_rear.voltage,
+		  s_bps_front.pressure,
+		  s_bps_rear.pressure,
+		  (uint8_t)s_bps_front.plausible,
+		  (uint8_t)s_bps_rear.plausible,
+
+		  s_steering_angle.i2c_device.device_status,
+		  s_steering_angle.angle,
+		  (uint8_t)s_steering_angle.plausible);
+
+	// Ensure snprintf was successful and message length is valid
+	if (length > 0 && length < sizeof(msg_buffer)) {
+	  // Send only the formatted message length over USB
+	  CDC_Transmit_FS((uint8_t *)msg_buffer, length);
+	} else {
+	  // Handle error in formatting or length (optional)
+	}
 }
 
 /*
