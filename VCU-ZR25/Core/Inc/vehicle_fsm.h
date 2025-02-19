@@ -11,18 +11,13 @@
 #include "cmsis_os.h"
 #include "gpio.h"
 
-const osThreadAttr_t fsmTask_attributes = {
-  .name = "fsmTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal
-};
+extern const osThreadAttr_t fsmTask_attributes;
 
 typedef enum {
   VEHICLE_OFF,
   LOW_VOLTAGE_STATE,
   TRACTIVE_SYSTEM_ACTIVE_STATE,
-  READY_TO_DRIVE_STATE,
-  LOCKOUT_STATE
+  READY_TO_DRIVE_STATE
 } VCU_State_t;
 
 void StartFSMTask(void *argument);

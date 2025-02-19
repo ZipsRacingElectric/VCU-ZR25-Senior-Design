@@ -26,6 +26,7 @@
 #include "driver_sensors.h"
 #include "stm32f4xx_hal_adc.h"
 #include "vehicle_fsm.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -56,6 +57,7 @@
 #define ADC_3V3_THRESHOLD_HIGH 3390   // ADC value for 3.5V
 
 ADC_HandleTypeDef hadc1;
+ADC_ChannelConfTypeDef sConfig = {0};
 
 CAN_HandleTypeDef hcan1;
 CAN_HandleTypeDef hcan2;
@@ -71,6 +73,16 @@ const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
+};
+const osThreadAttr_t fsmTask_attributes = {
+  .name = "fsmTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal
+};
+const osThreadAttr_t amkTask_attributes = {
+  .name = "amkTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityRealtime
 };
 /* USER CODE BEGIN PV */
 
@@ -205,10 +217,10 @@ int main(void)
 
      /* USER CODE BEGIN 3 */
  	  // Heart beat
-	  HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
+	  HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_3_Pin);
 
 	  // Read 5V signal on PA0
-	  temp_channel = sConfig.Channel;
+	  uint32_t temp_channel = sConfig.Channel;
 	  sConfig.Channel = ADC_CHANNEL_0;
 	  HAL_ADC_Start(&hadc1);
 	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
@@ -222,7 +234,6 @@ int main(void)
 	  }
 
 	  // Change to PA1 for 3.3V signal
-	  ADC_ChannelConfTypeDef sConfig = {0};
 	  sConfig.Channel = ADC_CHANNEL_1;
 	  sConfig.Rank = 1;
 	  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
@@ -368,8 +379,6 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 0 */
 
   /* USER CODE END ADC1_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
 
@@ -566,77 +575,29 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, HEARTBEAT_LED_Pin|STATUS_LED_1_Pin|STATUS_LED_2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|BRAKE_LIGHT_CONTROL_Pin
+		  |BUZZER_CONTROL_Pin|VCU_FAULT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, WATER_PUMP_2_Pin|FAN_1_Pin|FAN_2_Pin|CAN2_STANDBY_Pin
-                            |CAN1_STANDBY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin|DEBUG_LED_2_Pin|DEBUG_LED_3_Pin|CAN_1_STANDBY_Pin
+		  |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin
+		  |PUMP_2_CONTROL_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, VCU_SHUTDOWN_LOOP_Pin|WATER_PUMP_1_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
-                          |Audio_RST_Pin, GPIO_PIN_RESET);
-
-  HAL_GPIO_WritePin(OTG_FS_PowerSwitchOn_GPIO_Port, OTG_FS_PowerSwitchOn_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pins : HEARTBEAT_LED_Pin STATUS_LED_1_Pin STATUS_LED_2_Pin */
-  GPIO_InitStruct.Pin = HEARTBEAT_LED_Pin|STATUS_LED_1_Pin|STATUS_LED_2_Pin;
+  /*Configure GPIOB Pins */
+  GPIO_InitStruct.Pin = FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|BRAKE_LIGHT_CONTROL_Pin
+		  |BUZZER_CONTROL_Pin|VCU_FAULT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_Pin WATER_PUMP_1_Pin */
-  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_Pin|WATER_PUMP_1_Pin;
+  /*Configure GPIOC Pins */
+  GPIO_InitStruct.Pin = DEBUG_LED_1_Pin|DEBUG_LED_2_Pin|DEBUG_LED_3_Pin|CAN_1_STANDBY_Pin
+		  |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin|PUMP_2_CONTROL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : WATER_PUMP_2_Pin FAN_1_Pin FAN_2_Pin CAN2_STANDBY_Pin
-                           CAN1_STANDBY_Pin */
-  GPIO_InitStruct.Pin = WATER_PUMP_2_Pin|FAN_1_Pin|FAN_2_Pin|CAN2_STANDBY_Pin
-                          |CAN1_STANDBY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : OTG_FS_PowerSwitchOn_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_PowerSwitchOn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(OTG_FS_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : BOOT1_Pin */
-  GPIO_InitStruct.Pin = BOOT1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(BOOT1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LD4_Pin LD3_Pin LD5_Pin LD6_Pin
-                           Audio_RST_Pin */
-  GPIO_InitStruct.Pin = LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
-                          |Audio_RST_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : OTG_FS_OverCurrent_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_OverCurrent_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(OTG_FS_OverCurrent_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
