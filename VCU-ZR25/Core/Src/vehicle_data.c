@@ -15,6 +15,8 @@
 		.cb_size = 0 									 \
 	}
 
+VehicleData_t VehicleData;
+
 const osMutexAttr_t appsMutexAttrs = VD_MUTEX_ATTRS("appsVDMutex");
 const osMutexAttr_t bpsMutexAttrs = VD_MUTEX_ATTRS("bpsVDMutex");
 const osMutexAttr_t sasMutexAttrs = VD_MUTEX_ATTRS("sasVDMutex");
@@ -23,7 +25,7 @@ const osMutexAttr_t fsmStateMutexAttrs = VD_MUTEX_ATTRS("fsmStateVDMutex");
 const osMutexAttr_t powSupMutexAttrs = VD_MUTEX_ATTRS("powSupVDMutex");
 
 void initVehicleData() {
-	VehicleData_t VehicleData = {0};
+	VehicleData = (VehicleData_t){0};
 	VehicleData.apps_lock = osMutexNew(&appsMutexAttrs);
 	VehicleData.bps_lock = osMutexNew(&bpsMutexAttrs);
 	VehicleData.sas_lock = osMutexNew(&sasMutexAttrs);

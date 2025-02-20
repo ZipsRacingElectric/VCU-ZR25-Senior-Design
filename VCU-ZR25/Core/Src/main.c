@@ -22,7 +22,10 @@
 #include "usb_device.h"
 #include "stdio.h"
 #include "usbd_cdc_if.h"
-#include "vehicle_data.h"
+#include "driver_sensors.h"
+#include "stm32f4xx_hal_adc.h"
+#include "vehicle_fsm.h"
+#include "power_supply.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -138,10 +141,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  APPSSensor_t apps;
-  BPSSensor_t bps_f;
-  BPSSensor_t bps_r;
-  SteeringAngleSensor_t steering_angle;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -196,10 +195,10 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
   fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
-  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = sConfig};
-  powsupTaskHandle = osThreadNew(StartPwrSupTask, &powsupargs, &powsupTask_attributes);
-  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = sConfig};
-  driversensorTaskHandle = osThreadNew(StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
+  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = {0}};
+  powsupTaskHandle = osThreadNew((void (*)(void*))StartPwrSupTask, &powsupargs, &powsupTask_attributes);
+  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = {0}};
+  driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

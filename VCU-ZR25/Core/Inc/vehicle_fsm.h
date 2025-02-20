@@ -11,7 +11,11 @@
 #include "cmsis_os.h"
 #include "gpio.h"
 
-extern const osThreadAttr_t fsmTask_attributes;
+static const osThreadAttr_t fsmTask_attributes = {
+  .name = "fsmTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal
+};
 
 typedef enum {
   VEHICLE_OFF,
