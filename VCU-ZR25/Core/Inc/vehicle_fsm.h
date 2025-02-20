@@ -21,8 +21,7 @@ typedef enum {
   VEHICLE_OFF,
   LOW_VOLTAGE_STATE,
   TRACTIVE_SYSTEM_ACTIVE_STATE,
-  READY_TO_DRIVE_STATE,
-  LOCKOUT_STATE
+  READY_TO_DRIVE_STATE
 } VCU_State_t;
 
 void StartFSMTask(void *argument);
