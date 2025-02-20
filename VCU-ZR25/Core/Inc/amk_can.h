@@ -134,6 +134,16 @@ static const osThreadAttr_t amkTask_attributes = {
   .priority = (osPriority_t) osPriorityRealtime
 };
 
+typedef struct {
+	int16_t front_left;
+	int16_t front_right;
+	int16_t rear_left;
+	int16_t rear_right;
+} amkTorqueSetpoints;
+
 void StartAMKTask(void *argument);
+
+void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints);
+void AMKCANInterruptCallback();
 
 #endif /* INC_AMK_CAN_H_ */

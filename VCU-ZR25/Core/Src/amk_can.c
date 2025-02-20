@@ -8,7 +8,17 @@
  */
 #include "amk_can.h"
 #include "vehicle_data.h"
+#include "cmsis_os.h"
+
+static int16_t torqueLimitPos = -1; // TODO: Torque limits
+static int16_t torqueLimitNeg = -1; // TODO: Torque limits
+
+
+
+static amkTorqueSetpoints torqueSetpoints;
 
 void StartAMKTask(void *argument) {
-
+	while (1) {
+		osDelay(50);
+	}
 }
