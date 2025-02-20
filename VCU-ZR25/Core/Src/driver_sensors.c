@@ -11,6 +11,7 @@
 #include "driver_sensors.h"
 #include "am4096_encoder.h"
 #include <math.h>
+#include "usbd_cdc_if.h"
 
 // Constants for Conversion and Validation
 #define APPS_1_CHANNEL	 	  ADC_CHANNEL_1
@@ -124,7 +125,7 @@ void print_driver_input(void)
 	// Format data to send over USB
 	char msg_buffer[1024];
 
-	uint16_t length = snprintf(msg_buffer, sizeof(msg_buffer),
+	int length = snprintf(msg_buffer, sizeof(msg_buffer),
 		  "\nAccelerator Pedal:\n"
 		  "- Raw Value 1: %u\n"
 		  "- Raw Value 2: %u\n"

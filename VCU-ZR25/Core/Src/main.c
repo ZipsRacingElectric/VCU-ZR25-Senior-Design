@@ -27,6 +27,7 @@
 #include "stm32f4xx_hal_adc.h"
 #include "vehicle_fsm.h"
 #include "power_supply.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -120,10 +121,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  APPSSensor_t apps;
-  BPSSensor_t bps_f;
-  BPSSensor_t bps_r;
-  SteeringAngleSensor_t steering_angle;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -177,10 +174,10 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
   fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
-  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = sConfig};
-  powsupTaskHandle = osThreadNew(StartPwrSupTask, &powsupargs, &powsupTask_attributes);
-  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = sConfig};
-  driversensorTaskHandle = osThreadNew(StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
+  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = {0}};
+  powsupTaskHandle = osThreadNew((void (*)(void*))StartPwrSupTask, &powsupargs, &powsupTask_attributes);
+  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = {0}};
+  driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -204,7 +201,7 @@ int main(void)
 
      /* USER CODE BEGIN 3 */
  	  // Heart beat
-	  HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
+	  HAL_GPIO_TogglePin(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin);
 
  	  HAL_Delay(50);
    }
@@ -474,12 +471,6 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, VCU_SHUTDOWN_LOOP_Pin|WATER_PUMP_1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
-                          |Audio_RST_Pin, GPIO_PIN_RESET);
-
-  HAL_GPIO_WritePin(OTG_FS_PowerSwitchOn_GPIO_Port, OTG_FS_PowerSwitchOn_Pin, GPIO_PIN_SET);
-
   /*Configure GPIO pins : HEARTBEAT_LED_Pin STATUS_LED_1_Pin STATUS_LED_2_Pin */
   GPIO_InitStruct.Pin = HEARTBEAT_LED_Pin|STATUS_LED_1_Pin|STATUS_LED_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -502,40 +493,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : OTG_FS_PowerSwitchOn_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_PowerSwitchOn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(OTG_FS_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : BOOT1_Pin */
-  GPIO_InitStruct.Pin = BOOT1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(BOOT1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LD4_Pin LD3_Pin LD5_Pin LD6_Pin
-                           Audio_RST_Pin */
-  GPIO_InitStruct.Pin = LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
-                          |Audio_RST_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : OTG_FS_OverCurrent_Pin */
-  GPIO_InitStruct.Pin = OTG_FS_OverCurrent_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(OTG_FS_OverCurrent_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

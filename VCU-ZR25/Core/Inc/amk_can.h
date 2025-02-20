@@ -128,7 +128,7 @@ typedef struct {
 } AMKState_t;
 
 // AMK Task interface
-const osThreadAttr_t amkTask_attributes = {
+static const osThreadAttr_t amkTask_attributes = {
   .name = "amkTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityRealtime
