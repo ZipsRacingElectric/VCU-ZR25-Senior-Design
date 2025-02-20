@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "usb_device.h"
 #include "stdio.h"
 #include "usbd_cdc_if.h"
@@ -476,34 +477,56 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|BRAKE_LIGHT_CONTROL_Pin
-		  |BUZZER_CONTROL_Pin|VCU_FAULT_Pin, GPIO_PIN_RESET);
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin|DEBUG_LED_2_Pin|DEBUG_LED_3_Pin|CAN_1_STANDBY_Pin
-		  |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin
-		  |PUMP_2_CONTROL_Pin, GPIO_PIN_RESET);
+                          |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin|PUMP_2_CONTROL_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIOB Pins */
-  GPIO_InitStruct.Pin = FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|BRAKE_LIGHT_CONTROL_Pin
-		  |BUZZER_CONTROL_Pin|VCU_FAULT_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|VCU_FAULT_Pin|BRAKE_LIGHT_CONTROL_Pin
+                          |BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : DEBUG_LED_1_Pin DEBUG_LED_2_Pin DEBUG_LED_3_Pin CAN_1_STANDBY_Pin
+                           CAN_2_STANDBY_Pin RAIL_POWER_ENABLE_5V_Pin PUMP_1_CONTROL_Pin PUMP_2_CONTROL_Pin */
+  GPIO_InitStruct.Pin = DEBUG_LED_1_Pin|DEBUG_LED_2_Pin|DEBUG_LED_3_Pin|CAN_1_STANDBY_Pin
+                          |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin|PUMP_2_CONTROL_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_IN_Pin VCU_SHUTDOWN_LOOP_RESET_Pin START_BUTTON_Pin */
+  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIOC Pins */
-  GPIO_InitStruct.Pin = DEBUG_LED_1_Pin|DEBUG_LED_2_Pin|DEBUG_LED_3_Pin|CAN_1_STANDBY_Pin
-		  |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin|PUMP_2_CONTROL_Pin;
+  /*Configure GPIO pins : FAN_1_CONTROL_Pin FAN_2_CONTROL_Pin VCU_FAULT_Pin BRAKE_LIGHT_CONTROL_Pin
+                           BUZZER_CONTROL_Pin */
+  GPIO_InitStruct.Pin = FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|VCU_FAULT_Pin|BRAKE_LIGHT_CONTROL_Pin
+                          |BUZZER_CONTROL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BOOT_1_Pin */
+  GPIO_InitStruct.Pin = BOOT_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BOOT_1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : DASH_INPUT_1_Pin DASH_INPUT_2_Pin DASH_INPUT_3_Pin DASH_INPUT_4_Pin */
+  GPIO_InitStruct.Pin = DASH_INPUT_1_Pin|DASH_INPUT_2_Pin|DASH_INPUT_3_Pin|DASH_INPUT_4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

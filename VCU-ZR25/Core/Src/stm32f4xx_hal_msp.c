@@ -106,8 +106,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PA4     ------> ADC1_IN4
     */
     GPIO_InitStruct.Pin = APPS_1_Pin|APPS_2_Pin|BPS_FRONT_Pin|BPS_REAR_Pin
-                          |GLV_BATTERY_Pin|VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin
-						  |START_BUTTON_Pin;
+                          |GLV_BATTERY_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
