@@ -19,18 +19,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "usb_device.h"
-#include "stdio.h"
-#include "usbd_cdc_if.h"
-#include "driver_sensors.h"
-#include "stm32f4xx_hal_adc.h"
-#include "vehicle_fsm.h"
-#include "power_supply.h"
-#include "gpio.h"
+#include "usb_device.h
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "driver_sensors.h"
+#include "vehicle_data.h"
+#include "vehicle_fsm.h"
+#include "power_supply.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,7 +45,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
 ADC_HandleTypeDef hadc1;
 ADC_ChannelConfTypeDef sConfig = {0};
 
@@ -62,18 +57,16 @@ WWDG_HandleTypeDef hwwdg;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
-osThreadId_t fsmTaskHandle;
-osThreadId_t powsupTaskHandle;
-osThreadId_t driversensorTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-
+osThreadId_t fsmTaskHandle;
+osThreadId_t powsupTaskHandle;
+osThreadId_t driversensorTaskHandle;
 /* USER CODE END PV */
-
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -104,19 +97,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   * @brief  The application entry point.
   * @retval int
   */
-
-int _write(int file, char *ptr, int len)
-{
-  int i = 0;
-  for (i = 0; i<len; i++)
-  {
-    ITM_SendChar((*ptr++));
-  }
-  return len;
-}
-
-uint16_t count;
-
 int main(void)
 {
 
@@ -146,7 +126,6 @@ int main(void)
   MX_I2C1_Init();
   MX_ADC1_Init();
   MX_WWDG_Init();
-  MX_USB_DEVICE_Init();
   initVehicleData();
   /* USER CODE BEGIN 2 */
 
@@ -174,14 +153,15 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-  fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
-  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = {0}};
-  powsupTaskHandle = osThreadNew((void (*)(void*))StartPwrSupTask, &powsupargs, &powsupTask_attributes);
-  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = {0}};
-  driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
+
+  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = {0}};
+  powsupTaskHandle = osThreadNew((void (*)(void*))StartPwrSupTask, &powsupargs, &powsupTask_attributes);
+
+  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = {0}};
+  driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -198,16 +178,16 @@ int main(void)
 
   while (1)
   {
-     /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-     /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
  	  // Heart beat
 	  HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_3_Pin);
 
  	  HAL_Delay(50);
    }
-   /* USER CODE END 3 */
- }
+  /* USER CODE END 3 */
+}
 
 /**
   * @brief System Clock Configuration
