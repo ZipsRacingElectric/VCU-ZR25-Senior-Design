@@ -123,8 +123,10 @@ void TransitionState(VCU_State_t newState)
   }
 }
 
+/* TODO: Take out BPS as they're not GPIO, tell fsm when reading them */
+/* there's HAL_ADC_ConvCpltCallback in hal_adc.c line 1580 that should be defined here */
 void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
-  FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
+  FSMInterruptFlags_t flags = {.flagBits = osThreadFlagsGet()};
   if (GPIO_Pin == GLV_BATTERY_Pin)
   {
 	flags.flagBits.GLVMS_Turned_On = 1;
@@ -137,14 +139,32 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
   {
 	flags.flagBits.External_Button_Pressed = 1;
   }
-  else if (GPIO_Pin == (BPS_FRONT_Pin | BPS_REAR_Pin))
-  {
-	flags.flagBits.Brake_Pressed = 1;
-  }
   else if (GPIO_Pin == START_BUTTON_Pin)
   {
 	flags.flagBits.Start_Button_Pressed = 1;
   }
   osThreadFlagsSet(thread_id, flags.flagInt);
 }
+
+/* TODO: this is a fleshout, need to make functional */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+    FSMInterruptFlags_t flags = {.flagInt osThreadFlagsGet()};
+
+    if (hadc == &BPS_FRONT) {
+        uint32_t bps_front_value = HAL_ADC_GetValue(&BPS_FRONT);
+        if (bps_front_value > BRAKE_PRESSURE_THRESHOLD) {
+            flags.flagBits.Brake_Pressed = 1;
+        }
+    }
+
+    if (hadc == &BPS_REAR) {
+        uint32_t bps_rear_value = HAL_ADC_GetValue(&BPS_REAR);
+        if (bps_rear_value > BRAKE_PRESSURE_THRESHOLD) {
+            flags.flagBits.Brake_Pressed = 1;
+        }
+    }
+
+    osThreadFlagsSet(thread_id, flags.flagInt);
+}
+
 
