@@ -9,8 +9,6 @@
 #include "driver_sensors.h"
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
-#include "stm32f4xx_hal_gpio.c"
-#include "stm32f4xx_hal_adc.c"
 
 #define FLAG_INDEX_GLVMS_TURNED_ON 0
 #define FLAG_INDEX_SHUTDOWN_LOOP_OPEN 1
@@ -179,22 +177,23 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 }
 
 /* TODO: Just made it as 50% for now, should be changed based on motor torque issue, maybe removed */
+/* IDK how to do this yet so I'm just commenting it out and will address it later
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-    FSMInterruptFlags_t flags = {.flagInt FSM_FLAGS_NONE};
+	FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
 
-    if (hadc == BPS_FRONT_Pin) {
+    if (hadc->Channel == ADC_CHANNEL_2) {
         if (HAL_ADC_GetValue(BPS_FRONT_Pin) > BPS_MAX_VOLTAGE / 2) {
             flags.flagBits.Brake_Pressed = 1;
         }
     }
 
-    if (hadc == BPS_REAR_Pin) {
+    if (hadc->Channel == ADC_CHANNEL_3) {
         if (HAL_ADC_GetValue(BPS_REAR_Pin) > BPS_MAX_VOLTAGE / 2) {
             flags.flagBits.Brake_Pressed = 1;
         }
     }
 
     osThreadFlagsSet(thread_id, flags.flagInt);
-}
+} */
 
 

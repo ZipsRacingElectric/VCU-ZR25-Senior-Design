@@ -70,26 +70,6 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-const osThreadAttr_t fsmTask_attributes = {
-  .name = "fsmTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal
-};
-const osThreadAttr_t amkTask_attributes = {
-  .name = "amkTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityRealtime
-};
-const osThreadAttr_t driversensorTask_attributes = {
-  .name = "driversensorTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-const osThreadAttr_t powsupTask_attributes = {
-  .name = "powsupTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t)osPriorityNormal
-};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
