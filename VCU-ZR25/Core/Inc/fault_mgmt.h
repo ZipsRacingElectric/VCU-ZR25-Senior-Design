@@ -14,6 +14,16 @@
 
 #define FAULT_INDEX_IMPLAUSIBILITY 0
 
+typedef union {
+	struct FaultTypeBits{
+		uint8_t Fault_implausibility : 1;
+	} faultBits;
+	uint32_t faultInt;
+} FaultType_t;
+
+const static struct FaultTypeBits FAULTS_ALL = {1};
+const static struct FaultTypeBits FAULTS_NONE = {0};
+
 static const osThreadAttr_t faultTask_attributes = {
   .name = "faultTask",
   .stack_size = 128 * 4,

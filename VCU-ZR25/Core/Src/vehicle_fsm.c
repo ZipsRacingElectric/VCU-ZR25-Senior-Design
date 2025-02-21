@@ -9,24 +9,9 @@
 #include "driver_sensors.h"
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
+#include "fault_mgmt.h"
 
 VCU_State_t currentState = VEHICLE_OFF;
-
-/* Interrupt flags */
-typedef union {
-	struct FSMInterruptFlagBits{
-		uint8_t GLVMS_Turned_On : 1;
-		uint8_t Shutdown_Loop_Open : 1;
-		uint8_t External_Button_Pressed : 1;
-		uint8_t Brake_Pressed : 1;
-		uint8_t Start_Button_Pressed : 1;
-		uint8_t Fault_Detected : 1;
-	} flagBits;
-	uint32_t flagInt;
-} FSMInterruptFlags_t;
-
-const struct FSMInterruptFlagBits FSM_FLAGS_ALL = {1,1,1,1,1,1};
-const struct FSMInterruptFlagBits FSM_FLAGS_NONE = {0,0,0,0,0,0};
 
 static osThreadId_t thread_id;
 
@@ -99,7 +84,7 @@ void StartFSMTask(void *argument)
 void TransitionState(VCU_State_t newState)
 {
   currentState = newState;
-  FaultTFSMInterruptFlags_type_t flags = {.faultBits = FAULTS_NONE};
+  FSMInterruptFlags_t flags;
   flags.flagInt = osThreadFlagsGet();
 
   switch(newState)

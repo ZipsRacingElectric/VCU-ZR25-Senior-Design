@@ -11,16 +11,6 @@
 
 #define IMPLAUSIBILITY_TIMEOUT 100
 
-typedef union {
-	struct FaultTypeBits{
-		uint8_t Fault_implausibility : 1;
-	} faultBits;
-	uint32_t faultInt;
-} FaultType_t;
-
-const struct FaultTypeBits FAULTS_ALL = {1};
-const struct FaultTypeBits FAULTS_NONE = {0};
-
 static uint32_t MASK_ALL = ~0;
 static uint32_t implausibility_timer = 0;
 static bool implausibility_detected = 0;
