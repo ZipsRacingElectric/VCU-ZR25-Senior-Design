@@ -19,8 +19,11 @@ typedef struct {
   APPSSensor_t apps;
   osMutexId_t apps_lock;
 
-  BPSSensor_t bps;
-  osMutexId_t bps_lock;
+  BPSSensor_t bps_front;
+  osMutexId_t bps_front_lock;
+
+  BPSSensor_t bps_rear;
+  osMutexId_t bps_rear_lock;
 
   SteeringAngleSensor_t sas;
   osMutexId_t sas_lock;
@@ -38,7 +41,7 @@ typedef struct {
 extern VehicleData_t VehicleData;
 
 void initVehicleData();
-
+VehicleData_t get_vehicle_data();
 
 
 #endif /* INC_VEHICLE_DATA_H_ */

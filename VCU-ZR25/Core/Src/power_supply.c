@@ -5,6 +5,7 @@
  *      Author: John
  */
 
+#include "vehicle_data.h"
 #include "power_supply.h"
 #include "main.h"
 #include "vehicle_data.h"

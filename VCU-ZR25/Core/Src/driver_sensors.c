@@ -9,35 +9,10 @@
 
 // Includes
 #include "driver_sensors.h"
+#include "vehicle_fsm.h"
 #include "am4096_encoder.h"
 #include <math.h>
 #include "usbd_cdc_if.h"
-
-// Constants for Conversion and Validation
-#define APPS_1_CHANNEL	 	  ADC_CHANNEL_1
-#define APPS_2_CHANNEL	      ADC_CHANNEL_2
-#define BPS_FRONT_CHANNEL	  ADC_CHANNEL_3
-#define BPS_REAR_CHANNEL	  ADC_CHANNEL_4
-
-#define ADC_MAX_VALUE         4095  // 2^12 - 1
-#define ADC_REF_VOLTAGE       3300  // V * 1000
-
-#define APPS_1_MIN_VOLTAGE    0500  // V * 1000
-#define APPS_2_MIN_VOLTAGE    0250  // V * 1000
-#define APPS_1_MAX_VOLTAGE    4500  // V * 1000
-#define APPS_2_MAX_VOLTAGE    2250  // V * 1000
-#define APPS_MIN_DELTA_V	  0030  // Minimum allowable voltage difference V * 1000
-#define APPS_MAX_DELTA_P   	  0100  // Maximum allowable pedal position difference % * 10
-#define APPS_DEADZONE		  0050  // Upper and lower pedal deadzone in % * 10
-#define APPS_OUT_OF_RANGE     0100  // Allowable voltage beyond calibration limits before fault V * 1000
-
-#define BPS_MIN_VOLTAGE       0500  // V * 1000
-#define BPS_MAX_VOLTAGE       4500  // V * 1000
-#define BPS_MAX_PRESSURE      2500 // pressure in PSI
-#define BPS_DEADZONE    	  0050  // Deadzone before plausibility fault in V * 1000
-
-#define STEERING_MAX_ANGLE    3200  // radians * 1000
-#define STEERING_MIN_ANGLE    -3200 // radians * 1000
 
 // Static variables
 APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .percent = 0, .plausible = false};
@@ -69,6 +44,7 @@ void StartDriverSensorTask(
 	while (1) {
 		read_driver_input(&hadc1);
 		print_driver_input();
+		fsm_sensor_callback();
 
 		HAL_Delay(50);
 	}
@@ -181,6 +157,21 @@ void print_driver_input(void)
 	}
 }
 
+void fsm_sensor_callback(void){
+	uint8_t flag;
+	uint8_t value;
+		if ((s_bps_front.raw_value > BPS_VOLTAGE_THRESHOLD)
+				| (s_bps_rear.raw_value > BPS_VOLTAGE_THRESHOLD)) {
+			flag = FLAG_INDEX_BRAKE_PRESSED;
+			value = 1;
+			fsm_flag_callback(flag, value);
+		}
+		else{
+			flag = FLAG_INDEX_BRAKE_PRESSED;
+			value = 0;
+			fsm_flag_callback(flag, value);
+		}
+}
 /*
  * Returns an APPSSensor_t struct with the current APPS data in it
  */
