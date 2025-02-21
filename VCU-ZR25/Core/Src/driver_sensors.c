@@ -9,6 +9,7 @@
 
 // Includes
 #include "driver_sensors.h"
+#include "vehicle_fsm.h"
 #include "am4096_encoder.h"
 #include <math.h>
 #include "usbd_cdc_if.h"
@@ -43,6 +44,7 @@ void StartDriverSensorTask(
 	while (1) {
 		read_driver_input(&hadc1);
 		print_driver_input();
+		fsm_callback();
 
 		HAL_Delay(50);
 	}
@@ -155,6 +157,32 @@ void print_driver_input(void)
 	}
 }
 
+void fsm_callback(void){
+	uint8_t flag;
+	uint8_t value;
+		if ((s_bps_front.raw_value > BPS_VOLTAGE_THRESHOLD)
+				| (s_bps_rear.raw_value > BPS_VOLTAGE_THRESHOLD)) {
+			flag = FLAG_INDEX_BRAKE_PRESSED;
+			value = 1;
+			fsm_flag_callback(flag, value);
+		}
+		else{
+			flag = FLAG_INDEX_BRAKE_PRESSED;
+			value = 0;
+			fsm_flag_callback(flag, value);
+		}
+
+		if (!s_apps.plausible | !s_bps_front.plausible | !s_bps_rear.plausible | s_steering_angle.plausible){
+			flag = FLAG_INDEX_FAULT_DETECTED;
+			value = 1;
+			fsm_flag_callback(flag, value);
+		}
+		else{
+			flag = FLAG_INDEX_FAULT_DETECTED;
+			value = 0;
+			fsm_flag_callback(flag, value);
+		}
+}
 /*
  * Returns an APPSSensor_t struct with the current APPS data in it
  */

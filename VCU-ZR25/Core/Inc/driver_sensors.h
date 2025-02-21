@@ -52,6 +52,7 @@
 
 #define BPS_MIN_VOLTAGE       0500  // V * 1000
 #define BPS_MAX_VOLTAGE       4500  // V * 1000
+#define BPS_VOLTAGE_THRESHOLD 2500  // V * 1000 Halfway between min and max
 #define BPS_MAX_PRESSURE      2500 // pressure in PSI
 #define BPS_DEADZONE    	  0050  // Deadzone before plausibility fault in V * 1000
 
@@ -116,6 +117,8 @@ void init_driver_input(I2C_HandleTypeDef *i2c);
 void read_driver_input(ADC_HandleTypeDef *adc);
 
 void print_driver_input(void);
+
+void fsm_callback(void);
 /*
  * Returns an APPSSensor_t struct with the current APPS data in it
  */

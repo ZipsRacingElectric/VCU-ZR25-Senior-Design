@@ -11,6 +11,14 @@
 #include "cmsis_os.h"
 #include "gpio.h"
 
+#define FLAG_INDEX_GLVMS_TURNED_ON 0
+#define FLAG_INDEX_SHUTDOWN_LOOP_OPEN 1
+#define FLAG_INDEX_EXTERNAL_BUTTON_PRESSED 2
+#define FLAG_INDEX_BRAKE_PRESSED 3
+#define FLAG_INDEX_START_BUTTON_PRESSED 4
+#define FLAG_INDEX_FAULT_DETECTED 5
+#define FLAG_INDEX_EXTERNAL_RESET_PRESSED 6
+
 static const osThreadAttr_t fsmTask_attributes = {
   .name = "fsmTask",
   .stack_size = 128 * 4,
@@ -27,5 +35,6 @@ typedef enum {
 void StartFSMTask(void *argument);
 void TransitionState(VCU_State_t newState);
 void FSM_GPIO_Callback(uint16_t GPIO_Pin);
+void fsm_flag_callback(uint8_t flag, uint8_t value);
 
 #endif /* INC_VEHICLE_FSM_H_ */

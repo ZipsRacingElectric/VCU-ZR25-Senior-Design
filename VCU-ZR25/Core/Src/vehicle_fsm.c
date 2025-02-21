@@ -10,14 +10,6 @@
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
 
-#define FLAG_INDEX_GLVMS_TURNED_ON 0
-#define FLAG_INDEX_SHUTDOWN_LOOP_OPEN 1
-#define FLAG_INDEX_EXTERNAL_BUTTON_PRESSED 2
-#define FLAG_INDEX_BRAKE_PRESSED 3
-#define FLAG_INDEX_START_BUTTON_PRESSED 4
-#define FLAG_INDEX_FAULT_DETECTED 5
-#define FLAG_INDEX_EXTERNAL_RESET_PRESSED 6
-
 VCU_State_t currentState = VEHICLE_OFF;
 /* Interrupt flags */
 /* TODO: Handle fault_detected logic and writing vcu_fault low */
@@ -118,14 +110,17 @@ void TransitionState(VCU_State_t newState)
 
     case LOW_VOLTAGE_STATE:
       HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
       break;
 
     case TRACTIVE_SYSTEM_ACTIVE_STATE:
+      HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_SET);
       break;
 
     case READY_TO_DRIVE_STATE:
-      HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_SET);
       break;
 
     default:
@@ -176,24 +171,17 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
   osThreadFlagsSet(thread_id, flags.flagInt);
 }
 
-/* TODO: Just made it as 50% for now, should be changed based on motor torque issue, maybe removed */
-/* IDK how to do this yet so I'm just commenting it out and will address it later
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+void fsm_flag_callback(uint8_t flag, uint8_t value){
 	FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
 
-    if (hadc->Channel == ADC_CHANNEL_2) {
-        if (HAL_ADC_GetValue(BPS_FRONT_Pin) > BPS_MAX_VOLTAGE / 2) {
-            flags.flagBits.Brake_Pressed = 1;
-        }
+    if (value){
+    	flags.flagInt |= (1 << flag);
     }
-
-    if (hadc->Channel == ADC_CHANNEL_3) {
-        if (HAL_ADC_GetValue(BPS_REAR_Pin) > BPS_MAX_VOLTAGE / 2) {
-            flags.flagBits.Brake_Pressed = 1;
-        }
+    else{
+    	osThreadFlagsClear(1 << value);
     }
 
     osThreadFlagsSet(thread_id, flags.flagInt);
-} */
+}
 
 
