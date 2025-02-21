@@ -44,7 +44,7 @@ void StartDriverSensorTask(
 	while (1) {
 		read_driver_input(&hadc1);
 		print_driver_input();
-		fsm_callback();
+		fsm_sensor_callback();
 
 		HAL_Delay(50);
 	}
@@ -157,7 +157,7 @@ void print_driver_input(void)
 	}
 }
 
-void fsm_callback(void){
+void fsm_sensor_callback(void){
 	uint8_t flag;
 	uint8_t value;
 		if ((s_bps_front.raw_value > BPS_VOLTAGE_THRESHOLD)
@@ -168,17 +168,6 @@ void fsm_callback(void){
 		}
 		else{
 			flag = FLAG_INDEX_BRAKE_PRESSED;
-			value = 0;
-			fsm_flag_callback(flag, value);
-		}
-
-		if (!s_apps.plausible | !s_bps_front.plausible | !s_bps_rear.plausible | s_steering_angle.plausible){
-			flag = FLAG_INDEX_FAULT_DETECTED;
-			value = 1;
-			fsm_flag_callback(flag, value);
-		}
-		else{
-			flag = FLAG_INDEX_FAULT_DETECTED;
 			value = 0;
 			fsm_flag_callback(flag, value);
 		}

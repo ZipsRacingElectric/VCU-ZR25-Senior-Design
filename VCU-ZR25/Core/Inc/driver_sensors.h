@@ -118,7 +118,7 @@ void read_driver_input(ADC_HandleTypeDef *adc);
 
 void print_driver_input(void);
 
-void fsm_callback(void);
+void fsm_sensor_callback(void);
 /*
  * Returns an APPSSensor_t struct with the current APPS data in it
  */
