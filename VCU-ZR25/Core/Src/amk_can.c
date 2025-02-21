@@ -27,13 +27,13 @@ typedef enum {
 	STARTING_MOTORS,
 	MOTORS_READY,
 	STOPPING_MOTORS
-} AMKState_t;
+} AMKSequenceState_t;
 
 static AMKMotorState_t motor_state_fl;
 static AMKMotorState_t motor_state_fr;
 static AMKMotorState_t motor_state_rl;
 static AMKMotorState_t motor_state_rr;
-static AMKState_t controller_state;
+static AMKSequenceState_t controller_state;
 
 void StartAMKTask(void *argument) {
 	// Initialize state machines

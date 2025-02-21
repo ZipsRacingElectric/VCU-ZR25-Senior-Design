@@ -144,13 +144,12 @@ typedef struct {
 typedef union {
 	struct AMKControllerEventFlagBits {
 		uint8_t Start_Motors;
-		uint8_t
 	} flagBits;
 	uint32_t flagInt;
 } AMKControllerEventFlags_t;
 
-const static struct FSMInterruptFlagBits FSM_FLAGS_ALL = {1,1,1,1,1,1};
-const static struct FSMInterruptFlagBits FSM_FLAGS_NONE = {0,0,0,0,0,0};
+const static struct AMKControllerEventFlagBits AMK_FLAGS_ALL = {1};
+const static struct AMKControllerEventFlagBits AMK_FLAGS_NONE = {0};
 
 void StartAMKTask(void *argument);
 
