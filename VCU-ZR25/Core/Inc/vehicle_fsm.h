@@ -17,7 +17,6 @@
 #define FLAG_INDEX_BRAKE_PRESSED 3
 #define FLAG_INDEX_START_BUTTON_PRESSED 4
 #define FLAG_INDEX_FAULT_DETECTED 5
-#define FLAG_INDEX_EXTERNAL_RESET_PRESSED 6
 
 static const osThreadAttr_t fsmTask_attributes = {
   .name = "fsmTask",

@@ -11,8 +11,8 @@
 #include "cmsis_os2.h"
 
 VCU_State_t currentState = VEHICLE_OFF;
+
 /* Interrupt flags */
-/* TODO: Handle fault_detected logic and writing vcu_fault low */
 typedef union {
 	struct FSMInterruptFlagBits{
 		uint8_t GLVMS_Turned_On : 1;
@@ -21,13 +21,12 @@ typedef union {
 		uint8_t Brake_Pressed : 1;
 		uint8_t Start_Button_Pressed : 1;
 		uint8_t Fault_Detected : 1;
-		uint8_t External_Reset_Pressed : 1;
 	} flagBits;
 	uint32_t flagInt;
 } FSMInterruptFlags_t;
 
-const struct FSMInterruptFlagBits FSM_FLAGS_ALL = {1,1,1,1,1,1,1};
-const struct FSMInterruptFlagBits FSM_FLAGS_NONE = {0,0,0,0,0,0,0};
+const struct FSMInterruptFlagBits FSM_FLAGS_ALL = {1,1,1,1,1,1};
+const struct FSMInterruptFlagBits FSM_FLAGS_NONE = {0,0,0,0,0,0};
 
 static osThreadId_t thread_id;
 
@@ -100,25 +99,35 @@ void StartFSMTask(void *argument)
 void TransitionState(VCU_State_t newState)
 {
   currentState = newState;
+  FaultTFSMInterruptFlags_type_t flags = {.faultBits = FAULTS_NONE};
+  flags.flagInt = osThreadFlagsGet();
 
   switch(newState)
   {
     case VEHICLE_OFF:
+      if (!flags.flagBits.Fault_Detected){
+    	  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+      }
       HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
       break;
 
     case LOW_VOLTAGE_STATE:
+	  if (flags.flagBits.Fault_Detected){
+		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
+	  }
       HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
       break;
 
     case TRACTIVE_SYSTEM_ACTIVE_STATE:
+      HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_SET);
       break;
 
     case READY_TO_DRIVE_STATE:
+      HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_SET);
       break;
