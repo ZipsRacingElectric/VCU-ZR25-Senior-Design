@@ -28,6 +28,7 @@
 #include "vehicle_fsm.h"
 #include "power_supply.h"
 #include "fault_mgmt.h"
+#include "cooling_system.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -68,6 +69,7 @@ osThreadId_t fsmTaskHandle;
 osThreadId_t powsupTaskHandle;
 osThreadId_t driversensorTaskHandle;
 osThreadId_t faultTaskHandle;
+osThreadId_t coolingTaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -166,6 +168,8 @@ int main(void)
   driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
 
   faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
+
+  coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
