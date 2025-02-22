@@ -9,6 +9,7 @@
 #include "driver_sensors.h"
 #include "vehicle_data.h"
 #include "cooling_system.h"
+#include "dashboard.h"
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
 
@@ -161,6 +162,9 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 		{
 			osThreadFlagsClear(1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
 		}
+	else {
+		DashboardCriticalFaultCallback();
+	}
   }
   else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_RESET_Pin)
   {
@@ -181,6 +185,12 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 					osThreadFlagsClear(1 << FLAG_INDEX_START_BUTTON_PRESSED);
 				}
   }
+  else if (GPIO_Pin == DASH_INPUT_2_Pin){
+	  DashboardDRSToggleCallback(GPIO_Pin);
+  }
+  else if ((GPIO_Pin == DASH_INPUT_3_Pin) | (GPIO_Pin == DASH_INPUT_4_Pin)){
+	  DashboardTorqueLimitCallback(GPIO_Pin);
+  }
   osThreadFlagsSet(thread_id, flags.flagInt);
 }
 
@@ -189,6 +199,9 @@ void fsm_flag_callback(uint8_t flag, uint8_t value){
 
     if (value){
     	flags.flagInt |= (1 << flag);
+    	if(flag == FLAG_INDEX_FAULT_DETECTED){
+    		DashboardCriticalFaultCallback();
+    	}
     }
     else{
     	osThreadFlagsClear(1 << value);

@@ -70,6 +70,7 @@ osThreadId_t powsupTaskHandle;
 osThreadId_t driversensorTaskHandle;
 osThreadId_t faultTaskHandle;
 osThreadId_t coolingTaskHandle;
+osThreadId_t dashboardTaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -170,6 +171,8 @@ int main(void)
   faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
 
   coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
+
+  dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */

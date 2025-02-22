@@ -25,6 +25,7 @@ const osMutexAttr_t inverterMutexAttrs = VD_MUTEX_ATTRS("inverterVDMutex");
 const osMutexAttr_t fsmStateMutexAttrs = VD_MUTEX_ATTRS("fsmStateVDMutex");
 const osMutexAttr_t powSupMutexAttrs = VD_MUTEX_ATTRS("powSupVDMutex");
 const osMutexAttr_t coolingMutexAttrs = VD_MUTEX_ATTRS("coolingVDMutex");
+const osMutexAttr_t dashboardMutexAttrs = VD_MUTEX_ATTRS("dashboardVDMutex");
 
 void initVehicleData() {
 	VehicleData = (VehicleData_t){0};
@@ -36,6 +37,7 @@ void initVehicleData() {
 	VehicleData.fsm_state_lock = osMutexNew(&fsmStateMutexAttrs);
 	VehicleData.powsup_lock = osMutexNew(&powSupMutexAttrs);
 	VehicleData.cooling_lock = osMutexNew(&coolingMutexAttrs);
+	VehicleData.dashboard_lock = osMutexNew(&dashboardMutexAttrs);
 }
 
 VehicleData_t get_vehicle_data(){
