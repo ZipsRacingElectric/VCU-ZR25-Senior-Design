@@ -8,6 +8,7 @@
 #include "vehicle_fsm.h"
 #include "driver_sensors.h"
 #include "vehicle_data.h"
+#include "cooling_system.h"
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
 
@@ -138,6 +139,8 @@ void TransitionState(VCU_State_t newState)
       HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_SET);
+      CoolingSystemTurnOnLeft();
+      CoolingSystemTurnOnRight();
       break;
 
     default:
