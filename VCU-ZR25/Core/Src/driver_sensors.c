@@ -180,13 +180,15 @@ void print_driver_input(void)
 void fsm_sensor_callback(void){
 	uint8_t flag;
 	uint8_t value;
-		if ((s_bps_front.raw_value > BPS_VOLTAGE_THRESHOLD)
-				| (s_bps_rear.raw_value > BPS_VOLTAGE_THRESHOLD)) {
+		if ((s_bps_front.raw_value > BPS_MIN_VOLTAGE)
+				| (s_bps_rear.raw_value > BPS_MIN_VOLTAGE)) {
+			HAL_GPIO_WritePin(GPIOB, BRAKE_LIGHT_CONTROL_Pin, GPIO_PIN_SET);
 			flag = FLAG_INDEX_BRAKE_PRESSED;
 			value = 1;
 			fsm_flag_callback(flag, value);
 		}
 		else{
+			HAL_GPIO_WritePin(GPIOB, BRAKE_LIGHT_CONTROL_Pin, GPIO_PIN_RESET);
 			flag = FLAG_INDEX_BRAKE_PRESSED;
 			value = 0;
 			fsm_flag_callback(flag, value);

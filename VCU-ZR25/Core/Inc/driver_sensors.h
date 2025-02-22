@@ -52,7 +52,7 @@
 
 #define BPS_MIN_VOLTAGE       0500  // V * 1000
 #define BPS_MAX_VOLTAGE       4500  // V * 1000
-#define BPS_VOLTAGE_THRESHOLD 2500  // V * 1000 Halfway between min and max
+#define BPS_ENGAGED_VOLTAGE_THRESHOLD 2500  // V * 1000 Halfway between min and max
 #define BPS_MAX_PRESSURE      2500 // pressure in PSI
 #define BPS_DEADZONE    	  0050  // Deadzone before plausibility fault in V * 1000
 
