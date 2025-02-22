@@ -11,6 +11,7 @@
 #include "driver_sensors.h"
 #include "vehicle_fsm.h"
 #include "am4096_encoder.h"
+#include "vehicle_data.h"
 #include <math.h>
 #include "usbd_cdc_if.h"
 
@@ -36,6 +37,24 @@ static bool validate_apps(APPSSensor_t apps);
 static bool validate_bps(BPSSensor_t bps);
 static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
+void update_driver_sensor_data(){
+	osMutexAcquire(VehicleData.apps_lock, osWaitForever);
+	VehicleData.apps = s_apps;
+	osMutexRelease(VehicleData.apps_lock);
+
+	osMutexAcquire(VehicleData.bps_front_lock, osWaitForever);
+	VehicleData.bps_front = s_bps_front;
+	osMutexRelease(VehicleData.bps_front_lock);
+
+	osMutexAcquire(VehicleData.bps_rear_lock, osWaitForever);
+	VehicleData.bps_rear = s_bps_rear;
+	osMutexRelease(VehicleData.bps_rear_lock);
+
+	osMutexAcquire(VehicleData.sas_lock, osWaitForever);
+	VehicleData.sas = s_steering_angle;
+	osMutexRelease(VehicleData.sas_lock);
+}
+
 // Public Functions
 void StartDriverSensorTask(
 	DriverSensorTaskArgs_t *args
@@ -44,6 +63,7 @@ void StartDriverSensorTask(
 	while (1) {
 		read_driver_input(&hadc1);
 		print_driver_input();
+		update_driver_sensor_data();
 		fsm_sensor_callback();
 
 		HAL_Delay(50);
