@@ -200,7 +200,7 @@ void fsm_flag_callback(uint8_t flag, uint8_t value){
     if (value){
     	flags.flagInt |= (1 << flag);
     	if(flag == FLAG_INDEX_FAULT_DETECTED){
-    		DashboardCriticalFaultCallback();
+    		DashboardFaultCallback();
     	}
     }
     else{
