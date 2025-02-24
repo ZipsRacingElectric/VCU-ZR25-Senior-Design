@@ -20,8 +20,11 @@ typedef union {
 
 const struct FaultTypeBits FAULTS_ALL = {1};
 const struct FaultTypeBits FAULTS_NONE = {0};
+const uint8_t fault_critical[NUM_FAULTS] = {
+      // critical
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical
+};
 
-static uint32_t MASK_ALL = ~0;
 static uint32_t implausibility_timer = 0;
 static bool implausibility_detected = 0;
 
@@ -35,22 +38,37 @@ void StartFaultTask(void *argument){
 		fault.faultInt = osThreadFlagsGet();
 
 		fault_check();
-		fsm_fault_callback();
+		fault_callback();
 
 		const FaultType_t mask = {.faultBits = FAULTS_ALL};
 		fault.faultInt = osThreadFlagsWait(mask.faultInt, osFlagsWaitAny, 10);
 	}
 }
 
-void fsm_fault_callback(){
+void fault_callback(){
 	FaultType_t fault = {.faultBits = FAULTS_NONE};
 	fault.faultInt = osThreadFlagsGet();
-	uint8_t flag = FLAG_INDEX_FAULT_DETECTED;
-	uint8_t value = 0;
-	if((fault.faultInt & MASK_ALL) != 0){
-		value = 1;
+
+	uint32_t criticalFaults = 0;
+	uint32_t nonCriticalFaults = 0;
+
+	for (uint8_t i = 0; i < NUM_FAULTS; i++) {
+		if (fault.faultInt & (1 << i)) {
+			if (fault_critical[i]) {
+				criticalFaults |= (1 << i);
+			} else {
+				nonCriticalFaults |= (1 << i);
+			}
+		}
 	}
-	fsm_flag_callback(flag, value);
+
+	if(criticalFaults){
+		fsm_flag_callback(FLAG_INDEX_FAULT_DETECTED, 1);
+	}
+
+	if(nonCriticalFaults){
+		DashboardFaultCallback();
+	}
 }
 
 void fault_check(){
@@ -64,7 +82,7 @@ void fault_check(){
 			implausibility_timer = osKernelSysTick();
 			implausibility_detected = 1;
 		}
-
+		/* TODO: CAN implementation for motor inverter communication */
 		if (osKernelSysTick() - implausibility_timer >= IMPLAUSIBILITY_TIMEOUT) {
 			fault.faultBits.Fault_implausibility = 1;
 		}
