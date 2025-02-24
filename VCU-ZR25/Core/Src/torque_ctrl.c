@@ -16,8 +16,8 @@ void update_torque_ctrl_data(TorqueCtrlData_t torquectrl) {
 	osMutexRelease(VehicleData.torquectrl_lock);
 }
 
-uint8_t check_control_mode(){
-	uint8_t control_mode = 0;
+ControlMode_t check_control_mode(){
+	ControlMode_t control_mode = 0;
 	return control_mode;
 }
 

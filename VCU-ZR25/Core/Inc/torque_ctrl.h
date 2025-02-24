@@ -22,8 +22,12 @@ static const osThreadAttr_t torquectrlTask_attributes = {
   .priority = (osPriority_t)osPriorityNormal
 };
 
+typedef enum {
+    CONTROL_MODE_LIMP = 0,
+} ControlMode_t;
+
 typedef struct {
-  uint8_t controlmode;
+  ControlMode_t controlmode;
   uint8_t torque_percent;
 } TorqueCtrlData_t;
 
