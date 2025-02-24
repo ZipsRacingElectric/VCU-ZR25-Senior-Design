@@ -8,6 +8,7 @@
 #include "vehicle_data.h"
 #include "dashboard.h"
 #include "main.h"
+#include "torque_ctrl.h"
 
 void update_dashboard_data(DashboardData_t dashboardData) {
 	osMutexAcquire(VehicleData.dashboard_lock, osWaitForever);
@@ -73,13 +74,13 @@ void DashboardTorqueLimitCallback(uint16_t GPIO_Pin){
 	if (GPIO_Pin == DASH_INPUT_3_Pin){
 		uint8_t pin_state = HAL_GPIO_ReadPin(DASH_INPUT_3_GPIO_Port, DASH_INPUT_3_Pin);
 		if (pin_state){
-
+			increment_torque_limit();
 		}
 	}
 	else {
 		uint8_t pin_state = HAL_GPIO_ReadPin(DASH_INPUT_4_GPIO_Port, DASH_INPUT_4_Pin);
 		if (pin_state){
-
+			decrement_torque_limit();
 		}
 	}
 }

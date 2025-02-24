@@ -29,6 +29,7 @@
 #include "power_supply.h"
 #include "fault_mgmt.h"
 #include "cooling_system.h"
+#include "torque_ctrl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -71,6 +72,7 @@ osThreadId_t driversensorTaskHandle;
 osThreadId_t faultTaskHandle;
 osThreadId_t coolingTaskHandle;
 osThreadId_t dashboardTaskHandle;
+osThreadId_t torquectrlTaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -173,6 +175,8 @@ int main(void)
   coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
 
   dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
+
+  torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */

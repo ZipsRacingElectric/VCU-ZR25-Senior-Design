@@ -16,6 +16,7 @@
 #include "power_supply.h"
 #include "cooling_system.h"
 #include "dashboard.h"
+#include "torque_ctrl.h"
 
 typedef struct {
   APPSSensor_t apps;
@@ -44,6 +45,9 @@ typedef struct {
 
   DashboardData_t dashboard;
   osMutexId_t dashboard_lock;
+
+  TorqueCtrlData_t torquectrl;
+  osMutexId_t torquectrl_lock;
 } VehicleData_t;
 
 extern VehicleData_t VehicleData;
