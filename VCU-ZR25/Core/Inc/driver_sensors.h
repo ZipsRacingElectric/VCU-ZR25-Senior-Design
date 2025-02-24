@@ -33,10 +33,10 @@
 #include <cmsis_os.h>
 
 // Constants for Conversion and Validation
-#define APPS_1_CHANNEL	 	  ADC_CHANNEL_1
-#define APPS_2_CHANNEL	      ADC_CHANNEL_2
-#define BPS_FRONT_CHANNEL	  ADC_CHANNEL_3
-#define BPS_REAR_CHANNEL	  ADC_CHANNEL_4
+#define APPS_1_CHANNEL	 	  ADC_CHANNEL_0
+#define APPS_2_CHANNEL	      ADC_CHANNEL_1
+#define BPS_FRONT_CHANNEL	  ADC_CHANNEL_2
+#define BPS_REAR_CHANNEL	  ADC_CHANNEL_3
 
 #define ADC_MAX_VALUE         4095  // 2^12 - 1
 #define ADC_REF_VOLTAGE       3300  // V * 1000
