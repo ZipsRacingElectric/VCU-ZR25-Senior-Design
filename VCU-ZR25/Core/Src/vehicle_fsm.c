@@ -7,6 +7,9 @@
 
 #include "vehicle_fsm.h"
 #include "driver_sensors.h"
+#include "vehicle_data.h"
+#include "cooling_system.h"
+#include "dashboard.h"
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
 #include "fault_mgmt.h"
@@ -14,6 +17,12 @@
 VCU_State_t currentState = VEHICLE_OFF;
 
 static osThreadId_t thread_id;
+
+void update_fsm_data(VCU_State_t fsm_state) {
+	osMutexAcquire(VehicleData.fsm_state_lock, osWaitForever);
+	VehicleData.fsm_state = fsm_state;
+	osMutexRelease(VehicleData.powsup_lock);
+}
 
 void StartFSMTask(void *argument)
 {
@@ -75,6 +84,7 @@ void StartFSMTask(void *argument)
         break;
     }
 
+    update_fsm_data(currentState);
     const FSMInterruptFlags_t mask = {.flagBits = FSM_FLAGS_ALL};
     flags.flagInt = osThreadFlagsWait(mask.flagInt, osFlagsWaitAny, 10);
   }
@@ -84,7 +94,7 @@ void StartFSMTask(void *argument)
 void TransitionState(VCU_State_t newState)
 {
   currentState = newState;
-  FSMInterruptFlags_t flags;
+  FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
   flags.flagInt = osThreadFlagsGet();
 
   switch(newState)
@@ -115,6 +125,8 @@ void TransitionState(VCU_State_t newState)
       HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOA, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOB, DEBUG_LED_2_Pin, GPIO_PIN_SET);
+      CoolingSystemTurnOnLeft();
+      CoolingSystemTurnOnRight();
       break;
 
     default:
@@ -124,15 +136,8 @@ void TransitionState(VCU_State_t newState)
 
 void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
   FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
-  if (GPIO_Pin == GLV_BATTERY_Pin)
-  {
-	flags.flagBits.GLVMS_Turned_On = HAL_GPIO_ReadPin(GLV_BATTERY_GPIO_Port, GLV_BATTERY_Pin);
-	if(flags.flagBits.GLVMS_Turned_On == 0)
-	{
-		osThreadFlagsClear(1 << FLAG_INDEX_GLVMS_TURNED_ON);
-	}
-  }
-  else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_IN_Pin)
+
+  if (GPIO_Pin == VCU_SHUTDOWN_LOOP_IN_Pin)
   {
 	flags.flagBits.Shutdown_Loop_Open = !HAL_GPIO_ReadPin(
 			VCU_SHUTDOWN_LOOP_IN_GPIO_Port,
@@ -142,6 +147,9 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 		{
 			osThreadFlagsClear(1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
 		}
+	else {
+		DashboardCriticalFaultCallback();
+	}
   }
   else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_RESET_Pin)
   {
@@ -162,6 +170,12 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 					osThreadFlagsClear(1 << FLAG_INDEX_START_BUTTON_PRESSED);
 				}
   }
+  else if (GPIO_Pin == DASH_INPUT_2_Pin){
+	  DashboardDRSToggleCallback(GPIO_Pin);
+  }
+  else if ((GPIO_Pin == DASH_INPUT_3_Pin) | (GPIO_Pin == DASH_INPUT_4_Pin)){
+	  DashboardTorqueLimitCallback(GPIO_Pin);
+  }
   osThreadFlagsSet(thread_id, flags.flagInt);
 }
 
@@ -170,6 +184,9 @@ void fsm_flag_callback(uint8_t flag, uint8_t value){
 
     if (value){
     	flags.flagInt |= (1 << flag);
+    	if(flag == FLAG_INDEX_FAULT_DETECTED){
+    		DashboardFaultCallback();
+    	}
     }
     else{
     	osThreadFlagsClear(1 << value);

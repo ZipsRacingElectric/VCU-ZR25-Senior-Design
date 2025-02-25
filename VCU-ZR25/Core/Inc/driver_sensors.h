@@ -33,10 +33,10 @@
 #include <cmsis_os.h>
 
 // Constants for Conversion and Validation
-#define APPS_1_CHANNEL	 	  ADC_CHANNEL_1
-#define APPS_2_CHANNEL	      ADC_CHANNEL_2
-#define BPS_FRONT_CHANNEL	  ADC_CHANNEL_3
-#define BPS_REAR_CHANNEL	  ADC_CHANNEL_4
+#define APPS_1_CHANNEL	 	  ADC_CHANNEL_0
+#define APPS_2_CHANNEL	      ADC_CHANNEL_1
+#define BPS_FRONT_CHANNEL	  ADC_CHANNEL_2
+#define BPS_REAR_CHANNEL	  ADC_CHANNEL_3
 
 #define ADC_MAX_VALUE         4095  // 2^12 - 1
 #define ADC_REF_VOLTAGE       3300  // V * 1000
@@ -52,7 +52,7 @@
 
 #define BPS_MIN_VOLTAGE       0500  // V * 1000
 #define BPS_MAX_VOLTAGE       4500  // V * 1000
-#define BPS_VOLTAGE_THRESHOLD 2500  // V * 1000 Halfway between min and max
+#define BPS_ENGAGED_VOLTAGE_THRESHOLD 2500  // V * 1000 Halfway between min and max
 #define BPS_MAX_PRESSURE      2500 // pressure in PSI
 #define BPS_DEADZONE    	  0050  // Deadzone before plausibility fault in V * 1000
 

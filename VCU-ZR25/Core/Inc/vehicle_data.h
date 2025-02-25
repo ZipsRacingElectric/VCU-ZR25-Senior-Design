@@ -14,6 +14,9 @@
 #include "amk_can.h"
 #include "vehicle_fsm.h"
 #include "power_supply.h"
+#include "cooling_system.h"
+#include "dashboard.h"
+#include "torque_ctrl.h"
 
 typedef struct {
   APPSSensor_t apps;
@@ -36,6 +39,15 @@ typedef struct {
 
   PowSupData_t powsup;
   osMutexId_t powsup_lock;
+
+  CoolingData_t cooling;
+  osMutexId_t cooling_lock;
+
+  DashboardData_t dashboard;
+  osMutexId_t dashboard_lock;
+
+  TorqueCtrlData_t torquectrl;
+  osMutexId_t torquectrl_lock;
 } VehicleData_t;
 
 extern VehicleData_t VehicleData;
