@@ -11,6 +11,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "cmsis_os.h"
+#include "stm32f4xx_hal.h"
 
 // Each CANDatabaseMessage_t represents the contents of a message
 // from/to a certain can_id. The signals are a list of bit fields
@@ -66,6 +67,13 @@ bool CANQueueMessageToSend(CANDatabaseEntryId entry_id, uint64_t contents);
 // Have a function be called whenever a message with a given id is received.
 // Returns false if another callback has already been registered and was overwritten.
 bool CANRegisterCallback(CANDatabaseEntryId entry_id, CANCallback_t callback, void *custom_argument);
+
+// Returns true if message recognized by CAN DB
+bool CANIRQRxHandler(CAN_RxHeaderTypeDef *header, uint8_t rx_data[8]);
+
+osThreadAttr_t can_task_attrs = {
+	.name = "CAN_DB_Task",
+};
 
 void StartCANDatabaseTask(void* _argument);
 
