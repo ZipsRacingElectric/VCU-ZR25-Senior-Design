@@ -71,8 +71,10 @@ bool CANRegisterCallback(CANDatabaseEntryId entry_id, CANCallback_t callback, vo
 // Returns true if message recognized by CAN DB
 bool CANIRQRxHandler(CAN_RxHeaderTypeDef *header, uint8_t rx_data[8]);
 
-osThreadAttr_t can_task_attrs = {
+const static osThreadAttr_t can_task_attrs = {
 	.name = "CAN_DB_Task",
+	.stack_size = 128 * 4,
+    .priority = (osPriority_t) osPriorityNormal,
 };
 
 void StartCANDatabaseTask(void* _argument);
