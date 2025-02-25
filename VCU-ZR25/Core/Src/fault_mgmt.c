@@ -11,15 +11,6 @@
 
 #define IMPLAUSIBILITY_TIMEOUT 100
 
-typedef union {
-	struct FaultTypeBits{
-		uint8_t Fault_implausibility : 1;
-	} faultBits;
-	uint32_t faultInt;
-} FaultType_t;
-
-const struct FaultTypeBits FAULTS_ALL = {1};
-const struct FaultTypeBits FAULTS_NONE = {0};
 const uint8_t fault_critical[NUM_FAULTS] = {
       // critical
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical

@@ -28,6 +28,7 @@
 #include "vehicle_fsm.h"
 #include "power_supply.h"
 #include "fault_mgmt.h"
+#include "can_db.h"
 #include "cooling_system.h"
 #include "torque_ctrl.h"
 /* USER CODE END Includes */
@@ -49,7 +50,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-ADC_ChannelConfTypeDef sConfig = {0};
 
 CAN_HandleTypeDef hcan1;
 CAN_HandleTypeDef hcan2;
@@ -70,6 +70,7 @@ osThreadId_t fsmTaskHandle;
 osThreadId_t powsupTaskHandle;
 osThreadId_t driversensorTaskHandle;
 osThreadId_t faultTaskHandle;
+osThreadId_t canTaskHandle;
 osThreadId_t coolingTaskHandle;
 osThreadId_t dashboardTaskHandle;
 osThreadId_t torquectrlTaskHandle;
@@ -133,9 +134,9 @@ int main(void)
   MX_I2C1_Init();
   MX_ADC1_Init();
   MX_WWDG_Init();
-  initVehicleData();
   /* USER CODE BEGIN 2 */
-
+  initVehicleData();
+  initCANDatabase();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -172,11 +173,15 @@ int main(void)
 
   faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
 
+
+  canTaskHandle = osThreadNew(StartCANDatabaseTask, (void*)&hcan1, &can_task_attrs);
+
   coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
 
   dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
 
   torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
+
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -258,7 +263,7 @@ static void MX_ADC1_Init(void)
 {
 
   /* USER CODE BEGIN ADC1_Init 0 */
-
+  ADC_ChannelConfTypeDef sConfig = {0};
   /* USER CODE END ADC1_Init 0 */
 
   /* USER CODE BEGIN ADC1_Init 1 */
@@ -450,9 +455,9 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin|DEBUG_LED_2_Pin|DEBUG_LED_3_Pin|CAN_1_STANDBY_Pin

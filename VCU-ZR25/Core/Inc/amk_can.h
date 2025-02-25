@@ -141,6 +141,16 @@ typedef struct {
 	int16_t rear_right;
 } amkTorqueSetpoints;
 
+typedef union {
+	struct AMKControllerEventFlagBits {
+		uint8_t Start_Motors;
+	} flagBits;
+	uint32_t flagInt;
+} AMKControllerEventFlags_t;
+
+const static struct AMKControllerEventFlagBits AMK_FLAGS_ALL = {1};
+const static struct AMKControllerEventFlagBits AMK_FLAGS_NONE = {0};
+
 void StartAMKTask(void *argument);
 
 void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints);
