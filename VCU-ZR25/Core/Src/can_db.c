@@ -129,10 +129,10 @@ void quicksortMessages(int start, int end) {
 	uint32_t pivot_id = messages[pivot].can_id;
 
 	// Bring pivot to start
-	swapMessageEntries(0, pivot);
-	pivot = 0;
+	swapMessageEntries(start, pivot);
+	pivot = start;
 
-	int i = 1;
+	int i = start+1;
 	uint32_t current_id;
 	while (i<end) {
 		current_id = messages[i].can_id;

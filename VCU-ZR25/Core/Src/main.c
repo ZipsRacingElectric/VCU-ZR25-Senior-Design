@@ -56,7 +56,7 @@ CAN_HandleTypeDef hcan2;
 
 I2C_HandleTypeDef hi2c1;
 
-WWDG_HandleTypeDef hwwdg;
+TIM_HandleTypeDef htim11;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -83,7 +83,7 @@ static void MX_CAN1_Init(void);
 static void MX_CAN2_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_WWDG_Init(void);
+static void MX_TIM11_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -133,10 +133,9 @@ int main(void)
   MX_CAN2_Init();
   MX_I2C1_Init();
   MX_ADC1_Init();
-  MX_WWDG_Init();
+  MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
   initVehicleData();
-  initCANDatabase();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -144,6 +143,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
+  initCANDatabase();
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -163,24 +163,24 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
+  //fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
 
   powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = {0}};
-  powsupTaskHandle = osThreadNew((void (*)(void*))StartPwrSupTask, &powsupargs, &powsupTask_attributes);
+  //powsupTaskHandle = osThreadNew((void (*)(void*))StartPwrSupTask, &powsupargs, &powsupTask_attributes);
 
   DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = {0}};
-  driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
+  //driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
 
   faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
 
 
-  canTaskHandle = osThreadNew(StartCANDatabaseTask, (void*)&hcan1, &can_task_attrs);
+  //canTaskHandle = osThreadNew(StartCANDatabaseTask, (void*)&hcan1, &can_task_attrs);
 
-  coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
+  //coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
 
-  dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
+  //dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
 
-  torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
+  //torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -201,10 +201,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
- 	  // Heart beat
-	  HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_3_Pin);
 
- 	  HAL_Delay(50);
    }
   /* USER CODE END 3 */
 }
@@ -263,8 +260,9 @@ static void MX_ADC1_Init(void)
 {
 
   /* USER CODE BEGIN ADC1_Init 0 */
-  ADC_ChannelConfTypeDef sConfig = {0};
   /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
 
@@ -413,32 +411,33 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief WWDG Initialization Function
+  * @brief TIM11 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_WWDG_Init(void)
+static void MX_TIM11_Init(void)
 {
 
-  /* USER CODE BEGIN WWDG_Init 0 */
+  /* USER CODE BEGIN TIM11_Init 0 */
 
-  /* USER CODE END WWDG_Init 0 */
+  /* USER CODE END TIM11_Init 0 */
 
-  /* USER CODE BEGIN WWDG_Init 1 */
+  /* USER CODE BEGIN TIM11_Init 1 */
 
-  /* USER CODE END WWDG_Init 1 */
-  hwwdg.Instance = WWDG;
-  hwwdg.Init.Prescaler = WWDG_PRESCALER_1;
-  hwwdg.Init.Window = 64;
-  hwwdg.Init.Counter = 64;
-  hwwdg.Init.EWIMode = WWDG_EWI_DISABLE;
-  if (HAL_WWDG_Init(&hwwdg) != HAL_OK)
+  /* USER CODE END TIM11_Init 1 */
+  htim11.Instance = TIM11;
+  htim11.Init.Prescaler = 0;
+  htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim11.Init.Period = 4199;
+  htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim11.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim11) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN WWDG_Init 2 */
+  /* USER CODE BEGIN TIM11_Init 2 */
 
-  /* USER CODE END WWDG_Init 2 */
+  /* USER CODE END TIM11_Init 2 */
 
 }
 
@@ -530,7 +529,9 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    // Heart beat
+    HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_3_Pin);
+    osDelay(50);
   }
   /* USER CODE END 5 */
 }
