@@ -37,6 +37,7 @@ static bool validate_apps(APPSSensor_t apps);
 static bool validate_bps(BPSSensor_t bps);
 static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
+// Public Functions
 void update_driver_sensor_data(){
 	osMutexAcquire(VehicleData.apps_lock, osWaitForever);
 	VehicleData.apps = s_apps;
@@ -55,7 +56,6 @@ void update_driver_sensor_data(){
 	osMutexRelease(VehicleData.sas_lock);
 }
 
-// Public Functions
 void StartDriverSensorTask(
 	DriverSensorTaskArgs_t *args
 ){
