@@ -11,9 +11,9 @@
 #include "torque_ctrl.h"
 
 void update_dashboard_data(DashboardData_t dashboardData) {
-	osMutexAcquire(VehicleData.dashboard_lock, osWaitForever);
+	osMutexAcquire(vdb_dashboard_lockHandle, osWaitForever);
 	VehicleData.dashboard = dashboardData;
-	osMutexRelease(VehicleData.dashboard_lock);
+	osMutexRelease(vdb_dashboard_lockHandle);
 }
 
 DashboardData_t dashboardData = {0};

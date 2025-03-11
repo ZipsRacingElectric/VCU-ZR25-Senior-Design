@@ -19,12 +19,12 @@ VCU_State_t currentState = VEHICLE_OFF;
 static osThreadId_t thread_id;
 
 void update_fsm_data(VCU_State_t fsm_state) {
-	osMutexAcquire(VehicleData.fsm_state_lock, osWaitForever);
+	osMutexAcquire(vdb_fsm_state_lockHandle, osWaitForever);
 	VehicleData.fsm_state = fsm_state;
-	osMutexRelease(VehicleData.powsup_lock);
+	osMutexRelease(vdb_fsm_state_lockHandle);
 }
 
-void StartFSMTask(void *argument)
+void StartFsmTask(void *argument)
 {
   thread_id = osThreadGetId();
   FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};

@@ -11,9 +11,9 @@
 #include "driver_sensors.h"
 
 void update_power_supply_data(PowSupData_t powsup) {
-	osMutexAcquire(VehicleData.powsup_lock, osWaitForever);
+	osMutexAcquire(vdb_powsup_lockHandle, osWaitForever);
 	VehicleData.powsup = powsup;
-	osMutexRelease(VehicleData.powsup_lock);
+	osMutexRelease(vdb_powsup_lockHandle);
 }
 
 // Returns true if powsup changed

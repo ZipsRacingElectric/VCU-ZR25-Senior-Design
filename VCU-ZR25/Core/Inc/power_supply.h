@@ -25,12 +25,6 @@ typedef struct {
   ADC_ChannelConfTypeDef sConfig;
 } powSupTaskArgs_t;
 
-static const osThreadAttr_t powsupTask_attributes = {
-  .name = "powsupTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t)osPriorityNormal
-};
-
 typedef struct {
   bool value5V;
   bool value3V;

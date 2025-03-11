@@ -38,21 +38,21 @@ static bool validate_bps(BPSSensor_t bps);
 static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
 void update_driver_sensor_data(){
-	osMutexAcquire(VehicleData.apps_lock, osWaitForever);
+	osMutexAcquire(vdb_apps_lockHandle, osWaitForever);
 	VehicleData.apps = s_apps;
-	osMutexRelease(VehicleData.apps_lock);
+	osMutexRelease(vdb_apps_lockHandle);
 
-	osMutexAcquire(VehicleData.bps_front_lock, osWaitForever);
+	osMutexAcquire(vdb_bps_front_lockHandle, osWaitForever);
 	VehicleData.bps_front = s_bps_front;
-	osMutexRelease(VehicleData.bps_front_lock);
+	osMutexRelease(vdb_bps_front_lockHandle);
 
-	osMutexAcquire(VehicleData.bps_rear_lock, osWaitForever);
+	osMutexAcquire(vdb_bps_rear_lockHandle, osWaitForever);
 	VehicleData.bps_rear = s_bps_rear;
-	osMutexRelease(VehicleData.bps_rear_lock);
+	osMutexRelease(vdb_bps_rear_lockHandle);
 
-	osMutexAcquire(VehicleData.sas_lock, osWaitForever);
+	osMutexAcquire(vdb_sas_lockHandle, osWaitForever);
 	VehicleData.sas = s_steering_angle;
-	osMutexRelease(VehicleData.sas_lock);
+	osMutexRelease(vdb_sas_lockHandle);
 }
 
 // Public Functions

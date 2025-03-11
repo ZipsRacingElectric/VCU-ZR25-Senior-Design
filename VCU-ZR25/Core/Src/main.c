@@ -29,11 +29,16 @@
 #include "power_supply.h"
 #include "fault_mgmt.h"
 #include "can_db.h"
+#include "can_messages.h"
 #include "cooling_system.h"
 #include "torque_ctrl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
+typedef StaticQueue_t osStaticMessageQDef_t;
+typedef StaticSemaphore_t osStaticMutexDef_t;
+typedef StaticEventGroup_t osStaticEventGroupDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -65,6 +70,220 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for fsmTask */
+osThreadId_t fsmTaskHandle;
+uint32_t fsmTaskBuffer[ 512 ];
+osStaticThreadDef_t fsmTaskControlBlock;
+const osThreadAttr_t fsmTask_attributes = {
+  .name = "fsmTask",
+  .cb_mem = &fsmTaskControlBlock,
+  .cb_size = sizeof(fsmTaskControlBlock),
+  .stack_mem = &fsmTaskBuffer[0],
+  .stack_size = sizeof(fsmTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for powsupTask */
+osThreadId_t powsupTaskHandle;
+uint32_t powsupTaskBuffer[ 512 ];
+osStaticThreadDef_t powsupTaskControlBlock;
+const osThreadAttr_t powsupTask_attributes = {
+  .name = "powsupTask",
+  .cb_mem = &powsupTaskControlBlock,
+  .cb_size = sizeof(powsupTaskControlBlock),
+  .stack_mem = &powsupTaskBuffer[0],
+  .stack_size = sizeof(powsupTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for driversensrTask */
+osThreadId_t driversensrTaskHandle;
+uint32_t driversensrTaskBuffer[ 512 ];
+osStaticThreadDef_t driversensrTaskControlBlock;
+const osThreadAttr_t driversensrTask_attributes = {
+  .name = "driversensrTask",
+  .cb_mem = &driversensrTaskControlBlock,
+  .cb_size = sizeof(driversensrTaskControlBlock),
+  .stack_mem = &driversensrTaskBuffer[0],
+  .stack_size = sizeof(driversensrTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for faultTask */
+osThreadId_t faultTaskHandle;
+uint32_t faultTaskBuffer[ 512 ];
+osStaticThreadDef_t faultTaskControlBlock;
+const osThreadAttr_t faultTask_attributes = {
+  .name = "faultTask",
+  .cb_mem = &faultTaskControlBlock,
+  .cb_size = sizeof(faultTaskControlBlock),
+  .stack_mem = &faultTaskBuffer[0],
+  .stack_size = sizeof(faultTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for canDbTask */
+osThreadId_t canDbTaskHandle;
+uint32_t canDbTaskBuffer[ 512 ];
+osStaticThreadDef_t canDbTaskControlBlock;
+const osThreadAttr_t canDbTask_attributes = {
+  .name = "canDbTask",
+  .cb_mem = &canDbTaskControlBlock,
+  .cb_size = sizeof(canDbTaskControlBlock),
+  .stack_mem = &canDbTaskBuffer[0],
+  .stack_size = sizeof(canDbTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for coolingTask */
+osThreadId_t coolingTaskHandle;
+uint32_t coolingTaskBuffer[ 512 ];
+osStaticThreadDef_t coolingTaskControlBlock;
+const osThreadAttr_t coolingTask_attributes = {
+  .name = "coolingTask",
+  .cb_mem = &coolingTaskControlBlock,
+  .cb_size = sizeof(coolingTaskControlBlock),
+  .stack_mem = &coolingTaskBuffer[0],
+  .stack_size = sizeof(coolingTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for dashboardTask */
+osThreadId_t dashboardTaskHandle;
+uint32_t dashboardTaskBuffer[ 512 ];
+osStaticThreadDef_t dashboardTaskControlBlock;
+const osThreadAttr_t dashboardTask_attributes = {
+  .name = "dashboardTask",
+  .cb_mem = &dashboardTaskControlBlock,
+  .cb_size = sizeof(dashboardTaskControlBlock),
+  .stack_mem = &dashboardTaskBuffer[0],
+  .stack_size = sizeof(dashboardTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for torquectrlTask */
+osThreadId_t torquectrlTaskHandle;
+uint32_t torquectrlTaskBuffer[ 512 ];
+osStaticThreadDef_t torquectrlTaskControlBlock;
+const osThreadAttr_t torquectrlTask_attributes = {
+  .name = "torquectrlTask",
+  .cb_mem = &torquectrlTaskControlBlock,
+  .cb_size = sizeof(torquectrlTaskControlBlock),
+  .stack_mem = &torquectrlTaskBuffer[0],
+  .stack_size = sizeof(torquectrlTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for canDbTxQueue */
+osMessageQueueId_t canDbTxQueueHandle;
+uint8_t canDbTxQueueBuffer[ 16 * 16 ];
+osStaticMessageQDef_t canDbTxQueueControlBlock;
+const osMessageQueueAttr_t canDbTxQueue_attributes = {
+  .name = "canDbTxQueue",
+  .cb_mem = &canDbTxQueueControlBlock,
+  .cb_size = sizeof(canDbTxQueueControlBlock),
+  .mq_mem = &canDbTxQueueBuffer,
+  .mq_size = sizeof(canDbTxQueueBuffer)
+};
+/* Definitions for canDbRxQueue */
+osMessageQueueId_t canDbRxQueueHandle;
+uint8_t canDbRxQueueBuffer[ 16 * 16 ];
+osStaticMessageQDef_t canDbRxQueueControlBlock;
+const osMessageQueueAttr_t canDbRxQueue_attributes = {
+  .name = "canDbRxQueue",
+  .cb_mem = &canDbRxQueueControlBlock,
+  .cb_size = sizeof(canDbRxQueueControlBlock),
+  .mq_mem = &canDbRxQueueBuffer,
+  .mq_size = sizeof(canDbRxQueueBuffer)
+};
+/* Definitions for vdb_sas_lock */
+osMutexId_t vdb_sas_lockHandle;
+osStaticMutexDef_t vdb_sas_lockControlBlock;
+const osMutexAttr_t vdb_sas_lock_attributes = {
+  .name = "vdb_sas_lock",
+  .cb_mem = &vdb_sas_lockControlBlock,
+  .cb_size = sizeof(vdb_sas_lockControlBlock),
+};
+/* Definitions for vdb_apps_lock */
+osMutexId_t vdb_apps_lockHandle;
+osStaticMutexDef_t vdb_apps_lockControlBlock;
+const osMutexAttr_t vdb_apps_lock_attributes = {
+  .name = "vdb_apps_lock",
+  .cb_mem = &vdb_apps_lockControlBlock,
+  .cb_size = sizeof(vdb_apps_lockControlBlock),
+};
+/* Definitions for vdb_bps_front_lock */
+osMutexId_t vdb_bps_front_lockHandle;
+osStaticMutexDef_t vdb_bps_front_lockControlBlock;
+const osMutexAttr_t vdb_bps_front_lock_attributes = {
+  .name = "vdb_bps_front_lock",
+  .cb_mem = &vdb_bps_front_lockControlBlock,
+  .cb_size = sizeof(vdb_bps_front_lockControlBlock),
+};
+/* Definitions for vdb_bps_rear_lock */
+osMutexId_t vdb_bps_rear_lockHandle;
+osStaticMutexDef_t vdb_bps_rear_lockControlBlock;
+const osMutexAttr_t vdb_bps_rear_lock_attributes = {
+  .name = "vdb_bps_rear_lock",
+  .cb_mem = &vdb_bps_rear_lockControlBlock,
+  .cb_size = sizeof(vdb_bps_rear_lockControlBlock),
+};
+/* Definitions for vdb_inverter_lock */
+osMutexId_t vdb_inverter_lockHandle;
+osStaticMutexDef_t vdb_inverter_lockControlBlock;
+const osMutexAttr_t vdb_inverter_lock_attributes = {
+  .name = "vdb_inverter_lock",
+  .cb_mem = &vdb_inverter_lockControlBlock,
+  .cb_size = sizeof(vdb_inverter_lockControlBlock),
+};
+/* Definitions for vdb_fsm_state_lock */
+osMutexId_t vdb_fsm_state_lockHandle;
+osStaticMutexDef_t vdb_fsm_state_lockControlBlock;
+const osMutexAttr_t vdb_fsm_state_lock_attributes = {
+  .name = "vdb_fsm_state_lock",
+  .cb_mem = &vdb_fsm_state_lockControlBlock,
+  .cb_size = sizeof(vdb_fsm_state_lockControlBlock),
+};
+/* Definitions for vdb_powsup_lock */
+osMutexId_t vdb_powsup_lockHandle;
+osStaticMutexDef_t vdb_powsup_lockControlBlock;
+const osMutexAttr_t vdb_powsup_lock_attributes = {
+  .name = "vdb_powsup_lock",
+  .cb_mem = &vdb_powsup_lockControlBlock,
+  .cb_size = sizeof(vdb_powsup_lockControlBlock),
+};
+/* Definitions for vdb_cooling_lock */
+osMutexId_t vdb_cooling_lockHandle;
+osStaticMutexDef_t vdb_cooling_lockControlBlock;
+const osMutexAttr_t vdb_cooling_lock_attributes = {
+  .name = "vdb_cooling_lock",
+  .cb_mem = &vdb_cooling_lockControlBlock,
+  .cb_size = sizeof(vdb_cooling_lockControlBlock),
+};
+/* Definitions for vdb_dashboard_lock */
+osMutexId_t vdb_dashboard_lockHandle;
+osStaticMutexDef_t vdb_dashboard_lockControlBlock;
+const osMutexAttr_t vdb_dashboard_lock_attributes = {
+  .name = "vdb_dashboard_lock",
+  .cb_mem = &vdb_dashboard_lockControlBlock,
+  .cb_size = sizeof(vdb_dashboard_lockControlBlock),
+};
+/* Definitions for vdb_torquectrl_lock */
+osMutexId_t vdb_torquectrl_lockHandle;
+osStaticMutexDef_t vdb_torquectrl_lockControlBlock;
+const osMutexAttr_t vdb_torquectrl_lock_attributes = {
+  .name = "vdb_torquectrl_lock",
+  .cb_mem = &vdb_torquectrl_lockControlBlock,
+  .cb_size = sizeof(vdb_torquectrl_lockControlBlock),
+};
+/* Definitions for can_db_lock */
+osMutexId_t can_db_lockHandle;
+osStaticMutexDef_t can_db_lockControlBlock;
+const osMutexAttr_t can_db_lock_attributes = {
+  .name = "can_db_lock",
+  .cb_mem = &can_db_lockControlBlock,
+  .cb_size = sizeof(can_db_lockControlBlock),
+};
+/* Definitions for amkEventFlags */
+osEventFlagsId_t amkEventFlagsHandle;
+osStaticEventGroupDef_t amkEventFlagsControlBlock;
+const osEventFlagsAttr_t amkEventFlags_attributes = {
+  .name = "amkEventFlags",
+  .cb_mem = &amkEventFlagsControlBlock,
+  .cb_size = sizeof(amkEventFlagsControlBlock),
+};
 /* USER CODE BEGIN PV */
 osThreadId_t fsmTaskHandle;
 osThreadId_t powsupTaskHandle;
@@ -85,6 +304,14 @@ static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM11_Init(void);
 void StartDefaultTask(void *argument);
+void startFsmTask(void *argument);
+void startPowsupTask(void *argument);
+void startDriversensorTask(void *argument);
+void StartTask05(void *argument);
+void startCanDbTask(void *argument);
+void StartCoolingTask(void *argument);
+void StartDashboardTask(void *argument);
+void StartTorquectrlTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -136,10 +363,47 @@ int main(void)
   MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
   initVehicleData();
+
+  powSupTaskArgs_t powsupArgs = {.hadc1 = hadc1, .sConfig = {0}};
+  DriverSensorTaskArgs_t driversensorArgs = {.hadc1 = hadc1, .sConfig = {0}};
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of vdb_sas_lock */
+  vdb_sas_lockHandle = osMutexNew(&vdb_sas_lock_attributes);
+
+  /* creation of vdb_apps_lock */
+  vdb_apps_lockHandle = osMutexNew(&vdb_apps_lock_attributes);
+
+  /* creation of vdb_bps_front_lock */
+  vdb_bps_front_lockHandle = osMutexNew(&vdb_bps_front_lock_attributes);
+
+  /* creation of vdb_bps_rear_lock */
+  vdb_bps_rear_lockHandle = osMutexNew(&vdb_bps_rear_lock_attributes);
+
+  /* creation of vdb_inverter_lock */
+  vdb_inverter_lockHandle = osMutexNew(&vdb_inverter_lock_attributes);
+
+  /* creation of vdb_fsm_state_lock */
+  vdb_fsm_state_lockHandle = osMutexNew(&vdb_fsm_state_lock_attributes);
+
+  /* creation of vdb_powsup_lock */
+  vdb_powsup_lockHandle = osMutexNew(&vdb_powsup_lock_attributes);
+
+  /* creation of vdb_cooling_lock */
+  vdb_cooling_lockHandle = osMutexNew(&vdb_cooling_lock_attributes);
+
+  /* creation of vdb_dashboard_lock */
+  vdb_dashboard_lockHandle = osMutexNew(&vdb_dashboard_lock_attributes);
+
+  /* creation of vdb_torquectrl_lock */
+  vdb_torquectrl_lockHandle = osMutexNew(&vdb_torquectrl_lock_attributes);
+
+  /* creation of can_db_lock */
+  can_db_lockHandle = osMutexNew(&can_db_lock_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -154,6 +418,13 @@ int main(void)
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of canDbTxQueue */
+  canDbTxQueueHandle = osMessageQueueNew (16, 16, &canDbTxQueue_attributes);
+
+  /* creation of canDbRxQueue */
+  canDbRxQueueHandle = osMessageQueueNew (16, 16, &canDbRxQueue_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -162,27 +433,36 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
+  /* creation of fsmTask */
+  fsmTaskHandle = osThreadNew(startFsmTask, NULL, &fsmTask_attributes);
+
+  /* creation of powsupTask */
+  powsupTaskHandle = osThreadNew(startPowsupTask, (void*) &powsupArgs, &powsupTask_attributes);
+
+  /* creation of driversensrTask */
+  driversensrTaskHandle = osThreadNew(startDriversensorTask, (void*) &driversensorArgs, &driversensrTask_attributes);
+
+  /* creation of faultTask */
+  faultTaskHandle = osThreadNew(StartTask05, NULL, &faultTask_attributes);
+
+  /* creation of canDbTask */
+  canDbTaskHandle = osThreadNew(startCanDbTask, (void*) &hcan1, &canDbTask_attributes);
+
+  /* creation of coolingTask */
+  coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
+
+  /* creation of dashboardTask */
+  dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
+
+  /* creation of torquectrlTask */
+  torquectrlTaskHandle = osThreadNew(StartTorquectrlTask, NULL, &torquectrlTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
-  //fsmTaskHandle = osThreadNew(StartFSMTask, NULL, &fsmTask_attributes);
-
-  powSupTaskArgs_t powsupargs = {.hadc1 = hadc1, .sConfig = {0}};
-  //powsupTaskHandle = osThreadNew((void (*)(void*))StartPwrSupTask, &powsupargs, &powsupTask_attributes);
-
-  DriverSensorTaskArgs_t driversensorargs = {.hadc1 = hadc1, .sConfig = {0}};
-  //driversensorTaskHandle = osThreadNew((void (*)(void*))StartDriverSensorTask, &driversensorargs, &driversensorTask_attributes);
-
-  faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
-
-
-  //canTaskHandle = osThreadNew(StartCANDatabaseTask, (void*)&hcan1, &can_task_attrs);
-
-  //coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
-
-  //dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
-
-  //torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
+
+  /* creation of amkEventFlags */
+  amkEventFlagsHandle = osEventFlagsNew(&amkEventFlags_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -526,6 +806,16 @@ void StartDefaultTask(void *argument)
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
+
+  int vcu_dbg_can = CANGetDbEntry(0x651);
+  CANMessage_VCU_DEBUG_MESSAGE contents = {
+		  .fields = {
+				  .VCU_DEBUG_0 = 12300
+		  }
+  };
+
+  CANQueueMessageToSend(vcu_dbg_can, contents.as_u64);
+
   /* Infinite loop */
   for(;;)
   {
@@ -534,6 +824,150 @@ void StartDefaultTask(void *argument)
     osDelay(50);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_startFsmTask */
+/**
+* @brief Function implementing the fsmTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startFsmTask */
+__weak void startFsmTask(void *argument)
+{
+  /* USER CODE BEGIN startFsmTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END startFsmTask */
+}
+
+/* USER CODE BEGIN Header_startPowsupTask */
+/**
+* @brief Function implementing the powsupTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startPowsupTask */
+__weak void startPowsupTask(void *argument)
+{
+  /* USER CODE BEGIN startPowsupTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END startPowsupTask */
+}
+
+/* USER CODE BEGIN Header_startDriversensorTask */
+/**
+* @brief Function implementing the driversensrTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startDriversensorTask */
+__weak void startDriversensorTask(void *argument)
+{
+  /* USER CODE BEGIN startDriversensorTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END startDriversensorTask */
+}
+
+/* USER CODE BEGIN Header_StartTask05 */
+/**
+* @brief Function implementing the faultTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask05 */
+__weak void StartTask05(void *argument)
+{
+  /* USER CODE BEGIN StartTask05 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartTask05 */
+}
+
+/* USER CODE BEGIN Header_startCanDbTask */
+/**
+* @brief Function implementing the canDbTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startCanDbTask */
+__weak void startCanDbTask(void *argument)
+{
+  /* USER CODE BEGIN startCanDbTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END startCanDbTask */
+}
+
+/* USER CODE BEGIN Header_StartCoolingTask */
+/**
+* @brief Function implementing the coolingTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartCoolingTask */
+__weak void StartCoolingTask(void *argument)
+{
+  /* USER CODE BEGIN StartCoolingTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartCoolingTask */
+}
+
+/* USER CODE BEGIN Header_StartDashboardTask */
+/**
+* @brief Function implementing the dashboardTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDashboardTask */
+__weak void StartDashboardTask(void *argument)
+{
+  /* USER CODE BEGIN StartDashboardTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartDashboardTask */
+}
+
+/* USER CODE BEGIN Header_StartTorquectrlTask */
+/**
+* @brief Function implementing the torquectrlTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTorquectrlTask */
+__weak void StartTorquectrlTask(void *argument)
+{
+  /* USER CODE BEGIN StartTorquectrlTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartTorquectrlTask */
 }
 
 /**

@@ -69,12 +69,6 @@ void StartDriverSensorTask(
     DriverSensorTaskArgs_t *args
 );
 
-static const osThreadAttr_t driversensorTask_attributes = {
-  .name = "driversensorTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-
 // Types
 typedef struct
 {
