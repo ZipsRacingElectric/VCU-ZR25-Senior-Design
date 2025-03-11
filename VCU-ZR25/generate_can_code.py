@@ -75,7 +75,8 @@ def generate_can_messages_h(dbc: Dbc, file: Path):
 
         # Generate a struct for each message
         for message in dbc.messages.values():
-            f.write('typedef struct PACKED {\n')
+            f.write(f'#define CAN_DB_{message.message_name.upper()}_ID {message.message_id}\n')
+            f.write('typedef union {\n    uint64_t as_u64;\n    struct PACKED {\n')
 
             # Track current bit position in message
             current_bit = 0
@@ -87,18 +88,18 @@ def generate_can_messages_h(dbc: Dbc, file: Path):
                 # If there's a gap between signals, add a reserved field
                 if signal.signal_bitpos > current_bit:
                     gap_size = signal.signal_bitpos - current_bit
-                    f.write(f'    {bitfield_type} _reserved{current_bit} : {gap_size};\n')
+                    f.write(f'        {bitfield_type} _reserved{current_bit} : {gap_size};\n')
 
                 # Add the signal bitfield
-                f.write(f'    {bitfield_type} {signal.signal_name} : {signal.signal_bitlength};\n')
+                f.write(f'        {bitfield_type} {signal.signal_name} : {signal.signal_bitlength};\n')
                 current_bit = signal.signal_bitpos + signal.signal_bitlength
 
             # If there are remaining bits to the end of the message byte boundary, add final reserved field
             total_bits = message.message_length * 8
             if current_bit < total_bits:
-                f.write(f'    {bitfield_type} _reserved{current_bit} : {total_bits - current_bit};\n')
+                f.write(f'        {bitfield_type} _reserved{current_bit} : {total_bits - current_bit};\n')
 
-            f.write(f'}} CANMessage_{message.message_name};\n\n')
+            f.write(f'    }} fields;\n}} CANMessage_{message.message_name};\n\n')
 
         # Generate the original signal arrays as well
         for message in dbc.messages.values():
