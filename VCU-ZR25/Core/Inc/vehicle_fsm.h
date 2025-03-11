@@ -11,6 +11,8 @@
 #include "cmsis_os.h"
 #include "gpio.h"
 
+#define VEHICLE_FSM_TASK_PERIOD 50
+
 #define FLAG_INDEX_GLVMS_TURNED_ON 0
 #define FLAG_INDEX_SHUTDOWN_LOOP_OPEN 1
 #define FLAG_INDEX_EXTERNAL_BUTTON_PRESSED 2
