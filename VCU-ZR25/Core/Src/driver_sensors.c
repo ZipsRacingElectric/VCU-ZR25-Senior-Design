@@ -57,8 +57,9 @@ void update_driver_sensor_data(){
 
 // Public Functions
 void StartDriverSensorTask(
-	DriverSensorTaskArgs_t *args
+	void *void_args
 ){
+	DriverSensorTaskArgs_t* args = (DriverSensorTaskArgs_t*)void_args;
 	ADC_HandleTypeDef hadc1 = args->hadc1;
 	while (1) {
 		read_driver_input(&hadc1);

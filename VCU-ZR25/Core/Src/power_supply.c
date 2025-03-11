@@ -61,8 +61,9 @@ PowSupData_t check_power_supply(ADC_HandleTypeDef hadc1, ADC_ChannelConfTypeDef 
 }
 
 void StartPwrSupTask(
-	powSupTaskArgs_t* args
+	void* void_args
 ) {
+	powSupTaskArgs_t* args = (powSupTaskArgs_t*) void_args;
 	ADC_HandleTypeDef hadc1 = args->hadc1;
 	ADC_ChannelConfTypeDef sConfig = args->sConfig;
 	

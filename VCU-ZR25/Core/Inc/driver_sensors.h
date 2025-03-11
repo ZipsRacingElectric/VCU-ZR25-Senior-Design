@@ -66,7 +66,7 @@ typedef struct
 } DriverSensorTaskArgs_t;
 
 void StartDriverSensorTask(
-    DriverSensorTaskArgs_t *args
+    void *args
 );
 
 // Types

@@ -96,7 +96,7 @@ const osThreadAttr_t powsupTask_attributes = {
 };
 /* Definitions for driversensrTask */
 osThreadId_t driversensrTaskHandle;
-uint32_t driversensrTaskBuffer[ 512 ];
+uint32_t driversensrTaskBuffer[ 2048 ];
 osStaticThreadDef_t driversensrTaskControlBlock;
 const osThreadAttr_t driversensrTask_attributes = {
   .name = "driversensrTask",
@@ -304,14 +304,14 @@ static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM11_Init(void);
 void StartDefaultTask(void *argument);
-void startFsmTask(void *argument);
-void startPowsupTask(void *argument);
-void startDriversensorTask(void *argument);
-void StartTask05(void *argument);
-void startCanDbTask(void *argument);
-void StartCoolingTask(void *argument);
-void StartDashboardTask(void *argument);
-void StartTorquectrlTask(void *argument);
+extern void StartFsmTask(void *argument);
+extern void StartPwrSupTask(void *argument);
+extern void StartDriverSensorTask(void *argument);
+extern void StartFaultTask(void *argument);
+extern void StartCanDbTask(void *argument);
+extern void StartCoolingTask(void *argument);
+extern void StartDashboardTask(void *argument);
+extern void StartTorqueCtrlTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -434,19 +434,19 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of fsmTask */
-  fsmTaskHandle = osThreadNew(startFsmTask, NULL, &fsmTask_attributes);
+  fsmTaskHandle = osThreadNew(StartFsmTask, NULL, &fsmTask_attributes);
 
   /* creation of powsupTask */
-  powsupTaskHandle = osThreadNew(startPowsupTask, (void*) &powsupArgs, &powsupTask_attributes);
+  powsupTaskHandle = osThreadNew(StartPwrSupTask, (void*) &powsupArgs, &powsupTask_attributes);
 
   /* creation of driversensrTask */
-  driversensrTaskHandle = osThreadNew(startDriversensorTask, (void*) &driversensorArgs, &driversensrTask_attributes);
+  driversensrTaskHandle = osThreadNew(StartDriverSensorTask, (void*) &driversensorArgs, &driversensrTask_attributes);
 
   /* creation of faultTask */
-  faultTaskHandle = osThreadNew(StartTask05, NULL, &faultTask_attributes);
+  faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
 
   /* creation of canDbTask */
-  canDbTaskHandle = osThreadNew(startCanDbTask, (void*) &hcan1, &canDbTask_attributes);
+  canDbTaskHandle = osThreadNew(StartCanDbTask, (void*) &hcan1, &canDbTask_attributes);
 
   /* creation of coolingTask */
   coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
@@ -455,7 +455,7 @@ int main(void)
   dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
 
   /* creation of torquectrlTask */
-  torquectrlTaskHandle = osThreadNew(StartTorquectrlTask, NULL, &torquectrlTask_attributes);
+  torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 
@@ -824,150 +824,6 @@ void StartDefaultTask(void *argument)
     osDelay(50);
   }
   /* USER CODE END 5 */
-}
-
-/* USER CODE BEGIN Header_startFsmTask */
-/**
-* @brief Function implementing the fsmTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_startFsmTask */
-__weak void startFsmTask(void *argument)
-{
-  /* USER CODE BEGIN startFsmTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END startFsmTask */
-}
-
-/* USER CODE BEGIN Header_startPowsupTask */
-/**
-* @brief Function implementing the powsupTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_startPowsupTask */
-__weak void startPowsupTask(void *argument)
-{
-  /* USER CODE BEGIN startPowsupTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END startPowsupTask */
-}
-
-/* USER CODE BEGIN Header_startDriversensorTask */
-/**
-* @brief Function implementing the driversensrTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_startDriversensorTask */
-__weak void startDriversensorTask(void *argument)
-{
-  /* USER CODE BEGIN startDriversensorTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END startDriversensorTask */
-}
-
-/* USER CODE BEGIN Header_StartTask05 */
-/**
-* @brief Function implementing the faultTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartTask05 */
-__weak void StartTask05(void *argument)
-{
-  /* USER CODE BEGIN StartTask05 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartTask05 */
-}
-
-/* USER CODE BEGIN Header_startCanDbTask */
-/**
-* @brief Function implementing the canDbTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_startCanDbTask */
-__weak void startCanDbTask(void *argument)
-{
-  /* USER CODE BEGIN startCanDbTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END startCanDbTask */
-}
-
-/* USER CODE BEGIN Header_StartCoolingTask */
-/**
-* @brief Function implementing the coolingTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartCoolingTask */
-__weak void StartCoolingTask(void *argument)
-{
-  /* USER CODE BEGIN StartCoolingTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartCoolingTask */
-}
-
-/* USER CODE BEGIN Header_StartDashboardTask */
-/**
-* @brief Function implementing the dashboardTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartDashboardTask */
-__weak void StartDashboardTask(void *argument)
-{
-  /* USER CODE BEGIN StartDashboardTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartDashboardTask */
-}
-
-/* USER CODE BEGIN Header_StartTorquectrlTask */
-/**
-* @brief Function implementing the torquectrlTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartTorquectrlTask */
-__weak void StartTorquectrlTask(void *argument)
-{
-  /* USER CODE BEGIN StartTorquectrlTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartTorquectrlTask */
 }
 
 /**

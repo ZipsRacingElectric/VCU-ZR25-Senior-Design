@@ -30,7 +30,7 @@ typedef struct {
   bool value3V;
 } PowSupData_t;
 
-void StartPwrSupTask(powSupTaskArgs_t* args);
+void StartPwrSupTask(void* args);
 void fsm_power_callback(PowSupData_t powsup);
 
 
