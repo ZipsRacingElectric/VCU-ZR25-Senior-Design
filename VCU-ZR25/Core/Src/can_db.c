@@ -10,6 +10,10 @@
 #include "can_messages.h"
 #include "stm32f4xx_hal_can.h"
 
+extern osMessageQueueId_t canDbRxQueueHandle;
+extern osMessageQueueId_t canDbTxQueueHandle;
+extern osMutexId_t can_db_lockHandle;
+
 CANDatabaseMessage_t messages[CAN_DB_MESSAGE_COUNT];
 uint64_t message_contents[CAN_DB_MESSAGE_COUNT];
 bool message_contents_valid[CAN_DB_MESSAGE_COUNT];
@@ -38,79 +42,10 @@ static const CanDbFlags_t CAN_DB_FLAGS_NONE = {.flagInt = 0};
 static const CanDbFlags_t CAN_DB_FLAGS_PENDING_RX = {.flagBits = {.PENDING_RX=1}};
 static const CanDbFlags_t CAN_DB_FLAGS_PENDING_TX = {.flagBits = {.PENDING_TX=1}};
 
-struct queue {
-	int size;
-	struct queued_message {
-		int message_idx;
-		uint64_t message_contents;
-	} *messages;
-	int start;
-	int end;
-};
-
-#define CAN_SENDING_QUEUE_SIZE 16
-struct queued_message sending_queue_array[CAN_SENDING_QUEUE_SIZE];
-struct queue sending_queue = {
-	.size = CAN_SENDING_QUEUE_SIZE,
-	.messages = sending_queue_array,
-	.start = 0,
-	.end = 0
-};
-
-
-#define CAN_RECEIVING_QUEUE_SIZE 256
-struct queued_message receiving_queue_array[CAN_RECEIVING_QUEUE_SIZE];
-struct queue receiving_queue = {
-	.size = CAN_RECEIVING_QUEUE_SIZE,
-	.messages = receiving_queue_array,
-	.start = 0,
-	.end = 0
-};
-
-bool queueMessagePush(struct queue *queue, struct queued_message message) {
-	bool interrupts_enabled = __get_PRIMASK() == 0;
-	__disable_irq(); // Critical section -- do not interrupt
-
-	int nextEnd = queue->end + 1;
-	// wrap around
-	while (nextEnd >= queue->size)
-		nextEnd -= queue->size;
-
-	if (nextEnd == queue->start) {
-		if (interrupts_enabled) __enable_irq();
-		return false; // queue full
-	}
-
-	queue->messages[queue->end] = message;
-	queue->end = nextEnd;
-	if (interrupts_enabled) __enable_irq();
-	return true;
-}
-
-bool queueMessagePop(struct queue *queue, struct queued_message *message_out) {
-	bool interrupts_enabled = __get_PRIMASK() == 0;
-	__disable_irq(); // Critical section -- do not interrupt
-
-	if (queue->start == queue->end) {
-		if (interrupts_enabled) __enable_irq();
-		return false; // queue empty
-	}
-
-	int nextStart = queue->start + 1;
-	// wrap around
-	while (nextStart >= queue->size)
-		nextStart -= queue->size;
-
-	*message_out = queue->messages[queue->start];
-	queue->start = nextStart;
-	if (interrupts_enabled) __enable_irq();
-	return true;
-}
-
-
-osMutexAttr_t canDbMutexAttrs = {
-	.name = "CANDatabaseContentsLock",
-	.attr_bits = osMutexRobust,
+struct queued_message {
+	uint32_t message_idx;
+	uint32_t _reserved;
+	uint64_t message_contents;
 };
 
 void swapMessageEntries(int idx_a, int idx_b) {
@@ -129,10 +64,10 @@ void quicksortMessages(int start, int end) {
 	uint32_t pivot_id = messages[pivot].can_id;
 
 	// Bring pivot to start
-	swapMessageEntries(0, pivot);
-	pivot = 0;
+	swapMessageEntries(start, pivot);
+	pivot = start;
 
-	int i = 1;
+	int i = start+1;
 	uint32_t current_id;
 	while (i<end) {
 		current_id = messages[i].can_id;
@@ -167,8 +102,6 @@ void initCANDatabase() {
 	}
 	// sort message entries by can_id to enable binary searching
 	quicksortMessages(0, CAN_DB_MESSAGE_COUNT);
-	// initialize mutexes
-	can_db.message_contents_lock = osMutexNew(&canDbMutexAttrs);
 }
 
 // Returns -1 if message is not in database
@@ -216,9 +149,10 @@ bool CANQueueMessageToSend(CANDatabaseEntryId index, uint64_t contents) {
 		.message_contents = contents,
 		.message_idx = index
 	};
-	bool success = queueMessagePush(&sending_queue, message);
+
+	osStatus_t status = osMessageQueuePut(canDbTxQueueHandle, (void*)&message, 0, 0);
 	osThreadFlagsSet(can_task_id, CAN_DB_FLAGS_PENDING_TX.flagInt);
-	return success;
+	return status == osOK;
 }
 
 
@@ -246,13 +180,14 @@ bool CANIRQRxHandler(CAN_RxHeaderTypeDef *header, uint8_t rx_data[8]) {
 		.message_idx = index,
 		.message_contents = *(uint64_t*)rx_data
 	};
-	queueMessagePush(&receiving_queue, message);
+
+	osMessageQueuePut(canDbRxQueueHandle, (void*)&message, 0, 0);
 
 	osThreadFlagsSet(can_task_id, CAN_DB_FLAGS_PENDING_RX.flagInt);
 	return true;
 }
 
-void StartCANDatabaseTask(void* hcan_void) {
+void StartCanDbTask(void* hcan_void) {
 	CAN_HandleTypeDef hcan = *(CAN_HandleTypeDef*)hcan_void;
 	can_task_id = osThreadGetId();
 	osThreadFlagsSet(can_task_id, CAN_DB_FLAGS_NONE.flagInt);
@@ -264,7 +199,7 @@ void StartCANDatabaseTask(void* hcan_void) {
 			if (osMutexAcquire(can_db.message_contents_lock, 1) == osOK) {
 				struct queued_message message_tx;
 				CANSetMessageContents(message_tx.message_idx, message_tx.message_contents);
-				while (queueMessagePop(&sending_queue, &message_tx)) {
+				while (osMessageQueueGet(canDbTxQueueHandle, &message_tx, NULL, 0) == osOK ) {
 					CANDatabaseMessage_t message_info = can_db.messages[message_tx.message_idx];
 					CAN_TxHeaderTypeDef pHeader = {
 						.DLC = 8,
@@ -287,7 +222,7 @@ void StartCANDatabaseTask(void* hcan_void) {
 		if (flags.flagBits.PENDING_RX) {
 			if (osMutexAcquire(can_db.message_contents_lock, 1) == osOK) {
 				struct queued_message message_rx;
-				while (queueMessagePop(&receiving_queue, &message_rx)) {
+				while (osMessageQueueGet(canDbRxQueueHandle, &message_rx, NULL, 0) == osOK) {
 					CANDatabaseMessage_t message_info = can_db.messages[message_rx.message_idx];
 					CANSetMessageContents(message_rx.message_idx, message_rx.message_contents);
 					CANCallback_t callback = can_db.callbacks[message_rx.message_idx];

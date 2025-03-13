@@ -13,9 +13,9 @@
 static AMKState_t state;
 
 void update_vehicle_state(uint32_t timeout) {
-	osMutexAcquire(VehicleData.inverter_lock, timeout);
+	osMutexAcquire(vdb_inverter_lockHandle, timeout);
 	VehicleData.inverter = state;
-	osMutexRelease(VehicleData.inverter_lock);
+	osMutexRelease(vdb_inverter_lockHandle);
 }
 
 void StartAMKTask(void *argument) {

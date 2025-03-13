@@ -11,9 +11,9 @@
 #include "driver_sensors.h"
 
 void update_torque_ctrl_data(TorqueCtrlData_t torquectrl) {
-	osMutexAcquire(VehicleData.torquectrl_lock, osWaitForever);
+	osMutexAcquire(vdb_torquectrl_lockHandle, osWaitForever);
 	VehicleData.torquectrl = torquectrl;
-	osMutexRelease(VehicleData.torquectrl_lock);
+	osMutexRelease(vdb_torquectrl_lockHandle);
 }
 
 ControlMode_t check_control_mode(){

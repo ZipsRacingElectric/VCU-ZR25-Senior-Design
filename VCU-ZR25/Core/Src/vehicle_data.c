@@ -17,30 +17,20 @@
 
 VehicleData_t VehicleData;
 
-const osMutexAttr_t appsMutexAttrs = VD_MUTEX_ATTRS("appsVDMutex");
-const osMutexAttr_t bpsFrontMutexAttrs = VD_MUTEX_ATTRS("bpsFrontVDMutex");
-const osMutexAttr_t bpsRearMutexAttrs = VD_MUTEX_ATTRS("bpsRearVDMutex");
-const osMutexAttr_t sasMutexAttrs = VD_MUTEX_ATTRS("sasVDMutex");
-const osMutexAttr_t inverterMutexAttrs = VD_MUTEX_ATTRS("inverterVDMutex");
-const osMutexAttr_t fsmStateMutexAttrs = VD_MUTEX_ATTRS("fsmStateVDMutex");
-const osMutexAttr_t powSupMutexAttrs = VD_MUTEX_ATTRS("powSupVDMutex");
-const osMutexAttr_t coolingMutexAttrs = VD_MUTEX_ATTRS("coolingVDMutex");
-const osMutexAttr_t dashboardMutexAttrs = VD_MUTEX_ATTRS("dashboardVDMutex");
-const osMutexAttr_t torquectrlMutexAttrs = VD_MUTEX_ATTRS("torquectrlVDMutex");
+extern const osMutexAttr_t appsMutexAttrs;
+extern const osMutexAttr_t bpsFrontMutexAttrs;
+extern const osMutexAttr_t bpsRearMutexAttrs;
+extern const osMutexAttr_t sasMutexAttrs;
+extern const osMutexAttr_t inverterMutexAttrs;
+extern const osMutexAttr_t fsmStateMutexAttrs;
+extern const osMutexAttr_t powSupMutexAttrs;
+extern const osMutexAttr_t coolingMutexAttrs;
+extern const osMutexAttr_t dashboardMutexAttrs;
+extern const osMutexAttr_t torquectrlMutexAttrs;
 
 
 void initVehicleData() {
 	VehicleData = (VehicleData_t){0};
-	VehicleData.apps_lock = osMutexNew(&appsMutexAttrs);
-	VehicleData.bps_front_lock = osMutexNew(&bpsFrontMutexAttrs);
-	VehicleData.bps_rear_lock = osMutexNew(&bpsRearMutexAttrs);
-	VehicleData.sas_lock = osMutexNew(&sasMutexAttrs);
-	VehicleData.inverter_lock = osMutexNew(&inverterMutexAttrs);
-	VehicleData.fsm_state_lock = osMutexNew(&fsmStateMutexAttrs);
-	VehicleData.powsup_lock = osMutexNew(&powSupMutexAttrs);
-	VehicleData.cooling_lock = osMutexNew(&coolingMutexAttrs);
-	VehicleData.dashboard_lock = osMutexNew(&dashboardMutexAttrs);
-	VehicleData.torquectrl_lock = osMutexNew(&torquectrlMutexAttrs);
 
 }
 

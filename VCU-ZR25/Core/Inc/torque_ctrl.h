@@ -15,13 +15,6 @@
 
 #define MAX_TORQUE_VARIABLE    4950
 
-
-static const osThreadAttr_t torquectrlTask_attributes = {
-  .name = "torquectrlTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t)osPriorityNormal
-};
-
 typedef enum {
     CONTROL_MODE_LIMP = 0,
 } ControlMode_t;

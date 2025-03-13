@@ -14,12 +14,6 @@
 #define MAX_TEMP_THRESHOLD 45 // Max and Min based off requirement 1.1.12
 #define MIN_TEMP_THRESHOLD 30
 
-static const osThreadAttr_t coolingTask_attributes = {
-  .name = "coolingTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t)osPriorityNormal
-};
-
 typedef struct {
   uint32_t fl_inverter_temp;
   uint32_t fr_inverter_temp;

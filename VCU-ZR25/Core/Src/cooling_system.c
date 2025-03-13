@@ -10,9 +10,9 @@
 #include "main.h"
 
 void update_cooling_data(CoolingData_t coolingData) {
-	osMutexAcquire(VehicleData.cooling_lock, osWaitForever);
+	osMutexAcquire(vdb_cooling_lockHandle, osWaitForever);
 	VehicleData.cooling = coolingData;
-	osMutexRelease(VehicleData.cooling_lock);
+	osMutexRelease(vdb_cooling_lockHandle);
 }
 
 bool isOverTemp(uint32_t temp){
