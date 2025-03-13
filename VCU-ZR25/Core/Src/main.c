@@ -166,6 +166,18 @@ const osThreadAttr_t torquectrlTask_attributes = {
   .stack_size = sizeof(torquectrlTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for amkTask */
+osThreadId_t amkTaskHandle;
+uint32_t amkTaskBuffer[ 512 ];
+osStaticThreadDef_t amkTaskControlBlock;
+const osThreadAttr_t amkTask_attributes = {
+  .name = "amkTask",
+  .cb_mem = &amkTaskControlBlock,
+  .cb_size = sizeof(amkTaskControlBlock),
+  .stack_mem = &amkTaskBuffer[0],
+  .stack_size = sizeof(amkTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for canDbTxQueue */
 osMessageQueueId_t canDbTxQueueHandle;
 uint8_t canDbTxQueueBuffer[ 16 * 16 ];
@@ -312,6 +324,7 @@ extern void StartCanDbTask(void *argument);
 extern void StartCoolingTask(void *argument);
 extern void StartDashboardTask(void *argument);
 extern void StartTorqueCtrlTask(void *argument);
+extern void StartAMKTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -456,6 +469,9 @@ int main(void)
 
   /* creation of torquectrlTask */
   torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
+
+  /* creation of amkTask */
+  amkTaskHandle = osThreadNew(StartAMKTask, NULL, &amkTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 

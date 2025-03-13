@@ -58,12 +58,15 @@ typedef struct {
 
 typedef union {
 	struct AMKControllerEventFlagBits {
-		uint8_t Start_Motors;
+		uint8_t start_motors : 1;
+		uint8_t change_setpoints : 1;
+		uint8_t stop_motors : 1;
 	} flagBits;
 	uint32_t flagInt;
 } AMKControllerEventFlags_t;
 
 typedef enum {
+	MOTOR_DISABLED,
 	WAITING_FOR_SYSTEM_READY,
 	WAITING_FOR_QUIT_DC_ON,
 	WAITING_FOR_QUIT_INVERTER_ON,
