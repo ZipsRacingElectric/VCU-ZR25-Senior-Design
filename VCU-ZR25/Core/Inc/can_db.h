@@ -55,8 +55,8 @@ CANDatabaseEntryId CANGetDbEntry(uint32_t can_id);
 // Returns false if message not valid.
 bool CANGetMessageContents(CANDatabaseEntryId entry_id, uint64_t *out);
 
-// Must acquire can_db.message_contents_lock first.
-void CANSetMessageContents(CANDatabaseEntryId entry_id, uint64_t contents);
+//// Must acquire can_db.message_contents_lock first.
+//void CANSetMessageContents(CANDatabaseEntryId entry_id, uint64_t contents);
 
 // Returns true once message is successfully queued.
 // Does not need the can_db lock to be acquired.
