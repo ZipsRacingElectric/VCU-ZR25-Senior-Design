@@ -12,12 +12,6 @@
 
 #define DASHBOARD_TASK_PERIOD 50
 
-static const osThreadAttr_t dashboardTask_attributes = {
-  .name = "dashboardTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t)osPriorityNormal
-};
-
 typedef struct {
   bool DRSState;
 } DashboardData_t;

@@ -38,12 +38,6 @@ typedef union {
 const static struct FaultTypeBits FAULTS_ALL = {1};
 const static struct FaultTypeBits FAULTS_NONE = {0};
 
-static const osThreadAttr_t faultTask_attributes = {
-  .name = "faultTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal
-};
-
 void StartFaultTask(void *argument);
 void fault_callback();
 void fault_check();

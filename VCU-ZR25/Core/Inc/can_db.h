@@ -46,7 +46,7 @@ extern CANDatabase_t can_db;
 
 void initCANDatabase();
 
-typedef int CANDatabaseEntryId;
+typedef uint32_t CANDatabaseEntryId;
 
 // Returns -1 if entry does not exist
 CANDatabaseEntryId CANGetDbEntry(uint32_t can_id);
@@ -77,6 +77,6 @@ const static osThreadAttr_t can_task_attrs = {
     .priority = (osPriority_t) osPriorityNormal,
 };
 
-void StartCANDatabaseTask(void* _argument);
+void StartCanDbTask(void* _argument);
 
 #endif /* INC_CAN_DB_H_ */

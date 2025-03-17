@@ -11,9 +11,9 @@
 #include "driver_sensors.h"
 
 void update_power_supply_data(PowSupData_t powsup) {
-	osMutexAcquire(VehicleData.powsup_lock, osWaitForever);
+	osMutexAcquire(vdb_powsup_lockHandle, osWaitForever);
 	VehicleData.powsup = powsup;
-	osMutexRelease(VehicleData.powsup_lock);
+	osMutexRelease(vdb_powsup_lockHandle);
 }
 
 // Returns true if powsup changed
@@ -61,8 +61,9 @@ PowSupData_t check_power_supply(ADC_HandleTypeDef hadc1, ADC_ChannelConfTypeDef 
 }
 
 void StartPwrSupTask(
-	powSupTaskArgs_t* args
+	void* void_args
 ) {
+	powSupTaskArgs_t* args = (powSupTaskArgs_t*) void_args;
 	ADC_HandleTypeDef hadc1 = args->hadc1;
 	ADC_ChannelConfTypeDef sConfig = args->sConfig;
 	

@@ -18,36 +18,28 @@
 #include "dashboard.h"
 #include "torque_ctrl.h"
 
+extern osMutexId_t vdb_apps_lockHandle;
+extern osMutexId_t vdb_bps_front_lockHandle;
+extern osMutexId_t vdb_bps_rear_lockHandle;
+extern osMutexId_t vdb_sas_lockHandle;
+extern osMutexId_t vdb_inverter_lockHandle;
+extern osMutexId_t vdb_fsm_state_lockHandle;
+extern osMutexId_t vdb_powsup_lockHandle;
+extern osMutexId_t vdb_cooling_lockHandle;
+extern osMutexId_t vdb_dashboard_lockHandle;
+extern osMutexId_t vdb_torquectrl_lockHandle;
+
 typedef struct {
   APPSSensor_t apps;
-  osMutexId_t apps_lock;
-
   BPSSensor_t bps_front;
-  osMutexId_t bps_front_lock;
-
   BPSSensor_t bps_rear;
-  osMutexId_t bps_rear_lock;
-
   SteeringAngleSensor_t sas;
-  osMutexId_t sas_lock;
-
   AMKState_t inverter;
-  osMutexId_t inverter_lock;
-
   VCU_State_t fsm_state;
-  osMutexId_t fsm_state_lock;
-
   PowSupData_t powsup;
-  osMutexId_t powsup_lock;
-
   CoolingData_t cooling;
-  osMutexId_t cooling_lock;
-
   DashboardData_t dashboard;
-  osMutexId_t dashboard_lock;
-
   TorqueCtrlData_t torquectrl;
-  osMutexId_t torquectrl_lock;
 } VehicleData_t;
 
 extern VehicleData_t VehicleData;
