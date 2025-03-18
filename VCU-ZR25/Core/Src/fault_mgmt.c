@@ -7,19 +7,21 @@
 
 /*
  * TODO:
- * - fault_check: CAN comm for motor inverter
- * - Add all faults
+ * - CAN comm for inverters, bms, gps, vim
+ * - apps_bps_implausibility_check: make motor torques 0 for apps/bps implausibilities
+ * - vim_can_check: add status field in vehicle data, call torque handler to decide action to take
  */
 
 #include "fault_mgmt.h"
 #include "vehicle_fsm.h"
 #include "driver_sensors.h"
+#include "torque_ctrl.h"
 
 #define IMPLAUSIBILITY_TIMEOUT 100
 
 const uint8_t fault_critical[NUM_FAULTS] = {
-      // critical
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical
+    1, 1, 1, // critical
+    0, 0, 0, 0, 0, 0, 0, 0 // non-critical
 };
 
 static uint32_t implausibility_timer = 0;
@@ -62,9 +64,15 @@ void fault_callback(){
 	if(criticalFaults){
 		fsm_flag_callback(FLAG_INDEX_FAULT_DETECTED, 1);
 	}
+	else {
+		fsm_flag_callback(FLAG_INDEX_FAULT_DETECTED, 0);
+	}
 
 	if(nonCriticalFaults){
-		DashboardFaultCallback();
+		DashboardFaultCallback(1);
+	}
+	else {
+		DashboardFaultCallback(0);
 	}
 }
 
@@ -72,21 +80,146 @@ void fault_check(){
 	FaultType_t fault = {.faultBits = FAULTS_NONE};
 	VehicleData_t vehicle_data = get_vehicle_data();
 
+	apps_bps_implausibility_check(fault, vehicle_data);
+	sas_implausibility_check(fault, vehicle_data);
+	gps_check(fault);
+	gnss_check(fault);
+	inverter_check(fault);
+	inverter_can_check(fault);
+	bms_can_check(fault);
+	gps_can_check(fault);
+	vim_can_check(fault);
+	glv_check(fault);
+	vcu_check(fault);
+
+	osThreadFlagsSet(thread_id, fault.faultInt);
+}
+
+void apps_bps_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data){
 	if (!vehicle_data.apps.plausible | !vehicle_data.bps_front.plausible
-			| !vehicle_data.bps_rear.plausible | vehicle_data.sas.plausible) {
+			| !vehicle_data.bps_rear.plausible) {
 
 		if (!implausibility_detected) {
 			implausibility_timer = osKernelSysTick();
 			implausibility_detected = 1;
 		}
 		if (osKernelSysTick() - implausibility_timer >= IMPLAUSIBILITY_TIMEOUT) {
-			fault.faultBits.Fault_implausibility = 1;
+			fault.faultBits.Fault_apps_bps = 1;
+			torque_fault_callback(1);
+			// CAN motor callback to have 0 nm
 		}
 	}
 	else {
 		implausibility_detected = 0;
-		osThreadFlagsClear(1 << FAULT_INDEX_IMPLAUSIBILITY);
+		torque_fault_callback(0);
+		osThreadFlagsClear(1 << FAULT_INDEX_APPS_BPS_FAILURE);
 	}
+}
 
-	osThreadFlagsSet(thread_id, fault.faultInt);
+void sas_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data){
+	if (!vehicle_data.sas.plausible) {
+
+		if (!implausibility_detected) {
+			implausibility_timer = osKernelSysTick();
+			implausibility_detected = 1;
+		}
+		if (osKernelSysTick() - implausibility_timer >= IMPLAUSIBILITY_TIMEOUT) {
+			ControlMode_t ctrl_mode = 0;
+			fault.faultBits.Fault_ss = 1;
+			update_control_mode(ctrl_mode);
+		}
+	}
+	else {
+		implausibility_detected = 0;
+		osThreadFlagsClear(1 << FAULT_INDEX_SS_FAILURE);
+	}
+}
+
+void gps_check(FaultType_t fault){
+	if (1) { // fault detected
+		ControlMode_t ctrl_mode = 0;
+		fault.faultBits.Fault_gps = 1;
+		update_control_mode(ctrl_mode);
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_GPS_FAILURE);
+	}
+}
+
+void gnss_check(FaultType_t fault){
+	if (1) { // fault detected
+		ControlMode_t ctrl_mode = 0;
+		fault.faultBits.Fault_gnss = 1;
+		update_control_mode(ctrl_mode);
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_GNSS_FAILURE);
+	}
+}
+
+void inverter_check(FaultType_t fault){
+	if (1) { // fault detected
+		fault.faultBits.Fault_inverter = 1;
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_INV_FAILURE);
+	}
+}
+
+void inverter_can_check(FaultType_t fault){
+	if (1) { // fault detected
+		fault.faultBits.Fault_inverter_com = 1;
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_INV_COM_FAILURE);
+	}
+}
+
+void bms_can_check(FaultType_t fault){
+	if (1) { // fault detected
+		ControlMode_t ctrl_mode = 0;
+		fault.faultBits.Fault_bms = 1;
+		update_control_mode(ctrl_mode);
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_BMS_COM_FAILURE);
+	}
+}
+
+void gps_can_check(FaultType_t fault){
+	if (1) { // fault detected
+		ControlMode_t ctrl_mode = 0;
+		fault.faultBits.Fault_gps_com = 1;
+		update_control_mode(ctrl_mode);
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_GPS_COM_FAILURE);
+	}
+}
+
+void vim_can_check(FaultType_t fault){
+	if (1) { // fault detected
+		fault.faultBits.Fault_vim_com = 1;
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_VIM_COM_FAILURE);
+	}
+}
+
+void glv_check(FaultType_t fault){
+	if (1) { // fault detected
+		fault.faultBits.Fault_glv = 1;
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_GLV_FAILURE);
+	}
+}
+
+void vcu_check(FaultType_t fault){
+	if (1) { // fault detected
+		fault.faultBits.Fault_vcu = 1;
+	}
+	else {
+		osThreadFlagsClear(1 << FAULT_INDEX_VCU_FAILURE);
+	}
 }

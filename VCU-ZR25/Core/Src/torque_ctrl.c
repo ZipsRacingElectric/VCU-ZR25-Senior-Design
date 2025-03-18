@@ -21,7 +21,7 @@ ControlMode_t check_control_mode(){
 	return control_mode;
 }
 
-TorqueCtrlData_t torquectrl = {0};
+TorqueCtrlData_t torquectrl = {.controlmode = 0, .torque_percent = 10};
 
 void StartTorqueCtrlTask(void *argument) {
 
@@ -32,14 +32,27 @@ void StartTorqueCtrlTask(void *argument) {
 	}
 }
 
+void update_control_mode(ControlMode_t ctrl_mode){
+	torquectrl.controlmode = ctrl_mode;
+}
+
 void increment_torque_limit(){
-	if(torquectrl.torque_percent < 100){
+	if(torquectrl.torque_percent <= 90 && torquectrl.torque_percent != 0){
 		torquectrl.torque_percent = torquectrl.torque_percent + 10;
 	}
 }
 
 void decrement_torque_limit(){
-	if(torquectrl.torque_percent > 0){
+	if(torquectrl.torque_percent >= 20){
 		torquectrl.torque_percent = torquectrl.torque_percent - 10;
+	}
+}
+
+void torque_fault_callback(uint8_t value){
+	if (value){
+		torquectrl.torque_percent = 0;
+	}
+	else {
+		torquectrl.torque_percent = 10;
 	}
 }
