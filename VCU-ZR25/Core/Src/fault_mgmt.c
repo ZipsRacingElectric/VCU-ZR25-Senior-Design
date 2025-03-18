@@ -9,7 +9,6 @@
  * TODO:
  * - CAN comm for inverters, bms, gps, vim
  * - apps_bps_implausibility_check: make motor torques 0 for apps/bps implausibilities
- * - inverter_can_check: need reset or power cycle to clear
  * - vim_can_check: add status field in vehicle data, call torque handler to decide action to take
  */
 
