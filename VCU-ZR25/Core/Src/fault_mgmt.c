@@ -106,11 +106,13 @@ void apps_bps_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data
 		}
 		if (osKernelSysTick() - implausibility_timer >= IMPLAUSIBILITY_TIMEOUT) {
 			fault.faultBits.Fault_apps_bps = 1;
+			torque_fault_callback(1);
 			// CAN motor callback to have 0 nm
 		}
 	}
 	else {
 		implausibility_detected = 0;
+		torque_fault_callback(0);
 		osThreadFlagsClear(1 << FAULT_INDEX_APPS_BPS_FAILURE);
 	}
 }

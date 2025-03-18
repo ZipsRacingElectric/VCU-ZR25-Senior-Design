@@ -28,5 +28,6 @@ void StartTorqueCtrlTask(void *argument);
 void update_control_mode(ControlMode_t);
 void increment_torque_limit();
 void decrement_torque_limit();
+void torque_fault_callback(uint8_t value);
 
 #endif /* INC_TORQUE_CTRL_H_ */
