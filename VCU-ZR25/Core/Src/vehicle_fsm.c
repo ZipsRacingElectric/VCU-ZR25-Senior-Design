@@ -114,7 +114,7 @@ void TransitionState(VCU_State_t newState)
 		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
 	  }
 	  else {
-		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
 	  }
 	  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
@@ -156,7 +156,7 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 			osThreadFlagsClear(1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
 		}
 	else {
-		DashboardFaultCallback();
+		DashboardFaultCallback(1);
 	}
   }
   else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_RESET_Pin)
