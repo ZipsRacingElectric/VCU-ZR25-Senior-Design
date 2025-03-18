@@ -14,23 +14,33 @@
 
 #define NUM_FAULTS 11
 /* Critical Fault Indexes */
+#define FAULT_INDEX_INV_FAILURE 1 // unsure, may need shutdown loop reset
+#define FAULT_INDEX_INV_COM_FAILURE 2 // unsure, may need shutdown loop reset
+#define FAULT_INDEX_VCU_FAILURE 3
 
 /* Non-Critical Fault Indexes */
-#define FAULT_INDEX_IMPLAUSIBILITY 0
-#define FAULT_INDEX_APPS_FAILURE 1
-#define FAULT_INDEX_BPS_FAILURE 2
-#define FAULT_INDEX_SSA_FAILURE 3
-#define FAULT_INDEX_GNSS_FAILURE 4
-#define FAULT_INDEX_INV_FAILURE 5
-#define FAULT_INDEX_INV_COM_FAILURE 6
-#define FAULT_INDEX_DASH_COM_FAILURE 7
-#define FAULT_INDEX_BMS_FAILURE 8
-#define FAULT_INDEX_BMS_COM_FAILURE 9
-#define FAULT_INDEX_GLV_LOW_FAILURE 10
+#define FAULT_INDEX_APPS_BPS_FAILURE 4 // motor commands 0, after 100ms
+#define FAULT_INDEX_SS_FAILURE 5 // limp mode, until manual press
+#define FAULT_INDEX_GPS_FAILURE 6 // limp mode, until manual press
+#define FAULT_INDEX_GNSS_FAILURE 7 // limp mode, until manual press
+#define FAULT_INDEX_BMS_COM_FAILURE 8 // limp mode, until manual press
+#define FAULT_INDEX_GPS_COM_FAILURE 9 // limp mode, until manual press
+#define FAULT_INDEX_VIM_COM_FAILURE 10 // unsure if LED should be on, needs to update vehicle data, torque control determine calculating tire normal loads
+#define FAULT_INDEX_GLV_FAILURE 11
 
 typedef union {
 	struct FaultTypeBits{
-		uint8_t Fault_implausibility : 1;
+		uint8_t Fault_inverter : 1;
+		uint8_t Fault_inverter_com : 1;
+		uint8_t Fault_vcu : 1;
+		uint8_t Fault_apps_bps : 1;
+		uint8_t Fault_ss : 1;
+		uint8_t Fault_gps : 1;
+		uint8_t Fault_gnss : 1;
+		uint8_t Fault_bms : 1;
+		uint8_t Fault_gps_com : 1;
+		uint8_t Fault_vim_com : 1;
+		uint8_t Fault_glv : 1;
 	} faultBits;
 	uint32_t faultInt;
 } FaultType_t;
@@ -41,5 +51,7 @@ const static struct FaultTypeBits FAULTS_NONE = {0};
 void StartFaultTask(void *argument);
 void fault_callback();
 void fault_check();
+void apps_bps_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data);
+void sas_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data);
 
 #endif /* INC_FAULT_MGMT_H_ */

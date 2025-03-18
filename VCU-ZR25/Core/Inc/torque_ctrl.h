@@ -25,6 +25,7 @@ typedef struct {
 } TorqueCtrlData_t;
 
 void StartTorqueCtrlTask(void *argument);
+void update_control_mode(ControlMode_t);
 void increment_torque_limit();
 void decrement_torque_limit();
 

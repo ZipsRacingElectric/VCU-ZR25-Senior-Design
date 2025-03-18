@@ -32,6 +32,10 @@ void StartTorqueCtrlTask(void *argument) {
 	}
 }
 
+void update_control_mode(ControlMode_t ctrl_mode){
+	torquectrl.controlmode = ctrl_mode;
+}
+
 void increment_torque_limit(){
 	if(torquectrl.torque_percent < 100){
 		torquectrl.torque_percent = torquectrl.torque_percent + 10;
