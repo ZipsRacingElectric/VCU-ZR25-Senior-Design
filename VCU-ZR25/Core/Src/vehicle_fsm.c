@@ -101,6 +101,10 @@ void TransitionState(VCU_State_t newState)
       if (!flags.flagBits.Fault_Detected){
     	  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       }
+      else {
+    	  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
+      }
+      HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
       break;
@@ -109,18 +113,24 @@ void TransitionState(VCU_State_t newState)
 	  if (flags.flagBits.Fault_Detected){
 		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
 	  }
+	  else {
+		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+	  }
+	  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
       break;
 
     case TRACTIVE_SYSTEM_ACTIVE_STATE:
       HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_SET);
       break;
 
     case READY_TO_DRIVE_STATE:
       HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_SET);
       CoolingSystemTurnOnLeft();
@@ -146,7 +156,7 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 			osThreadFlagsClear(1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
 		}
 	else {
-		DashboardCriticalFaultCallback();
+		DashboardFaultCallback();
 	}
   }
   else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_RESET_Pin)
@@ -183,7 +193,7 @@ void fsm_flag_callback(uint8_t flag, uint8_t value){
     if (value){
     	flags.flagInt |= (1 << flag);
     	if(flag == FLAG_INDEX_FAULT_DETECTED){
-    		DashboardFaultCallback();
+    		DashboardFaultCallback(value);
     	}
     }
     else{
