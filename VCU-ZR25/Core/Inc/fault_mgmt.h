@@ -14,11 +14,12 @@
 
 #define NUM_FAULTS 11
 /* Critical Fault Indexes */
-#define FAULT_INDEX_INV_FAILURE 1 // unsure, may need shutdown loop reset
-#define FAULT_INDEX_INV_COM_FAILURE 2 // unsure, may need shutdown loop reset
-#define FAULT_INDEX_VCU_FAILURE 3
+
+#define FAULT_INDEX_VCU_FAILURE 1
 
 /* Non-Critical Fault Indexes */
+#define FAULT_INDEX_INV_FAILURE 2 // unsure, may need shutdown loop reset
+#define FAULT_INDEX_INV_COM_FAILURE 3 // unsure, may need shutdown loop reset
 #define FAULT_INDEX_APPS_BPS_FAILURE 4 // motor commands 0, after 100ms
 #define FAULT_INDEX_SS_FAILURE 5 // limp mode, until manual press
 #define FAULT_INDEX_GPS_FAILURE 6 // limp mode, until manual press
