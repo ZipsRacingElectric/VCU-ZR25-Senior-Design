@@ -8,6 +8,11 @@
  *      Author: bglen
  */
 
+/*
+ * TODO:
+ * - am4096_magnet_status: insert relevant bits into status flag
+ */
+
 // Includes
 #include "am4096_encoder.h"
 #include "stm32f4xx_hal.h"
@@ -136,7 +141,6 @@ HAL_StatusTypeDef am4096_magnet_status(AM4096_t *sensor)
 		return HAL_ERROR;
 	}
 
-	// TODO: insert relevent bits into status flag
 	sensor->device_status = 0;
 	return HAL_OK;
 }

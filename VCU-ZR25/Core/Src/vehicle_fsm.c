@@ -89,7 +89,6 @@ void StartFsmTask(void *argument)
   }
 }
 
-/* TODO: Determine Pin writes */
 void TransitionState(VCU_State_t newState)
 {
   currentState = newState;

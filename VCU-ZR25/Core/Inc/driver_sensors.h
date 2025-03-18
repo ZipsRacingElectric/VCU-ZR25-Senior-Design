@@ -7,16 +7,7 @@
  *      Author: bglen
  */
 
-/*
- * TODO:
- * - BPS calibration
- * - Steering angle calibration
- * - brake light set point
- * - hard braking condition
- * - Steering angle dead zone
- * - filtering
- * - unit testing
- */
+
 
 #ifndef SRC_DRIVER_SENSORS_H_
 #define SRC_DRIVER_SENSORS_H_
@@ -47,6 +38,8 @@
 #define APPS_2_MAX_VOLTAGE    2250  // V * 1000
 #define APPS_MIN_DELTA_V	  0030  // Minimum allowable voltage difference V * 1000
 #define APPS_MAX_DELTA_P   	  0100  // Maximum allowable pedal position difference % * 10
+#define APPS_PEDAL_MIN        0050  // Threshold for pedal travel implausibility reset
+#define APPS_PEDAL_MAX        0250  // Threshold for pedal travel implausibility
 #define APPS_DEADZONE		  0050  // Upper and lower pedal deadzone in % * 10
 #define APPS_OUT_OF_RANGE     0100  // Allowable voltage beyond calibration limits before fault V * 1000
 
@@ -79,6 +72,7 @@ typedef struct
     uint16_t percent_1;   // Position in percentage of channel 1
     uint16_t percent_2;   // Position in percentage of channel 2
     uint16_t percent;     // Position in percentage used for
+    bool pedal_travel;    // Indicator for pedal travel implausibility
     bool plausible;		  // Plausibility of sensor
 } APPSSensor_t;
 
@@ -88,6 +82,7 @@ typedef struct
     uint16_t voltage;   // Voltage of channel 1 in V * 1000
     uint16_t pressure;  // Pressure in kPa
     bool plausible;		// Plausibility of sensor
+    bool brakes_engaged; // Brakes engaged
 } BPSSensor_t;
 
 typedef struct

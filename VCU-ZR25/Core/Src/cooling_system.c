@@ -5,6 +5,11 @@
  *      Author: John
  */
 
+/*
+ * TODO:
+ * - check_cooling_data: CAN comm for updating coolingData
+ */
+
 #include "vehicle_data.h"
 #include "cooling_system.h"
 #include "main.h"
@@ -25,7 +30,6 @@ bool isUnderTemp(uint32_t temp){
 
 CoolingData_t check_cooling_data() {
 	CoolingData_t coolingData = {0};
-	/* TODO: However CAN will update coolingData */
 
 	if (isOverTemp(coolingData.fl_inverter_temp) | isOverTemp(coolingData.fl_motor_temp)
 			| isOverTemp(coolingData.rl_inverter_temp) | isOverTemp(coolingData.rl_motor_temp)){

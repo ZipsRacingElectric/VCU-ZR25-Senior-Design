@@ -5,6 +5,12 @@
  *      Author: John
  */
 
+/*
+ * TODO:
+ * - fault_check: CAN comm for motor inverter
+ * - Add all faults
+ */
+
 #include "fault_mgmt.h"
 #include "vehicle_fsm.h"
 #include "driver_sensors.h"
@@ -73,7 +79,6 @@ void fault_check(){
 			implausibility_timer = osKernelSysTick();
 			implausibility_detected = 1;
 		}
-		/* TODO: CAN implementation for motor inverter communication */
 		if (osKernelSysTick() - implausibility_timer >= IMPLAUSIBILITY_TIMEOUT) {
 			fault.faultBits.Fault_implausibility = 1;
 		}
