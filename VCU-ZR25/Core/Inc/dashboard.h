@@ -18,7 +18,7 @@ typedef struct {
 
 void StartDashboardTask(void *argument);
 void DashboardCriticalFaultCallback();
-void DashboardFaultCallback();
+void DashboardFaultCallback(uint8_t value);
 void DashboardDRSToggleCallback(uint16_t GPIO_Pin);
 void DashboardTorqueLimitCallback(uint16_t GPIO_Pin);
 
