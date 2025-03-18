@@ -7,6 +7,19 @@
  *      Author: bglen
  */
 
+/*
+ * TODO:
+ * - calibrate_apps: Floor min/max
+ * - init_driver_input: handle HAL Error, pass adc handle to sensor structs
+ * - validate_apps: report different plausibility faults in the future
+ * - BPS calibration
+ * - Steering angle calibration
+ * - Steering angle dead zone
+ * - filtering
+ * - unit testing
+ * - better pedal algorithm
+ */
+
 // Includes
 #include "driver_sensors.h"
 #include "vehicle_fsm.h"
@@ -16,9 +29,9 @@
 #include "usbd_cdc_if.h"
 
 // Static variables
-APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .percent = 0, .plausible = false};
-BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
-BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false};
+APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .percent = 0, .pedal_travel = false, .plausible = false};
+BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false, .brakes_engaged = false};
+BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false, .brakes_engaged = false};
 SteeringAngleSensor_t s_steering_angle = {.angle = 0, .angular_velocity = 0, .plausible = false};
 
 // Static calibration variables. These hold the 0% and 100% setpoints
@@ -76,10 +89,7 @@ void StartDriverSensorTask(
  */
 void init_driver_input(I2C_HandleTypeDef *i2c)
 {
-	// TODO: pass adc handle to sensor structs
-
 	// Initialize the AM4096
-	// TODO: handle HAL ERROR
 	(void)am4096_init(&s_steering_angle.i2c_device, i2c);
 }
 
@@ -239,7 +249,6 @@ bool calibrate_apps(uint16_t apps_1_pedal_min, uint16_t apps_1_pedal_max, uint16
 	}
 
 	// Apply limits that are 10% beyond what the driver recorded during calibration
-	// TODO: floor these so they cannot be beyond the sensor voltage limits
 	apps_1_min = apps_1_pedal_min;
 	apps_2_min = apps_2_pedal_min;
 	apps_1_max = apps_1_pedal_max;
@@ -253,7 +262,6 @@ bool calibrate_apps(uint16_t apps_1_pedal_min, uint16_t apps_1_pedal_max, uint16
  */
 bool calibrate_bps(void)
 {
-	// TODO
 	return false;
 }
 
@@ -262,7 +270,6 @@ bool calibrate_bps(void)
  */
 bool calibrate_steering(void)
 {
-	// TODO
 	return false;
 }
 
@@ -360,7 +367,6 @@ static void calc_apps_percent(APPSSensor_t *apps)
 	}
 
 	// Averaging allows a usable pedal if one channel is implausible
-	// TODO: better pedal algorithm
 	uint32_t pedal_percent = (p1 + p2) * 1000 / 2000;
 
 
@@ -412,8 +418,6 @@ static uint16_t abs_diff(uint16_t v1, uint16_t v2)
  * APPS Plausibility Check
  * - plausibility conditions are checked here
  * - disabling of the powertrain after 100 ms is not handled here, out of scope
- *
- * TODO: it would be nice to report different plausibility faults in the future
  */
 bool validate_apps(APPSSensor_t apps)
 {
@@ -453,6 +457,16 @@ bool validate_apps(APPSSensor_t apps)
 	    	return false;
 	    }
 
+	    // Check for pedal travel greater than 25%
+	    if (apps.percent >= APPS_PEDAL_MAX){
+	    	apps.pedal_travel = true;
+	    	return false;
+	    }
+	    else if (apps.percent <= APPS_PEDAL_MIN)
+	    {
+	    	apps.pedal_travel = false;
+	    }
+
 	    // If none of the conditions are met, plausibility is valid
 	    return true;
 }
@@ -466,6 +480,14 @@ bool validate_bps(BPSSensor_t bps)
 	if ((bps.voltage + BPS_DEADZONE) >= BPS_MIN_VOLTAGE && (bps.voltage - BPS_DEADZONE) <= BPS_MAX_VOLTAGE)
 	{
 		return true;
+	}
+
+	if ((bps.voltage + BPS_DEADZONE) >= BPS_ENGAGED_VOLTAGE_THRESHOLD){
+		bps.brakes_engaged = true;
+		return false;
+	}
+	else {
+		bps.brakes_engaged = false;
 	}
 
     return false;

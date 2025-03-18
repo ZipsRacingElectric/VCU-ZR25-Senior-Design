@@ -5,6 +5,11 @@
  *      Author: John
  */
 
+/*
+ * TODO:
+ * - check_power_supply: Measure 5V power
+ */
+
 #include "vehicle_data.h"
 #include "power_supply.h"
 #include "main.h"
@@ -22,7 +27,6 @@ PowSupData_t check_power_supply(ADC_HandleTypeDef hadc1, ADC_ChannelConfTypeDef 
 	PowSupData_t powsup = {false, false};
 
 	// Read 5V signal on PA0
-	/* TODO: Figure out how to measure the 5V power */
 	sConfig.Channel = ADC_CHANNEL_0;
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);

@@ -5,6 +5,12 @@
  *      Author: jmw398
  */
 
+/*
+ * TODO:
+ * - DashboardDRSToggleCallback: CAN comm update DRS State
+ * - DashboardTorqueLimitCallback: Finish torque limit function when control handler done
+ */
+
 #include "vehicle_data.h"
 #include "dashboard.h"
 #include "main.h"
@@ -48,11 +54,9 @@ void DashboardDRSToggleCallback(uint16_t GPIO_Pin){
 	if (pin_state){
 		dashboardData.DRSState = !dashboardData.DRSState;
 	}
-	/* TODO: CAN function to update the DRS state, put in task loop if sent in intervals*/
 }
 
 void DashboardTorqueLimitCallback(uint16_t GPIO_Pin){
-	/* TODO: Complete function once torque control handler done */
 	if (GPIO_Pin == DASH_INPUT_3_Pin){
 		uint8_t pin_state = HAL_GPIO_ReadPin(DASH_INPUT_3_GPIO_Port, DASH_INPUT_3_Pin);
 		if (pin_state){
