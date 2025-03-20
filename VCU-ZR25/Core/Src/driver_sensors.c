@@ -80,7 +80,7 @@ void StartDriverSensorTask(
 		update_driver_sensor_data();
 		fsm_sensor_callback();
 
-		HAL_Delay(50);
+		osDelay(50);
 	}
 }
 

@@ -6,6 +6,8 @@
  */
 
 #include "can_db.h"
+#include "gpio.h"
+#include "main.h"
 #include "stdbool.h"
 #include "can_messages.h"
 #include "stm32f4xx_hal_can.h"
@@ -44,7 +46,7 @@ static const CanDbFlags_t CAN_DB_FLAGS_PENDING_TX = {.flagBits = {.PENDING_TX=1}
 
 struct queued_message {
 	uint32_t message_idx;
-	uint32_t _reserved;
+	CAN_HandleTypeDef* hcan;
 	uint64_t message_contents;
 };
 
@@ -144,10 +146,11 @@ void CANSetMessageContents(CANDatabaseEntryId index, uint64_t contents) {
 }
 
 // Returns true if has been successfully queued to send
-bool CANQueueMessageToSend(CANDatabaseEntryId index, uint64_t contents) {
+bool CANQueueMessageToSend(CANDatabaseEntryId index, uint64_t contents, CAN_HandleTypeDef* hcan) {
 	struct queued_message message = {
 		.message_contents = contents,
-		.message_idx = index
+		.message_idx = index,
+		.hcan = hcan
 	};
 
 	osStatus_t status = osMessageQueuePut(canDbTxQueueHandle, (void*)&message, 0, 0);
@@ -187,19 +190,47 @@ bool CANIRQRxHandler(CAN_RxHeaderTypeDef *header, uint8_t rx_data[8]) {
 	return true;
 }
 
-void StartCanDbTask(void* hcan_void) {
-	CAN_HandleTypeDef hcan = *(CAN_HandleTypeDef*)hcan_void;
+
+const static CAN_FilterTypeDef CAN1_FILTERS[0] = {};
+const static CAN_FilterTypeDef CAN2_FILTERS[1] = {
+		{
+				.FilterBank = 0,
+				.FilterActivation = CAN_FILTER_ENABLE,
+				.FilterMode = CAN_FILTERMODE_IDLIST,
+				.FilterScale = CAN_FILTERSCALE_16BIT,
+				.FilterIdLow = 0x204<<5, .FilterIdHigh = 0,
+				.FilterMaskIdLow = 0x0,
+				.FilterMaskIdHigh = 0x0,
+		}
+};
+
+void StartCanDbTask(void* _argument) {
+	// Initialize CAN filters
+	for (int i=0; i<sizeof(CAN1_FILTERS)/sizeof(CAN_FilterTypeDef); i++) {
+		HAL_CAN_ConfigFilter(&hcan1, &CAN1_FILTERS[i]);
+	}
+	for (int i=0; i<sizeof(CAN2_FILTERS)/sizeof(CAN_FilterTypeDef); i++) {
+		HAL_CAN_ConfigFilter(&hcan2, &CAN2_FILTERS[i]);
+	}
+	// Wait for 5V rail to come up
+	while (HAL_GPIO_ReadPin(RAIL_POWER_ENABLE_5V_GPIO_Port, RAIL_POWER_ENABLE_5V_Pin) == GPIO_PIN_RESET) {
+		osDelay(1);
+	}
+	HAL_CAN_Start(&hcan1);
+	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING|CAN_IT_RX_FIFO1_MSG_PENDING);
+	HAL_CAN_Start(&hcan2);
+	HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING|CAN_IT_RX_FIFO1_MSG_PENDING);
+
 	can_task_id = osThreadGetId();
-	osThreadFlagsSet(can_task_id, CAN_DB_FLAGS_NONE.flagInt);
 	while (1) {
 		CanDbFlags_t flags = {.flagInt = osThreadFlagsGet()};
 
 		// If there are outstanding messages in the queue, send them to the mailbox.
 		if (flags.flagBits.PENDING_TX) {
-			if (osMutexAcquire(can_db.message_contents_lock, 1) == osOK) {
+			if (osMutexAcquire(can_db_lockHandle, 1) == osOK) {
 				struct queued_message message_tx;
-				CANSetMessageContents(message_tx.message_idx, message_tx.message_contents);
 				while (osMessageQueueGet(canDbTxQueueHandle, &message_tx, NULL, 0) == osOK ) {
+					CANSetMessageContents(message_tx.message_idx, message_tx.message_contents);
 					CANDatabaseMessage_t message_info = can_db.messages[message_tx.message_idx];
 					CAN_TxHeaderTypeDef pHeader = {
 						.DLC = 8,
@@ -212,15 +243,15 @@ void StartCanDbTask(void* hcan_void) {
 						pHeader.StdId = message_info.can_id;
 					}
 					uint32_t mailbox;
-					HAL_CAN_AddTxMessage(&hcan, &pHeader, (uint8_t*)&message_tx.message_contents, &mailbox);
+					HAL_CAN_AddTxMessage(message_tx.hcan, &pHeader, (uint8_t*)&message_tx.message_contents, &mailbox);
 				}
-				osMutexRelease(can_db.message_contents_lock);
+				osMutexRelease(can_db_lockHandle);
 			}
 		}
 
 		// If there are pending received messages, commit them to the DB, and call their callbacks.
 		if (flags.flagBits.PENDING_RX) {
-			if (osMutexAcquire(can_db.message_contents_lock, 1) == osOK) {
+			if (osMutexAcquire(can_db_lockHandle, 1) == osOK) {
 				struct queued_message message_rx;
 				while (osMessageQueueGet(canDbRxQueueHandle, &message_rx, NULL, 0) == osOK) {
 					CANDatabaseMessage_t message_info = can_db.messages[message_rx.message_idx];
@@ -231,7 +262,7 @@ void StartCanDbTask(void* hcan_void) {
 						callback(message_info.can_id, message_rx.message_contents, payload);
 					}
 				}
-				osMutexRelease(can_db.message_contents_lock);
+				osMutexRelease(can_db_lockHandle);
 			}
 		}
 
