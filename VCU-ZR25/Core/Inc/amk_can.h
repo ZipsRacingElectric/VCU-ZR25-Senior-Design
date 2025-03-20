@@ -128,6 +128,13 @@ typedef struct {
 	CAN_HandleTypeDef* canInterface;
 } AMKMotorInfo_t;
 
+enum MotorId {
+	MOTOR_FL = 0,
+	MOTOR_FR = 1,
+	MOTOR_RL = 2,
+	MOTOR_RR = 3
+};
+
 typedef enum {
 	MOTORS_DISABLED,
 	STARTING_MOTORS,
@@ -156,6 +163,9 @@ typedef struct {
 void StartAMKTask(void *argument);
 
 void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints);
-void AMKCANInterruptCallback();
+AMKMotorState_t * MotorState(enum MotorId mid);
+
+#define MOTOR_POS_TORQUE_LIMIT 50
+#define MOTOR_NEG_TORQUE_LIMIT -50
 
 #endif /* INC_AMK_CAN_H_ */

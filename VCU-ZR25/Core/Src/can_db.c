@@ -39,10 +39,10 @@ typedef union {
 	} flagBits;
 } CanDbFlags_t;
 
-static const CanDbFlags_t CAN_DB_FLAGS_ALL = {.flagInt = -1};
-static const CanDbFlags_t CAN_DB_FLAGS_NONE = {.flagInt = 0};
-static const CanDbFlags_t CAN_DB_FLAGS_PENDING_RX = {.flagBits = {.PENDING_RX=1}};
-static const CanDbFlags_t CAN_DB_FLAGS_PENDING_TX = {.flagBits = {.PENDING_TX=1}};
+#define CAN_DB_FLAGS_ALL ((CanDbFlags_t){.flagInt = -1})
+#define CAN_DB_FLAGS_NONE ((CanDbFlags_t){.flagInt = 0})
+#define CAN_DB_FLAGS_PENDING_RX ((CanDbFlags_t){.flagBits = {.PENDING_RX=1}})
+#define CAN_DB_FLAGS_PENDING_TX ((CanDbFlags_t){.flagBits = {.PENDING_TX=1}})
 
 struct queued_message {
 	uint32_t message_idx;

@@ -14,13 +14,6 @@
 static AMKState_t state;
 extern osEventFlagsId_t amkEventFlagsHandle;
 
-enum MotorId {
-	MOTOR_FL = 0,
-	MOTOR_FR = 1,
-	MOTOR_RL = 2,
-	MOTOR_RR = 3
-};
-
 #define FORALL_MOTORS(mid) for (enum MotorId mid = 0; mid < 4; mid++)
 
 AMKMotorState_t * MotorState(enum MotorId mid) {
@@ -138,6 +131,11 @@ void StartAMKTask(void *argument) {
 	}
 }
 
+void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints) {
+	state.torqueSetpoints = setpoints;
+	update_vehicle_state(0);
+}
+
 void update_motor(enum MotorId mid) {
 	AMKMotorState_t * motor_state = MotorState(mid);
 	AMKMotorInfo_t * motor_info = MotorInfo(mid);
@@ -175,6 +173,8 @@ void update_motor(enum MotorId mid) {
 
 	case MOTOR_READY:
 		motor_info->motorRequestMessage.fields.TORQUE_SETPOINT = torque_setpoint;
+		motor_info->motorRequestMessage.fields.POSITIVE_TORQUE_LIMIT = MOTOR_POS_TORQUE_LIMIT;
+		motor_info->motorRequestMessage.fields.NEGATIVE_TORQUE_LIMIT = MOTOR_NEG_TORQUE_LIMIT;
 		break;
 
 	case READY_TO_DISABLE:
