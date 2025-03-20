@@ -63,6 +63,9 @@ typedef union {
 	uint32_t flagInt;
 } AMKControllerEventFlags_t;
 
+const static struct AMKControllerEventFlagBits AMK_FLAGS_ALL = {1,1,1,1,1,1,1};
+const static struct AMKControllerEventFlagBits AMK_FLAGS_NONE = {0};
+
 typedef enum {
 	MOTOR_DISABLED,
 
@@ -122,6 +125,7 @@ typedef struct {
 	CANDatabaseEntryId motorFeedbackMessageEntry;
 	AMKMotorRequestMessage_t motorRequestMessage;
 	AMKMotorFeedbackMessage_t motorFeedbackMessage;
+	CAN_HandleTypeDef* canInterface;
 } AMKMotorInfo_t;
 
 typedef enum {
@@ -148,9 +152,6 @@ typedef struct {
 	AMKMotorState_t motor_state_rr;
 	AMKSequenceState_t controller_state;
 } AMKState_t;
-
-const static struct AMKControllerEventFlagBits AMK_FLAGS_ALL = {1};
-const static struct AMKControllerEventFlagBits AMK_FLAGS_NONE = {0};
 
 void StartAMKTask(void *argument);
 

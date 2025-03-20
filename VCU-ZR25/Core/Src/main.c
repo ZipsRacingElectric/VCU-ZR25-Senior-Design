@@ -339,6 +339,28 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   FSM_GPIO_Callback(GPIO_Pin);
 }
 
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	CAN_RxHeaderTypeDef pHeader;
+	uint8_t aData[8];
+	if (HAL_CAN_GetRxMessage(&hcan1, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
+	if (HAL_CAN_GetRxMessage(&hcan2, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
+}
+
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	CAN_RxHeaderTypeDef pHeader;
+	uint8_t aData[8];
+	if (HAL_CAN_GetRxMessage(&hcan1, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
+	if (HAL_CAN_GetRxMessage(&hcan2, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -524,7 +546,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -614,17 +636,17 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 16;
+  hcan1.Init.Prescaler = 6;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_3TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_3TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = DISABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
   hcan1.Init.AutoRetransmission = DISABLE;
   hcan1.Init.ReceiveFifoLocked = DISABLE;
-  hcan1.Init.TransmitFifoPriority = DISABLE;
+  hcan1.Init.TransmitFifoPriority = ENABLE;
   if (HAL_CAN_Init(&hcan1) != HAL_OK)
   {
     Error_Handler();
@@ -651,11 +673,11 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
+  hcan2.Init.Prescaler = 6;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_3TQ;
+  hcan2.Init.TimeSeg2 = CAN_BS2_3TQ;
   hcan2.Init.TimeTriggeredMode = DISABLE;
   hcan2.Init.AutoBusOff = DISABLE;
   hcan2.Init.AutoWakeUp = DISABLE;
@@ -830,7 +852,16 @@ void StartDefaultTask(void *argument)
 		  }
   };
 
-  CANQueueMessageToSend(vcu_dbg_can, contents.as_u64);
+  // Wait for 5V rail to come up
+  while (HAL_GPIO_ReadPin(RAIL_POWER_ENABLE_5V_GPIO_Port, RAIL_POWER_ENABLE_5V_Pin) == GPIO_PIN_RESET) {
+    osDelay(1);
+  }
+  osDelay(10);
+
+  CANQueueMessageToSend(vcu_dbg_can, contents.as_u64, &hcan2);
+  AMKControllerEventFlags_t amk_flags = {.flagBits = {.start_motors=1}};
+  osEventFlagsClear(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits = AMK_FLAGS_ALL}.flagInt);
+  osEventFlagsSet(amkEventFlagsHandle, amk_flags.flagInt);
 
   /* Infinite loop */
   for(;;)

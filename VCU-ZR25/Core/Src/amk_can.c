@@ -78,10 +78,12 @@ void motor_feedback_callback(uint32_t can_id, uint64_t message_int, void* void_m
 void initialize_motor_info(enum MotorId mid) {
 	AMKMotorInfo_t * motor_info = MotorInfo(mid);
 	uint32_t request_can_id, feedback_can_id;
+	CAN_HandleTypeDef* canInterface;
 	switch (mid) {
 	case MOTOR_RL:
 		request_can_id = CAN_DB_AMK_RL_MOTOR_REQUEST_ID;
 		feedback_can_id = CAN_DB_AMK_RL_MOTOR_FEEDBACK_ID;
+		canInterface = &hcan2;
 		break;
 	default:
 		motor_info->isConfigured = false;
@@ -91,6 +93,7 @@ void initialize_motor_info(enum MotorId mid) {
 	motor_info->motorRequestMessageEntry = CANGetDbEntry(request_can_id);
 	motor_info->motorFeedbackMessageEntry = CANGetDbEntry(feedback_can_id);
 	motor_info->motorRequestMessage = (AMKMotorRequestMessage_t){0};
+	motor_info->canInterface = canInterface;
 
 	CANRegisterCallback(motor_info->motorFeedbackMessageEntry, motor_feedback_callback, (void*) mid);
 }
@@ -106,9 +109,10 @@ void StartAMKTask(void *argument) {
 	state.controller_state = MOTORS_DISABLED;
 	update_vehicle_state(osWaitForever);
 
+
 	while (1) {
 		AMKControllerEventFlags_t flags;
-		flags.flagInt = osEventFlagsWait(amkEventFlagsHandle, ~1, osFlagsWaitAny, osWaitForever);
+		flags.flagInt = osEventFlagsWait(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits=AMK_FLAGS_ALL}.flagInt, osFlagsWaitAny, osWaitForever);
 
 		if (state.controller_state == MOTORS_DISABLED && flags.flagBits.start_motors) {
 			// Begin startup sequence
@@ -198,5 +202,5 @@ void update_motor(enum MotorId mid) {
 	};
 
 	// Send the updated motor settings to the inverter
-	CANQueueMessageToSend(motor_info->motorRequestMessageEntry, motor_info->motorRequestMessage.as_u64);
+	CANQueueMessageToSend(motor_info->motorRequestMessageEntry, motor_info->motorRequestMessage.as_u64, motor_info->canInterface);
 }
