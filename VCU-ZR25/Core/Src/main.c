@@ -32,6 +32,7 @@
 #include "can_messages.h"
 #include "cooling_system.h"
 #include "torque_ctrl.h"
+#include "amk_can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -176,6 +177,18 @@ const osThreadAttr_t amkTask_attributes = {
   .cb_size = sizeof(amkTaskControlBlock),
   .stack_mem = &amkTaskBuffer[0],
   .stack_size = sizeof(amkTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for motorDemo */
+osThreadId_t motorDemoHandle;
+uint32_t motorDemoBuffer[ 128 ];
+osStaticThreadDef_t motorDemoControlBlock;
+const osThreadAttr_t motorDemo_attributes = {
+  .name = "motorDemo",
+  .cb_mem = &motorDemoControlBlock,
+  .cb_size = sizeof(motorDemoControlBlock),
+  .stack_mem = &motorDemoBuffer[0],
+  .stack_size = sizeof(motorDemoBuffer),
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for canDbTxQueue */
@@ -325,6 +338,7 @@ extern void StartCoolingTask(void *argument);
 extern void StartDashboardTask(void *argument);
 extern void StartTorqueCtrlTask(void *argument);
 extern void StartAMKTask(void *argument);
+void StartMotorDemo(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -494,6 +508,9 @@ int main(void)
 
   /* creation of amkTask */
   amkTaskHandle = osThreadNew(StartAMKTask, NULL, &amkTask_attributes);
+
+  /* creation of motorDemo */
+  motorDemoHandle = osThreadNew(StartMotorDemo, NULL, &motorDemo_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 
@@ -867,10 +884,53 @@ void StartDefaultTask(void *argument)
   for(;;)
   {
     // Heart beat
-    HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_3_Pin);
+//    HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_3_Pin);
+
     osDelay(50);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartMotorDemo */
+/**
+* @brief Function implementing the motorDemo thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartMotorDemo */
+void StartMotorDemo(void *argument)
+{
+  /* USER CODE BEGIN StartMotorDemo */
+
+  uint32_t tickFreqHz = osKernelGetTickFreq();
+  uint32_t motorDemoPeriodMilliseconds = 2000;
+  uint32_t motorDemoPeriodTicks = motorDemoPeriodMilliseconds * tickFreqHz / 1000;
+  uint32_t motorDemoDutyPercent = 50;
+  uint32_t motorDemoDutyTick = motorDemoDutyPercent * motorDemoPeriodTicks / 100;
+  uint32_t motorDemoTorqueSetpoint = 15;
+
+  // Wait for motor ready
+  while (*MotorState(MOTOR_RL) != MOTOR_READY)
+    osDelay(10);
+
+  /* Infinite loop */
+  for(;;)
+  {
+	// Motor demo: raise/lower torque in square wave pattern
+	uint32_t ticks = osKernelGetTickCount() % motorDemoPeriodTicks;
+	amkTorqueSetpoints torqueSetpoints;
+	if (ticks < motorDemoDutyTick) {
+		torqueSetpoints.rear_left = motorDemoTorqueSetpoint;
+		HAL_GPIO_WritePin(DEBUG_LED_3_GPIO_Port, DEBUG_LED_3_Pin, GPIO_PIN_SET);
+	} else {
+		torqueSetpoints.rear_left = 0;
+		HAL_GPIO_WritePin(DEBUG_LED_3_GPIO_Port, DEBUG_LED_3_Pin, GPIO_PIN_RESET);
+	}
+	AMKSetInverterTorqueSetpoints(torqueSetpoints);
+
+    osDelay(1);
+  }
+  /* USER CODE END StartMotorDemo */
 }
 
 /**
