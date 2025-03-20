@@ -41,6 +41,9 @@ void StartFsmTask(void *argument)
         {
           TransitionState(LOW_VOLTAGE_STATE);
         }
+        else {
+        	TransitionState(VEHICLE_OFF);
+        }
         break;
 
       case LOW_VOLTAGE_STATE:
@@ -48,10 +51,14 @@ void StartFsmTask(void *argument)
 		{
 		  TransitionState(VEHICLE_OFF);
 		}
-		else if (!flags.flagBits.Shutdown_Loop_Open && flags.flagBits.External_Button_Pressed)
+		else if (!flags.flagBits.Shutdown_Loop_Open && flags.flagBits.External_Button_Pressed
+				&& !flags.flagBits.Fault_Detected)
         {
           TransitionState(TRACTIVE_SYSTEM_ACTIVE_STATE);
         }
+		else {
+			TransitionState(LOW_VOLTAGE_STATE);
+		}
         break;
 
       case TRACTIVE_SYSTEM_ACTIVE_STATE:
@@ -67,6 +74,9 @@ void StartFsmTask(void *argument)
         {
           TransitionState(READY_TO_DRIVE_STATE);
         }
+    	else {
+    		TransitionState(TRACTIVE_SYSTEM_ACTIVE_STATE);
+    	}
         break;
 
       case READY_TO_DRIVE_STATE:
@@ -77,6 +87,9 @@ void StartFsmTask(void *argument)
         else if (flags.flagBits.Shutdown_Loop_Open | flags.flagBits.Fault_Detected)
         {
           TransitionState(LOW_VOLTAGE_STATE);
+        }
+        else {
+        	TransitionState(READY_TO_DRIVE_STATE);
         }
         break;
 
@@ -112,9 +125,11 @@ void TransitionState(VCU_State_t newState)
     case LOW_VOLTAGE_STATE:
 	  if (flags.flagBits.Fault_Detected){
 		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
+		  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_RESET);
 	  }
 	  else {
 		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
 	  }
 	  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
@@ -169,6 +184,10 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 			{
 				osThreadFlagsClear(1 << FLAG_INDEX_EXTERNAL_BUTTON_PRESSED);
 			}
+	else {
+				osThreadFlagsClear(1 << FLAG_INDEX_FAULT_DETECTED);
+				osThreadFlagsClear(1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
+	}
   }
   else if (GPIO_Pin == START_BUTTON_Pin)
   {
