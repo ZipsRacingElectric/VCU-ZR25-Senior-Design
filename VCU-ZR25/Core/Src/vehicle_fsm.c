@@ -168,7 +168,9 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 			);
 	if(flags.flagBits.Shutdown_Loop_Open == 0)
 		{
-			osThreadFlagsClear(1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
+			uint32_t flagInt = 0;
+			flagInt |= (1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
+			osThreadFlagsClear(flagInt);
 		}
 	else {
 		DashboardFaultCallback(1);
@@ -182,11 +184,15 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 			);
 	if(flags.flagBits.External_Button_Pressed == 0)
 			{
-				osThreadFlagsClear(1 << FLAG_INDEX_EXTERNAL_BUTTON_PRESSED);
+				uint32_t flagInt = 0;
+				flagInt |= (1 << FLAG_INDEX_EXTERNAL_BUTTON_PRESSED);
+				osThreadFlagsClear(flagInt);
 			}
 	else {
-				osThreadFlagsClear(1 << FLAG_INDEX_FAULT_DETECTED);
-				osThreadFlagsClear(1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
+				uint32_t flagInt = 0;
+				flagInt |= (1 << FLAG_INDEX_FAULT_DETECTED);
+				flagInt |= (1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
+				osThreadFlagsClear(flagInt);
 	}
   }
   else if (GPIO_Pin == START_BUTTON_Pin)
@@ -194,7 +200,9 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 	flags.flagBits.Start_Button_Pressed = HAL_GPIO_ReadPin(START_BUTTON_GPIO_Port, START_BUTTON_Pin);
 	if(flags.flagBits.Start_Button_Pressed == 0)
 				{
-					osThreadFlagsClear(1 << FLAG_INDEX_START_BUTTON_PRESSED);
+					uint32_t flagInt = 0;
+					flagInt |= (1 << FLAG_INDEX_START_BUTTON_PRESSED);
+					osThreadFlagsClear(flagInt);
 				}
   }
   else if (GPIO_Pin == DASH_INPUT_2_Pin){
@@ -208,15 +216,16 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 
 void fsm_flag_callback(uint8_t flag, uint8_t value){
 	FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
-
     if (value){
-    	flags.flagInt |= (1 << flag);
     	if(flag == FLAG_INDEX_FAULT_DETECTED){
+    		flags.flagInt |= (1 << flag);
     		DashboardFaultCallback(value);
     	}
     }
     else{
-    	osThreadFlagsClear(1 << flag);
+    	uint32_t flagInt = 0;
+		flagInt |= (1 << flag);
+    	osThreadFlagsClear(flagInt);
     }
 
     osThreadFlagsSet(thread_id, flags.flagInt);

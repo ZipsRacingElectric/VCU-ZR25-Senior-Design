@@ -796,14 +796,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : GLV_BATTERY_Pin */
-  GPIO_InitStruct.Pin = GLV_BATTERY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GLV_BATTERY_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : VCU_SHUTDOWN_LOOP_IN_Pin */
   GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING; set all to this if interrupts don't clear flags but the flag callback does
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(VCU_SHUTDOWN_LOOP_IN_GPIO_Port, &GPIO_InitStruct);

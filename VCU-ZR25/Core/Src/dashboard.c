@@ -32,7 +32,6 @@ void StartDashboardTask(void *argument) {
 }
 
 void DashboardFaultCallback(uint8_t value){
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
 	if (value){
 		HAL_GPIO_WritePin(GPIOA, DASH_INPUT_1_Pin, GPIO_PIN_SET);

@@ -109,9 +109,11 @@ void apps_bps_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data
 		}
 	}
 	else {
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_APPS_BPS_FAILURE);
 		implausibility_detected = 0;
 		torque_fault_callback(0);
-		osThreadFlagsClear(1 << FAULT_INDEX_APPS_BPS_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -129,8 +131,10 @@ void sas_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data){
 		}
 	}
 	else {
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_SS_FAILURE);
 		implausibility_detected = 0;
-		osThreadFlagsClear(1 << FAULT_INDEX_SS_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -141,7 +145,9 @@ void gps_check(FaultType_t fault){
 		update_control_mode(ctrl_mode);
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_GPS_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_GPS_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -152,7 +158,9 @@ void gnss_check(FaultType_t fault){
 		update_control_mode(ctrl_mode);
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_GNSS_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_GNSS_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -161,7 +169,9 @@ void inverter_check(FaultType_t fault){
 		fault.faultBits.Fault_inverter = 1;
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_INV_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_INV_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -170,7 +180,9 @@ void inverter_can_check(FaultType_t fault){
 		fault.faultBits.Fault_inverter_com = 1;
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_INV_COM_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_INV_COM_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -181,7 +193,9 @@ void bms_can_check(FaultType_t fault){
 		update_control_mode(ctrl_mode);
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_BMS_COM_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_BMS_COM_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -192,7 +206,9 @@ void gps_can_check(FaultType_t fault){
 		update_control_mode(ctrl_mode);
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_GPS_COM_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_GPS_COM_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -201,7 +217,9 @@ void vim_can_check(FaultType_t fault){
 		fault.faultBits.Fault_vim_com = 1;
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_VIM_COM_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_VIM_COM_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -210,7 +228,9 @@ void glv_check(FaultType_t fault){
 		fault.faultBits.Fault_glv = 1;
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_GLV_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_GLV_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
 
@@ -219,6 +239,8 @@ void vcu_check(FaultType_t fault){
 		fault.faultBits.Fault_vcu = 1;
 	}
 	else {
-		osThreadFlagsClear(1 << FAULT_INDEX_VCU_FAILURE);
+		uint32_t flagInt = 0;
+		flagInt |= (1 << FAULT_INDEX_VCU_FAILURE);
+		osThreadFlagsClear(flagInt);
 	}
 }
