@@ -784,6 +784,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|VCU_FAULT_Pin|BRAKE_LIGHT_CONTROL_Pin
                           |BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(DASH_INPUT_1_GPIO_Port, DASH_INPUT_1_Pin, GPIO_PIN_RESET);
+
   /*Configure GPIO pins : DEBUG_LED_1_Pin DEBUG_LED_2_Pin DEBUG_LED_3_Pin CAN_1_STANDBY_Pin
                            CAN_2_STANDBY_Pin RAIL_POWER_ENABLE_5V_Pin PUMP_1_CONTROL_Pin PUMP_2_CONTROL_Pin */
   GPIO_InitStruct.Pin = DEBUG_LED_1_Pin|DEBUG_LED_2_Pin|DEBUG_LED_3_Pin|CAN_1_STANDBY_Pin
@@ -793,11 +796,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : GLV_BATTERY_Pin DASH_INPUT_1_Pin */
-  GPIO_InitStruct.Pin = GLV_BATTERY_Pin|DASH_INPUT_1_Pin;
+  /*Configure GPIO pin : GLV_BATTERY_Pin */
+  GPIO_InitStruct.Pin = GLV_BATTERY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(GLV_BATTERY_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : VCU_SHUTDOWN_LOOP_IN_Pin */
   GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin;
@@ -827,6 +830,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BOOT_1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DASH_INPUT_1_Pin */
+  GPIO_InitStruct.Pin = DASH_INPUT_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DASH_INPUT_1_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);

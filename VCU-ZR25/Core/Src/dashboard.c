@@ -34,22 +34,12 @@ void StartDashboardTask(void *argument) {
 void DashboardFaultCallback(uint8_t value){
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-	HAL_GPIO_WritePin(GPIOA, DASH_INPUT_1_Pin, GPIO_PIN_RESET);
-
-	GPIO_InitStruct.Pin = DASH_INPUT_1_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(DASH_INPUT_1_GPIO_Port, &GPIO_InitStruct);
 	if (value){
 		HAL_GPIO_WritePin(GPIOA, DASH_INPUT_1_Pin, GPIO_PIN_SET);
 	}
 	else {
 		HAL_GPIO_WritePin(GPIOA, DASH_INPUT_1_Pin, GPIO_PIN_RESET);
 	}
-
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	HAL_GPIO_Init(DASH_INPUT_1_GPIO_Port, &GPIO_InitStruct);
 }
 
 void DashboardDRSToggleCallback(uint16_t GPIO_Pin){
