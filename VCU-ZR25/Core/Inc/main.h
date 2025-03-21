@@ -104,6 +104,7 @@ void Error_Handler(void);
 #define DASH_INPUT_1_GPIO_Port GPIOA
 #define DASH_INPUT_2_Pin GPIO_PIN_9
 #define DASH_INPUT_2_GPIO_Port GPIOA
+#define DASH_INPUT_2_EXTI_IRQn EXTI9_5_IRQn
 #define DASH_INPUT_3_Pin GPIO_PIN_10
 #define DASH_INPUT_3_GPIO_Port GPIOA
 #define DASH_INPUT_3_EXTI_IRQn EXTI15_10_IRQn
