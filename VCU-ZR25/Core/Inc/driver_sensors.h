@@ -43,7 +43,7 @@
 #define APPS_DEADZONE		  50  // Upper and lower pedal deadzone in % * 10
 #define APPS_OUT_OF_RANGE     100  // Allowable voltage beyond calibration limits before fault V * 1000
 
-#define BPS_MIN_VOLTAGE       255  // V * 1000
+#define BPS_MIN_VOLTAGE       250  // V * 1000
 #define BPS_MAX_VOLTAGE       265  // V * 1000
 #define BPS_ENGAGED_VOLTAGE_THRESHOLD 260  // V * 1000 Halfway between min and max
 #define BPS_MAX_PRESSURE      2500 // pressure in PSI

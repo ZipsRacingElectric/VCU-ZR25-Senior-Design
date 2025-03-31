@@ -41,6 +41,9 @@ void StartFaultTask(void *argument){
 
 		osDelay(FAULT_MGMT_TASK_PERIOD);
 	}
+
+	const FaultType_t mask = {.faultBits = FAULTS_ALL};
+	fault.faultInt = osThreadFlagsWait(mask.faultInt, osFlagsWaitAny | osFlagsNoClear, 10);
 }
 
 void fault_callback(){
