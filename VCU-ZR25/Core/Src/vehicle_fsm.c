@@ -15,6 +15,7 @@
 #include "fault_mgmt.h"
 
 VCU_State_t currentState = VEHICLE_OFF;
+FSMInterruptFlags_t flagsToClear = {.flagBits = FSM_FLAGS_NONE};
 
 static osThreadId_t thread_id;
 
@@ -98,6 +99,7 @@ void StartFsmTask(void *argument)
     }
 
     update_fsm_data(currentState);
+    fsm_clear_flags();
 	FSMInterruptFlags_t mask = {.flagBits = FSM_FLAGS_ALL};
 	flags.flagInt = osThreadFlagsWait(mask.flagInt, osFlagsWaitAny | osFlagsNoClear, osWaitForever);
 	osDelay(50);
@@ -143,10 +145,6 @@ void TransitionState(VCU_State_t newState)
       HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_SET);
-      flags.flagBits = FSM_FLAGS_NONE;
-      flags.flagInt |= (1 << FLAG_INDEX_EXTERNAL_BUTTON_PRESSED);
-      osThreadFlagsClear(flags.flagInt);
-
       break;
 
     case READY_TO_DRIVE_STATE:
@@ -176,6 +174,10 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 		{
 			DashboardFaultCallback(1);
 		}
+	else
+	{
+		flagsToClear.flagInt |= (1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
+	}
   }
   else if (GPIO_Pin == VCU_SHUTDOWN_LOOP_RESET_Pin)
   {
@@ -185,15 +187,20 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 			);
 	if(flags.flagBits.External_Button_Pressed)
 	{
-		uint32_t flagInt = 0;
-		flagInt |= (1 << FLAG_INDEX_FAULT_DETECTED);
-		flagInt |= (1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
-		osThreadFlagsClear(flagInt);
+		flagsToClear.flagInt |= (1 << FLAG_INDEX_FAULT_DETECTED);
+		flagsToClear.flagInt |= (1 << FLAG_INDEX_SHUTDOWN_LOOP_OPEN);
+	}
+	else
+	{
+		flagsToClear.flagInt |= (1 << FLAG_INDEX_EXTERNAL_BUTTON_PRESSED);
 	}
   }
   else if (GPIO_Pin == START_BUTTON_Pin)
   {
-	flags.flagBits.Start_Button_Pressed = HAL_GPIO_ReadPin(START_BUTTON_GPIO_Port, START_BUTTON_Pin);
+	flags.flagBits.Start_Button_Pressed = !HAL_GPIO_ReadPin(START_BUTTON_GPIO_Port, START_BUTTON_Pin);
+	if(!flags.flagBits.Start_Button_Pressed){
+		flagsToClear.flagInt |= (1 << FLAG_INDEX_START_BUTTON_PRESSED);
+	}
   }
   else if (GPIO_Pin == DASH_INPUT_2_Pin){
 	  DashboardDRSToggleCallback(GPIO_Pin);
@@ -206,19 +213,23 @@ void FSM_GPIO_Callback(uint16_t GPIO_Pin) {
 
 void fsm_flag_callback(uint8_t flag, uint8_t value){
 	FSMInterruptFlags_t flags = {.flagBits = FSM_FLAGS_NONE};
-	flags.flagInt |= (1 << flag);
     if (value){
+    	flags.flagInt |= (1 << flag);
     	if(flag == FLAG_INDEX_FAULT_DETECTED){
     		DashboardFaultCallback(value);
     	}
     }
     else{
-		flags.flagInt = osThreadFlagsClear(flags.flagInt);
-		flags.flagInt &= (0 << flag);
-
+		flagsToClear.flagInt |= (1 << flag);
     }
 
     osThreadFlagsSet(thread_id, flags.flagInt);
+}
+
+void fsm_clear_flags()
+{
+	osThreadFlagsClear(flagsToClear.flagInt);
+	flagsToClear.flagBits = FSM_FLAGS_NONE;
 }
 
 
