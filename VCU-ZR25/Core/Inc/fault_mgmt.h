@@ -13,6 +13,7 @@
 #include "vehicle_data.h"
 
 #define NUM_FAULTS 11
+#define FAULT_MGMT_TASK_PERIOD 50
 /* Critical Fault Indexes */
 
 #define FAULT_INDEX_VCU_FAILURE 1

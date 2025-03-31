@@ -47,5 +47,6 @@ void StartFsmTask(void *argument);
 void TransitionState(VCU_State_t newState);
 void FSM_GPIO_Callback(uint16_t GPIO_Pin);
 void fsm_flag_callback(uint8_t flag, uint8_t value);
+void fsm_clear_flags();
 
 #endif /* INC_VEHICLE_FSM_H_ */
