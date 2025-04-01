@@ -100,9 +100,7 @@ void StartFsmTask(void *argument)
 
     update_fsm_data(currentState);
     fsm_clear_flags();
-	FSMInterruptFlags_t mask = {.flagBits = FSM_FLAGS_ALL};
-	flags.flagInt = osThreadFlagsWait(mask.flagInt, osFlagsWaitAny | osFlagsNoClear, osWaitForever);
-	osDelay(50);
+	osDelay(VEHICLE_FSM_TASK_PERIOD);
   }
 }
 
