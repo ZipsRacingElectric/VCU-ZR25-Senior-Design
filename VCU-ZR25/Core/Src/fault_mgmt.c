@@ -28,10 +28,9 @@ static uint32_t apps_bps_implausibility_timer = 0;
 static uint32_t sas_implausibility_timer = 0;
 static bool apps_bps_implausibility_detected = 0;
 static bool sas_implausibility_detected = 0;
-FaultType_t faultsToClear = {.faultBits = FAULTS_NONE};
-uint32_t faults = 1;
-
 static osThreadId_t thread_id;
+
+FaultType_t faultsToClear = {.faultBits = FAULTS_NONE};
 
 void StartFaultTask(void *argument){
 	thread_id = osThreadGetId();
