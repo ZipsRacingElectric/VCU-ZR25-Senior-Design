@@ -166,6 +166,18 @@ const osThreadAttr_t torquectrlTask_attributes = {
   .stack_size = sizeof(torquectrlTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for amkTask */
+osThreadId_t amkTaskHandle;
+uint32_t amkTaskBuffer[ 512 ];
+osStaticThreadDef_t amkTaskControlBlock;
+const osThreadAttr_t amkTask_attributes = {
+  .name = "amkTask",
+  .cb_mem = &amkTaskControlBlock,
+  .cb_size = sizeof(amkTaskControlBlock),
+  .stack_mem = &amkTaskBuffer[0],
+  .stack_size = sizeof(amkTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for canDbTxQueue */
 osMessageQueueId_t canDbTxQueueHandle;
 uint8_t canDbTxQueueBuffer[ 16 * 16 ];
@@ -312,6 +324,7 @@ extern void StartCanDbTask(void *argument);
 extern void StartCoolingTask(void *argument);
 extern void StartDashboardTask(void *argument);
 extern void StartTorqueCtrlTask(void *argument);
+extern void StartAMKTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -324,6 +337,28 @@ extern void StartTorqueCtrlTask(void *argument);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   FSM_GPIO_Callback(GPIO_Pin);
+}
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	CAN_RxHeaderTypeDef pHeader;
+	uint8_t aData[8];
+	if (HAL_CAN_GetRxMessage(&hcan1, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
+	if (HAL_CAN_GetRxMessage(&hcan2, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
+}
+
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	CAN_RxHeaderTypeDef pHeader;
+	uint8_t aData[8];
+	if (HAL_CAN_GetRxMessage(&hcan1, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
+	if (HAL_CAN_GetRxMessage(&hcan2, 0, &pHeader, aData) == HAL_OK) {
+		CANIRQRxHandler(&pHeader, aData);
+	}
 }
 
 /* USER CODE END 0 */
@@ -443,7 +478,7 @@ int main(void)
   driversensrTaskHandle = osThreadNew(StartDriverSensorTask, (void*) &driversensorArgs, &driversensrTask_attributes);
 
   /* creation of faultTask */
-  faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
+  // faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
 
   /* creation of canDbTask */
   canDbTaskHandle = osThreadNew(StartCanDbTask, (void*) &hcan1, &canDbTask_attributes);
@@ -456,6 +491,9 @@ int main(void)
 
   /* creation of torquectrlTask */
   torquectrlTaskHandle = osThreadNew(StartTorqueCtrlTask, NULL, &torquectrlTask_attributes);
+
+  /* creation of amkTask */
+  amkTaskHandle = osThreadNew(StartAMKTask, NULL, &amkTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 
@@ -508,7 +546,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -598,17 +636,17 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 16;
+  hcan1.Init.Prescaler = 6;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_3TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_3TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = DISABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
   hcan1.Init.AutoRetransmission = DISABLE;
   hcan1.Init.ReceiveFifoLocked = DISABLE;
-  hcan1.Init.TransmitFifoPriority = DISABLE;
+  hcan1.Init.TransmitFifoPriority = ENABLE;
   if (HAL_CAN_Init(&hcan1) != HAL_OK)
   {
     Error_Handler();
@@ -635,11 +673,11 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
+  hcan2.Init.Prescaler = 6;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_3TQ;
+  hcan2.Init.TimeSeg2 = CAN_BS2_3TQ;
   hcan2.Init.TimeTriggeredMode = DISABLE;
   hcan2.Init.AutoBusOff = DISABLE;
   hcan2.Init.AutoWakeUp = DISABLE;
@@ -743,11 +781,11 @@ static void MX_GPIO_Init(void)
                           |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin|PUMP_2_CONTROL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|VCU_FAULT_Pin|BRAKE_LIGHT_CONTROL_Pin
                           |BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(DASH_INPUT_1_GPIO_Port, DASH_INPUT_1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : DEBUG_LED_1_Pin DEBUG_LED_2_Pin DEBUG_LED_3_Pin CAN_1_STANDBY_Pin
                            CAN_2_STANDBY_Pin RAIL_POWER_ENABLE_5V_Pin PUMP_1_CONTROL_Pin PUMP_2_CONTROL_Pin */
@@ -758,11 +796,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_IN_Pin VCU_SHUTDOWN_LOOP_RESET_Pin START_BUTTON_Pin */
-  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  /*Configure GPIO pin : VCU_SHUTDOWN_LOOP_IN_Pin */
+  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING; set all to this if interrupts don't clear flags but the flag callback does
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(VCU_SHUTDOWN_LOOP_IN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_RESET_Pin START_BUTTON_Pin DASH_INPUT_2_Pin DASH_INPUT_3_Pin
+                           DASH_INPUT_4_Pin */
+  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin|DASH_INPUT_2_Pin|DASH_INPUT_3_Pin
+                          |DASH_INPUT_4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : FAN_1_CONTROL_Pin FAN_2_CONTROL_Pin VCU_FAULT_Pin BRAKE_LIGHT_CONTROL_Pin
@@ -776,15 +822,23 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : BOOT_1_Pin */
   GPIO_InitStruct.Pin = BOOT_1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BOOT_1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DASH_INPUT_1_Pin DASH_INPUT_2_Pin DASH_INPUT_3_Pin DASH_INPUT_4_Pin */
-  GPIO_InitStruct.Pin = DASH_INPUT_1_Pin|DASH_INPUT_2_Pin|DASH_INPUT_3_Pin|DASH_INPUT_4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pin : DASH_INPUT_1_Pin */
+  GPIO_InitStruct.Pin = DASH_INPUT_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DASH_INPUT_1_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -814,7 +868,16 @@ void StartDefaultTask(void *argument)
 		  }
   };
 
-  CANQueueMessageToSend(vcu_dbg_can, contents.as_u64);
+  // Wait for 5V rail to come up
+  while (HAL_GPIO_ReadPin(RAIL_POWER_ENABLE_5V_GPIO_Port, RAIL_POWER_ENABLE_5V_Pin) == GPIO_PIN_RESET) {
+    osDelay(1);
+  }
+  osDelay(10);
+
+  CANQueueMessageToSend(vcu_dbg_can, contents.as_u64, &hcan2);
+  AMKControllerEventFlags_t amk_flags = {.flagBits = {.start_motors=1}};
+  osEventFlagsClear(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits = AMK_FLAGS_ALL}.flagInt);
+  osEventFlagsSet(amkEventFlagsHandle, amk_flags.flagInt);
 
   /* Infinite loop */
   for(;;)

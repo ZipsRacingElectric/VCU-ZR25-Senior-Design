@@ -37,12 +37,13 @@ typedef struct {
 	CANDatabaseMessage_t *messages; // sorted by can_id
 	uint64_t *message_contents;
 	bool *message_contents_valid;
-	osMutexId_t message_contents_lock;
 	CANCallback_t *callbacks;
 	void **callback_payloads;
 } CANDatabase_t;
 
 extern CANDatabase_t can_db;
+extern CAN_HandleTypeDef hcan1;
+extern CAN_HandleTypeDef hcan2;
 
 void initCANDatabase();
 
@@ -55,13 +56,13 @@ CANDatabaseEntryId CANGetDbEntry(uint32_t can_id);
 // Returns false if message not valid.
 bool CANGetMessageContents(CANDatabaseEntryId entry_id, uint64_t *out);
 
-// Must acquire can_db.message_contents_lock first.
-void CANSetMessageContents(CANDatabaseEntryId entry_id, uint64_t contents);
+//// Must acquire can_db.message_contents_lock first.
+//void CANSetMessageContents(CANDatabaseEntryId entry_id, uint64_t contents);
 
 // Returns true once message is successfully queued.
 // Does not need the can_db lock to be acquired.
 // Does not set the contents of the message in the db.
-bool CANQueueMessageToSend(CANDatabaseEntryId entry_id, uint64_t contents);
+bool CANQueueMessageToSend(CANDatabaseEntryId entry_id, uint64_t contents, CAN_HandleTypeDef* hcan);
 
 // Must acquire can_db.message_contents_lock first.
 // Have a function be called whenever a message with a given id is received.
