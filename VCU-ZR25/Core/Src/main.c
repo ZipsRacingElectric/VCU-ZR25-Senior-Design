@@ -478,7 +478,7 @@ int main(void)
   driversensrTaskHandle = osThreadNew(StartDriverSensorTask, (void*) &driversensorArgs, &driversensrTask_attributes);
 
   /* creation of faultTask */
-  // faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
+  faultTaskHandle = osThreadNew(StartFaultTask, NULL, &faultTask_attributes);
 
   /* creation of canDbTask */
   canDbTaskHandle = osThreadNew(StartCanDbTask, (void*) &hcan1, &canDbTask_attributes);

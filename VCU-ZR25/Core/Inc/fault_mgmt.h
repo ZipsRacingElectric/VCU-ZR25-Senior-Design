@@ -16,25 +16,25 @@
 #define FAULT_MGMT_TASK_PERIOD 50
 /* Critical Fault Indexes */
 
-#define FAULT_INDEX_VCU_FAILURE 1
+#define FAULT_INDEX_VCU_FAILURE 0
 
 /* Non-Critical Fault Indexes */
-#define FAULT_INDEX_INV_FAILURE 2 // unsure, may need shutdown loop reset
-#define FAULT_INDEX_INV_COM_FAILURE 3 // unsure, may need shutdown loop reset
-#define FAULT_INDEX_APPS_BPS_FAILURE 4 // motor commands 0, after 100ms
-#define FAULT_INDEX_SS_FAILURE 5 // limp mode, until manual press
-#define FAULT_INDEX_GPS_FAILURE 6 // limp mode, until manual press
-#define FAULT_INDEX_GNSS_FAILURE 7 // limp mode, until manual press
-#define FAULT_INDEX_BMS_COM_FAILURE 8 // limp mode, until manual press
-#define FAULT_INDEX_GPS_COM_FAILURE 9 // limp mode, until manual press
-#define FAULT_INDEX_VIM_COM_FAILURE 10 // unsure if LED should be on, needs to update vehicle data, torque control determine calculating tire normal loads
-#define FAULT_INDEX_GLV_FAILURE 11
+#define FAULT_INDEX_INV_FAILURE 1 // unsure, may need shutdown loop reset
+#define FAULT_INDEX_INV_COM_FAILURE 2 // unsure, may need shutdown loop reset
+#define FAULT_INDEX_APPS_BPS_FAILURE 3 // motor commands 0, after 100ms
+#define FAULT_INDEX_SS_FAILURE 4 // limp mode, until manual press
+#define FAULT_INDEX_GPS_FAILURE 5 // limp mode, until manual press
+#define FAULT_INDEX_GNSS_FAILURE 6 // limp mode, until manual press
+#define FAULT_INDEX_BMS_COM_FAILURE 7 // limp mode, until manual press
+#define FAULT_INDEX_GPS_COM_FAILURE 8 // limp mode, until manual press
+#define FAULT_INDEX_VIM_COM_FAILURE 9 // unsure if LED should be on, needs to update vehicle data, torque control determine calculating tire normal loads
+#define FAULT_INDEX_GLV_FAILURE 10
 
 typedef union {
 	struct FaultTypeBits{
+		uint8_t Fault_vcu : 1;
 		uint8_t Fault_inverter : 1;
 		uint8_t Fault_inverter_com : 1;
-		uint8_t Fault_vcu : 1;
 		uint8_t Fault_apps_bps : 1;
 		uint8_t Fault_ss : 1;
 		uint8_t Fault_gps : 1;
@@ -53,16 +53,17 @@ const static struct FaultTypeBits FAULTS_NONE = {0};
 void StartFaultTask(void *argument);
 void fault_callback();
 void fault_check();
-void apps_bps_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data);
-void sas_implausibility_check(FaultType_t fault, VehicleData_t vehicle_data);
-void gps_check(FaultType_t fault);
-void gnss_check(FaultType_t fault);
-void inverter_check(FaultType_t fault);
-void inverter_can_check(FaultType_t fault);
-void bms_can_check(FaultType_t fault);
-void gps_can_check(FaultType_t fault);
-void vim_can_check(FaultType_t fault);
-void glv_check(FaultType_t fault);
-void vcu_check(FaultType_t fault);
+void apps_bps_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_data);
+void sas_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_data);
+void gps_check(FaultType_t *fault);
+void gnss_check(FaultType_t *fault);
+void inverter_check(FaultType_t *fault);
+void inverter_can_check(FaultType_t *fault);
+void bms_can_check(FaultType_t *fault);
+void gps_can_check(FaultType_t *fault);
+void vim_can_check(FaultType_t *fault);
+void glv_check(FaultType_t *fault);
+void vcu_check(FaultType_t *fault);
+void fault_clear_flags();
 
 #endif /* INC_FAULT_MGMT_H_ */

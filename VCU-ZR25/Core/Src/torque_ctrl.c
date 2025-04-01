@@ -22,6 +22,7 @@ ControlMode_t check_control_mode(){
 }
 
 TorqueCtrlData_t torquectrl = {.controlmode = 0, .torque_percent = 10};
+uint8_t preFaultTorque = 0;
 
 void StartTorqueCtrlTask(void *argument) {
 
@@ -50,9 +51,13 @@ void decrement_torque_limit(){
 
 void torque_fault_callback(uint8_t value){
 	if (value){
+		if(torquectrl.torque_percent){
+			preFaultTorque = torquectrl.torque_percent;
+		}
 		torquectrl.torque_percent = 0;
 	}
-	else {
-		torquectrl.torque_percent = 10;
+	else if (preFaultTorque){
+		torquectrl.torque_percent = preFaultTorque;
+		preFaultTorque = 0;
 	}
 }
