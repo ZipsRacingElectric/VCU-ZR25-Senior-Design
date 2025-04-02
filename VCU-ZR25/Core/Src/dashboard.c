@@ -8,7 +8,6 @@
 /*
  * TODO:
  * - DashboardDRSToggleCallback: CAN comm update DRS State
- * - DashboardTorqueLimitCallback: Finish torque limit function when control handler done
  */
 
 #include "vehicle_data.h"
