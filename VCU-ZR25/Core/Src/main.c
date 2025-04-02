@@ -63,6 +63,9 @@ I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim11;
 
+powSupTaskArgs_t powsupArgs;
+DriverSensorTaskArgs_t driversensorArgs;
+
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -407,8 +410,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   initVehicleData();
 
-  powSupTaskArgs_t powsupArgs = {.hadc1 = hadc1, .sConfig = {0}};
-  DriverSensorTaskArgs_t driversensorArgs = {.hadc1 = hadc1, .sConfig = {0}};
+  powsupArgs = (powSupTaskArgs_t){.hadc1 = hadc1, .sConfig = {0}};
+  driversensorArgs = (DriverSensorTaskArgs_t){.hadc1 = hadc1, .sConfig = {0}};
 
   /* USER CODE END 2 */
 
