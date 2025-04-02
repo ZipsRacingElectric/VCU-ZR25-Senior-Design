@@ -501,9 +501,9 @@ bool validate_steering_angle(SteeringAngleSensor_t steering_angle)
 	// Check if the calculated angle is outside the expected range
 	if (steering_angle.angle >= STEERING_MIN_ANGLE && steering_angle.angle <= STEERING_MAX_ANGLE)
 	{
-		return true;
+		return false;
 	}
 
-	return false;
+	return true;
 }
 

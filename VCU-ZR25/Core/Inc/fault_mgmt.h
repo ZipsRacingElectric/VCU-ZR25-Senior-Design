@@ -10,7 +10,6 @@
 
 #include "cmsis_os.h"
 #include "gpio.h"
-#include "vehicle_data.h"
 
 #define NUM_FAULTS 11
 #define FAULT_MGMT_TASK_PERIOD 50
@@ -53,8 +52,8 @@ const static struct FaultTypeBits FAULTS_NONE = {0};
 void StartFaultTask(void *argument);
 void fault_callback();
 void fault_check();
-void apps_bps_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_data);
-void sas_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_data);
+void apps_bps_implausibility_check(FaultType_t *fault);
+void sas_implausibility_check(FaultType_t *fault);
 void gps_check(FaultType_t *fault);
 void gnss_check(FaultType_t *fault);
 void inverter_check(FaultType_t *fault);

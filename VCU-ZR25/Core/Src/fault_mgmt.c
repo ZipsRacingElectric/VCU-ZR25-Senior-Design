@@ -15,6 +15,7 @@
 #include "vehicle_fsm.h"
 #include "driver_sensors.h"
 #include "torque_ctrl.h"
+#include "vehicle_data.h"
 
 #define IMPLAUSIBILITY_TIMEOUT osKernelGetSysTimerFreq()/10
 
@@ -31,6 +32,12 @@ static osThreadId_t thread_id;
 
 FaultType_t faultsToClear = {.faultBits = FAULTS_NONE};
 
+void update_fault_management_data(FaultType_t fault){
+	osMutexAcquire(vdb_faulttask_lockHandle, osWaitForever);
+	VehicleData.faultmgmt = fault;
+	osMutexRelease(vdb_faulttask_lockHandle);
+}
+
 void StartFaultTask(void *argument){
 	thread_id = osThreadGetId();
 	FaultType_t fault = {.faultBits = FAULTS_NONE};
@@ -41,6 +48,7 @@ void StartFaultTask(void *argument){
 		fault_check();
 		fault_callback();
 		fault_clear_flags();
+		update_fault_management_data(fault);
 
 		osDelay(FAULT_MGMT_TASK_PERIOD);
 	}
@@ -80,10 +88,9 @@ void fault_callback(){
 
 void fault_check(){
 	FaultType_t fault = {.faultBits = FAULTS_NONE};
-	VehicleData_t vehicle_data = get_vehicle_data();
 
-	apps_bps_implausibility_check(&fault, vehicle_data);
-	sas_implausibility_check(&fault, vehicle_data);
+	apps_bps_implausibility_check(&fault);
+	sas_implausibility_check(&fault);
 	gps_check(&fault);
 	gnss_check(&fault);
 	inverter_check(&fault);
@@ -93,9 +100,9 @@ void fault_check(){
 	osThreadFlagsSet(thread_id, fault.faultInt);
 }
 
-void apps_bps_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_data){
-	if (!vehicle_data.apps.plausible | !vehicle_data.bps_front.plausible
-			| !vehicle_data.bps_rear.plausible) {
+void apps_bps_implausibility_check(FaultType_t *fault){
+	if (!VehicleData.apps.plausible | !VehicleData.bps_front.plausible
+			| !VehicleData.bps_rear.plausible) {
 
 		if (!apps_bps_implausibility_detected) {
 			apps_bps_implausibility_timer = osKernelSysTick();
@@ -114,8 +121,8 @@ void apps_bps_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_dat
 	}
 }
 
-void sas_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_data){
-	if (!vehicle_data.sas.plausible) {
+void sas_implausibility_check(FaultType_t *fault){
+	if (!VehicleData.sas.plausible) {
 
 		if (!sas_implausibility_detected) {
 			sas_implausibility_timer = osKernelSysTick();

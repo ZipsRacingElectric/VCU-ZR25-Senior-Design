@@ -280,6 +280,14 @@ const osMutexAttr_t vdb_torquectrl_lock_attributes = {
   .cb_mem = &vdb_torquectrl_lockControlBlock,
   .cb_size = sizeof(vdb_torquectrl_lockControlBlock),
 };
+/* Definitions for vdb_faulttask_lock */
+osMutexId_t vdb_faulttask_lockHandle;
+osStaticMutexDef_t vdb_faulttask_lockControlBlock;
+const osMutexAttr_t vdb_faulttask_lock_attributes = {
+  .name = "vdb_faulttask_lock",
+  .cb_mem = &vdb_faulttask_lockControlBlock,
+  .cb_size = sizeof(vdb_faulttask_lockControlBlock),
+};
 /* Definitions for can_db_lock */
 osMutexId_t can_db_lockHandle;
 osStaticMutexDef_t can_db_lockControlBlock;
@@ -439,6 +447,9 @@ int main(void)
 
   /* creation of can_db_lock */
   can_db_lockHandle = osMutexNew(&can_db_lock_attributes);
+
+  /* creation of faulttask_lock */
+  vdb_faulttask_lockHandle = osMutexNew(&vdb_faulttask_lock_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
