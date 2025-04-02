@@ -15,6 +15,22 @@
 
 #define MAX_TORQUE_VARIABLE    4950
 
+typedef struct {} torqueControlTorqueDistParams_t;
+typedef struct {} torqueControlPIDParams_t;
+
+typedef struct {
+	torqueControlTorqueDistParams_t td_params;
+	volatile torqueControlPIDParams_t pid_params;
+} torqueControlParameters_t;
+
+extern const torqueControlParameters_t torque_control_params;
+
+// Programs new PID parameters to the flash memory.
+// These new values will persist across reboots, but will be overwritten when
+// the VCU is reprogrammed. Permanent changes should be committed in
+// torque_ctrl.c.
+void program_pid_params(torqueControlPIDParams_t *);
+
 typedef enum {
     CONTROL_MODE_LIMP = 0,
 } ControlMode_t;
