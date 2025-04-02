@@ -8,6 +8,7 @@
  */
 #include "amk_can.h"
 #include "vehicle_data.h"
+#include "fault_mgmt.h"
 #include "cmsis_os.h"
 #include "can_db.h"
 
@@ -153,7 +154,10 @@ void StartAMKTask(void *argument) {
 		FORALL_MOTORS(mid) {
 			uint32_t timeSinceLastTick = currentTick - lastTickFeedbackReceived[mid];
 			if (timeSinceLastTick > motorFeedbackTimeoutTicks) {
-				// TODO: Raise inverter communication fault
+				fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 1);
+			}
+			else{
+				fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 0);
 			}
 		}
 

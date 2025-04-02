@@ -7,9 +7,8 @@
 
 /*
  * TODO:
- * - CAN comm for inverters, bms, gps, vim
- * - apps_bps_implausibility_check: make motor torques 0 for apps/bps implausibilities
- * - vim_can_check: add status field in vehicle data, call torque handler to decide action to take
+ * - CAN comm for bms, gps, vim
+ * - fault_flag_callback: vim can - add status field in vehicle data, call torque handler to decide action to take
  */
 
 #include "fault_mgmt.h"
@@ -20,8 +19,8 @@
 #define IMPLAUSIBILITY_TIMEOUT osKernelGetSysTimerFreq()/10
 
 const uint8_t fault_critical[NUM_FAULTS] = {
-    1, 1, 1, // critical
-    0, 0, 0, 0, 0, 0, 0, 0 // non-critical
+    1, // critical
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical
 };
 
 static uint32_t apps_bps_implausibility_timer = 0;
@@ -88,10 +87,6 @@ void fault_check(){
 	gps_check(&fault);
 	gnss_check(&fault);
 	inverter_check(&fault);
-	inverter_can_check(&fault);
-	bms_can_check(&fault);
-	gps_can_check(&fault);
-	vim_can_check(&fault);
 	glv_check(&fault);
 	vcu_check(&fault);
 
@@ -170,46 +165,6 @@ void inverter_check(FaultType_t *fault){
 	}
 }
 
-void inverter_can_check(FaultType_t *fault){
-	if (0) { // fault detected
-		fault->faultBits.Fault_inverter_com = 1;
-	}
-	else {
-		faultsToClear.faultInt |= (1 << FAULT_INDEX_INV_COM_FAILURE);
-	}
-}
-
-void bms_can_check(FaultType_t *fault){
-	if (0) { // fault detected
-		ControlMode_t ctrl_mode = 0;
-		fault->faultBits.Fault_bms = 1;
-		update_control_mode(ctrl_mode);
-	}
-	else {
-		faultsToClear.faultInt |= (1 << FAULT_INDEX_BMS_COM_FAILURE);
-	}
-}
-
-void gps_can_check(FaultType_t *fault){
-	if (0) { // fault detected
-		ControlMode_t ctrl_mode = 0;
-		fault->faultBits.Fault_gps_com = 1;
-		update_control_mode(ctrl_mode);
-	}
-	else {
-		faultsToClear.faultInt |= (1 << FAULT_INDEX_GPS_COM_FAILURE);
-	}
-}
-
-void vim_can_check(FaultType_t *fault){
-	if (0) { // fault detected
-		fault->faultBits.Fault_vim_com = 1;
-	}
-	else {
-		faultsToClear.faultInt |= (1 << FAULT_INDEX_VIM_COM_FAILURE);
-	}
-}
-
 void glv_check(FaultType_t *fault){
 	if (0) { // fault detected
 		fault->faultBits.Fault_glv = 1;
@@ -231,4 +186,26 @@ void vcu_check(FaultType_t *fault){
 void fault_clear_flags(){
 	osThreadFlagsClear(faultsToClear.faultInt);
 	faultsToClear.faultBits = FAULTS_NONE;
+}
+
+void fault_flag_callback(uint8_t fault, uint8_t value){
+	FaultType_t faults = {.faultBits = FAULTS_NONE};
+	if (value){
+		if(fault == (FAULT_INDEX_BMS_COM_FAILURE | FAULT_INDEX_GPS_COM_FAILURE)){
+			ControlMode_t ctrl_mode = 0;
+			update_control_mode(ctrl_mode);
+		}
+		else if (fault == FAULT_INDEX_VIM_COM_FAILURE){
+
+		}
+		else if (fault == FAULT_INDEX_INV_COM_FAILURE){
+
+		}
+    	faults.faultInt |= (1 << fault);
+    }
+    else{
+		faultsToClear.faultInt |= (1 << fault);
+    }
+
+    osThreadFlagsSet(thread_id, faults.faultInt);
 }

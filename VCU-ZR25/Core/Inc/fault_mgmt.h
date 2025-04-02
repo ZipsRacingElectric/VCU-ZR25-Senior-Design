@@ -58,12 +58,9 @@ void sas_implausibility_check(FaultType_t *fault, VehicleData_t vehicle_data);
 void gps_check(FaultType_t *fault);
 void gnss_check(FaultType_t *fault);
 void inverter_check(FaultType_t *fault);
-void inverter_can_check(FaultType_t *fault);
-void bms_can_check(FaultType_t *fault);
-void gps_can_check(FaultType_t *fault);
-void vim_can_check(FaultType_t *fault);
 void glv_check(FaultType_t *fault);
 void vcu_check(FaultType_t *fault);
 void fault_clear_flags();
+void fault_flag_callback(uint8_t fault, uint8_t value);
 
 #endif /* INC_FAULT_MGMT_H_ */
