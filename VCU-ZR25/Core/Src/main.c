@@ -411,7 +411,7 @@ int main(void)
   initVehicleData();
 
   powsupArgs = (powSupTaskArgs_t){.hadc1 = hadc1, .sConfig = {0}};
-  driversensorArgs = (DriverSensorTaskArgs_t){.hadc1 = hadc1, .sConfig = {0}};
+  driversensorArgs = (DriverSensorTaskArgs_t){.hadc1 = hadc1, .sConfig = {0}, .hi2c1 = hi2c1};
 
   /* USER CODE END 2 */
 

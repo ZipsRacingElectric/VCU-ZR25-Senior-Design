@@ -32,7 +32,7 @@
 APPSSensor_t s_apps = {.raw_value_1 = 0, .raw_value_2 = 0, .voltage_1 = 0, .voltage_2 = 0, .percent_1 = 0, .percent_2 = 0, .percent = 0, .pedal_travel = false, .plausible = false};
 BPSSensor_t s_bps_front = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false, .brakes_engaged = false};
 BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausible = false, .brakes_engaged = false};
-SteeringAngleSensor_t s_steering_angle = {.angle = 0, .angular_velocity = 0, .plausible = false};
+SteeringAngleSensor_t s_steering_angle = {.angle = 0, .angular_velocity = 0, .plausible = false, .i2c_device = {0}};
 
 // Static calibration variables. These hold the 0% and 100% setpoints
 static uint16_t apps_1_min = 0600; // V * 1000
@@ -74,6 +74,8 @@ void StartDriverSensorTask(
 ){
 	DriverSensorTaskArgs_t* args = (DriverSensorTaskArgs_t*)void_args;
 	ADC_HandleTypeDef hadc1 = args->hadc1;
+	I2C_HandleTypeDef hi2c1 = args->hi2c1;
+	init_driver_input(&hi2c1);
 	while (1) {
 		read_driver_input(&hadc1);
 		print_driver_input();

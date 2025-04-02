@@ -56,6 +56,7 @@ typedef struct
 {
     ADC_HandleTypeDef hadc1;
     ADC_ChannelConfTypeDef sConfig;
+    I2C_HandleTypeDef hi2c1;
 } DriverSensorTaskArgs_t;
 
 void StartDriverSensorTask(
