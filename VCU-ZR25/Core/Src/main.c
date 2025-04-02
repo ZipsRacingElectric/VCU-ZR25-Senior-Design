@@ -796,18 +796,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : VCU_SHUTDOWN_LOOP_IN_Pin */
-  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin;
-  // GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING; set all to this if interrupts don't clear flags but the flag callback does
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(VCU_SHUTDOWN_LOOP_IN_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_RESET_Pin START_BUTTON_Pin DASH_INPUT_2_Pin DASH_INPUT_3_Pin
-                           DASH_INPUT_4_Pin */
-  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin|DASH_INPUT_2_Pin|DASH_INPUT_3_Pin
-                          |DASH_INPUT_4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_IN_Pin VCU_SHUTDOWN_LOOP_RESET_Pin START_BUTTON_Pin DASH_INPUT_2_Pin
+                           DASH_INPUT_3_Pin DASH_INPUT_4_Pin */
+  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin|DASH_INPUT_2_Pin
+                          |DASH_INPUT_3_Pin|DASH_INPUT_4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
@@ -822,7 +815,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : BOOT_1_Pin */
   GPIO_InitStruct.Pin = BOOT_1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BOOT_1_GPIO_Port, &GPIO_InitStruct);
 
