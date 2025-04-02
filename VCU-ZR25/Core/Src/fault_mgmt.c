@@ -198,6 +198,9 @@ void fault_flag_callback(uint8_t fault, uint8_t value){
 		else if (fault == FAULT_INDEX_VIM_COM_FAILURE){
 
 		}
+		else if (fault == FAULT_INDEX_INV_COM_FAILURE){
+
+		}
     	faults.faultInt |= (1 << fault);
     }
     else{
