@@ -11,15 +11,6 @@
 #include "driver_sensors.h"
 #include "stm32f4xx_hal_flash.h"
 
-__attribute__((__section__(".rodata"))) // Tells the linker that this should live in read-only flash memory.
-const torqueControlParameters_t params = {
-	.td_params = {},
-	// Values specified here are loaded each time the VCU is reprogrammed.
-	// The `program_pid_params` function can change this at runtime, but those
-	// values will be overwritten during programming if they are not stored here.
-	.pid_params = {}
-};
-
 void update_torque_ctrl_data(TorqueCtrlData_t torquectrl) {
 	osMutexAcquire(vdb_torquectrl_lockHandle, osWaitForever);
 	VehicleData.torquectrl = torquectrl;
@@ -39,17 +30,6 @@ void StartTorqueCtrlTask(void *argument) {
 		torquectrl.controlmode = check_control_mode();
 		update_torque_ctrl_data(torquectrl);
 		osDelay(TORQUE_CONTROL_TASK_PERIOD);
-	}
-}
-
-void program_pid_params(torqueControlPIDParams_t *new_pid_params) {
-	size_t pid_size = sizeof(torqueControlPIDParams_t);
-	uint8_t * src = (uint8_t*) new_pid_params;
-	uint8_t * dst = (uint8_t*) &params.pid_params;
-	for (int i = 0; i<pid_size; i++) {
-		HAL_FLASH_Unlock();
-		HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, (uint32_t)(src+i), *(dst+i));
-		HAL_FLASH_Lock();
 	}
 }
 
