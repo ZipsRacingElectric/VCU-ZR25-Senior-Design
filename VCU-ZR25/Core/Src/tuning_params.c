@@ -10,6 +10,7 @@
 #include "tuning_params.h"
 #include <stdint.h>
 #include <math.h>
+#include <stdlib.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_flash.h"
 
@@ -3455,7 +3456,74 @@ const torqueControlParameters_t params = {
 	// The `program_pid_params` function can change this at runtime, but those
 	// values will be overwritten during programming if they are not stored here.
 	.pid_params = {
-
+		.vref_breakpoints = {
+			.min_point = 0.0,
+			.max_point = 50.0,
+			.num_points = PID_LENGTH_VREF_AXIS,
+			.point_spacing = 2.0
+		},
+		.sw_angle_breakpoints = {
+			.min_point = 0.0,
+			.max_point = 90.0,
+			.num_points = PID_LENGTH_SW_ANGLE_AXIS,
+			.point_spacing = 10.0
+		},
+		.p = {
+		        {25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f},
+		        {25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f},
+		        {25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f},
+		        {25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f},
+		        {8344.4f, 8344.4f, 8344.4f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f},
+		        {8344.4f, 8344.4f, 8344.4f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f},
+		        {8344.4f, 8344.4f, 8344.4f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f, 8300.0f},
+		        {2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 6836.2f, 6836.2f, 6836.2f},
+		        {2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 6836.2f, 6836.2f, 6836.2f},
+		        {2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 6836.2f, 6836.2f, 6836.2f},
+		        {2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 2483.7f, 6836.2f, 6836.2f, 6836.2f},
+		        {1000.0f, 1000.0f, 1000.0f, 6993.3f, 6993.3f, 8642.0f, 8642.0f, 71300.0f, 71300.0f, 71300.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 6993.3f, 6993.3f, 8642.0f, 8642.0f, 71300.0f, 71300.0f, 71300.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 6993.3f, 6993.3f, 8642.0f, 8642.0f, 71300.0f, 71300.0f, 71300.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 6993.3f, 6993.3f, 8642.0f, 8642.0f, 71300.0f, 71300.0f, 71300.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 6993.3f, 6993.3f, 8642.0f, 8642.0f, 71300.0f, 71300.0f, 71300.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f},
+		        {34132.0f, 34132.0f, 34132.0f, 34132.0f, 34132.0f, 35054.0f, 35054.0f, 44181.0f, 44181.0f, 44181.0f}
+		},
+		.i = {
+		        {11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f},
+		        {11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f},
+		        {11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f},
+		        {11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f, 11396.0f},
+		        {11663.0f, 11663.0f, 11663.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f},
+		        {11663.0f, 11663.0f, 11663.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f},
+		        {11663.0f, 11663.0f, 11663.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f, 12000.0f},
+		        {5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 46016.0f, 46016.0f, 46016.0f},
+		        {5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 46016.0f, 46016.0f, 46016.0f},
+		        {5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 46016.0f, 46016.0f, 46016.0f},
+		        {5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 5679.9f, 46016.0f, 46016.0f, 46016.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 8782.2f, 8782.2f, 2193.8f, 2193.8f, 13884.0f, 13884.0f, 13884.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 8782.2f, 8782.2f, 2193.8f, 2193.8f, 13884.0f, 13884.0f, 13884.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 8782.2f, 8782.2f, 2193.8f, 2193.8f, 13884.0f, 13884.0f, 13884.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 8782.2f, 8782.2f, 2193.8f, 2193.8f, 13884.0f, 13884.0f, 13884.0f},
+		        {1000.0f, 1000.0f, 1000.0f, 8782.2f, 8782.2f, 2193.8f, 2193.8f, 13884.0f, 13884.0f, 13884.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f},
+		        {29683.0f, 29683.0f, 29683.0f, 29683.0f, 29683.0f, 34602.0f, 34602.0f, 42895.0f, 42895.0f, 42895.0f}
+		}
 	}
 };
 
@@ -3491,6 +3559,12 @@ int motor_current_index(float current_value_amps, float* interp) {
 }
 int motor_temp_index(float temp_value_celcius, float* interp) {
 	return get_index(&params.td_params.motor_temp_breakpoints, temp_value_celcius, interp);
+}
+int vref_index(float vref_value_meters_per_second, float* interp) {
+	return get_index(&params.pid_params.vref_breakpoints, vref_value_meters_per_second, interp);
+}
+int sw_angle_index(float sw_value_degrees, float* interp) {
+	return get_index(&params.pid_params.sw_angle_breakpoints, sw_value_degrees, interp);
 }
 
 // helpers to get all points around a segment/square/cube cell of an LUT
@@ -3700,6 +3774,56 @@ float lookup_motor_efficiency(float motor_speed_rpm, float motor_current_amps, f
 		motor_speed_rpm, motor_current_amps, motor_temp_celcius,
 		ddms, ddmc, ddmt
 	);
+}
+
+// PI gain lookups are written ad-hoc since they are stored as float, not int16_t.
+
+float lookup_p_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle) {
+	int x_idx = vref_index(vref_meters_per_second, NULL);
+	int y_idx = sw_angle_index(steering_wheel_angle, NULL);
+	// error check
+	if (x_idx == -1 || y_idx == -1)
+		{/*TODO: Raise a fault*/}
+	return params.pid_params.p[x_idx][y_idx];
+}
+
+float lookup_i_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle) {
+	int x_idx = vref_index(vref_meters_per_second, NULL);
+	int y_idx = sw_angle_index(steering_wheel_angle, NULL);
+	// error check
+	if (x_idx == -1 || y_idx == -1)
+		{/*TODO: Raise a fault*/}
+	return params.pid_params.i[x_idx][y_idx];
+}
+
+float lookup_p_gain(float vref_meters_per_second, float steering_wheel_angle) {
+	float interp_x, interp_y;
+	int x_idx = vref_index(vref_meters_per_second, &interp_x);
+	int y_idx = sw_angle_index(steering_wheel_angle, &interp_y);
+	// error check
+	if (x_idx == -1 || y_idx == -1)
+		{/*TODO: Raise a fault*/}
+
+	float point_square[2][2];
+	BOUNDS_SQUARE(params.pid_params.p, point_square, x_idx, y_idx);
+
+	float r = bilerp(point_square, interp_x, interp_y);
+	return r;
+}
+
+float lookup_i_gain(float vref_meters_per_second, float steering_wheel_angle) {
+	float interp_x, interp_y;
+	int x_idx = vref_index(vref_meters_per_second, &interp_x);
+	int y_idx = sw_angle_index(steering_wheel_angle, &interp_y);
+	// error check
+	if (x_idx == -1 || y_idx == -1)
+		{/*TODO: Raise a fault*/}
+
+	float point_square[2][2];
+	BOUNDS_SQUARE(params.pid_params.i, point_square, x_idx, y_idx);
+
+	float r = bilerp(point_square, interp_x, interp_y);
+	return r;
 }
 
 void program_pid_params(torqueControlPIDParams_t *new_pid_params) {
