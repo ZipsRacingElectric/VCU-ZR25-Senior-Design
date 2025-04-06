@@ -66,6 +66,7 @@ extern const torqueControlParameters_t torque_control_params;
 // Given the real value of a parameter, find its index for use in LUTs
 // Return -1 if out of bounds
 // If `interp` non-NULL, returns an interpolation factor from 0-1
+int get_index(const breakpoints_t *breakpoints, float value, float* interp);
 int sl_index(float sl_value, float* interp);
 int sa_index(float sa_value_degrees, float* interp);
 int fz_index(float fz_value_newtons, float* interp);
