@@ -3,10 +3,48 @@
    Outputs: P (matrix) and q (vector) stored in arrays
 */
 #include <math.h>
+#include "qp_solver/qp_matrix.h"
 
-// TODO: replace these with a struct or something
-void computeQP(double Fx_fl_0, double Fx_fr_0, double Fx_rl_0, double Fx_rr_0, double Fy_fl_0, double Fy_fr_0, double Fy_rl_0, double Fy_rr_0, double Mz_tv, double R, double alpha_1, double alpha_2, double alpha_3, double ax_ref, double dFx_fl_ds, double dFx_fr_ds, double dFx_rl_ds, double dFx_rr_ds, double dFy_fl_ds, double dFy_fr_ds, double dFy_rl_ds, double dFy_rr_ds, double delta_fl, double delta_fr, double delta_rr, double lf, double lr, double mass, double s_fl_0, double s_fr_0, double s_rl_0, double s_rr_0, double tf, double tr, double w1, double w2, double w3, double* P, double* q) {
-    // Pre-calculate common sub-expressions
+void computeQP(QPMatrixParams_t params, double* P, double* q) {
+	double Fx_fl_0 = params.Fx_fl_0;
+	double Fx_fr_0 = params.Fx_fr_0;
+	double Fx_rl_0 = params.Fx_rl_0;
+	double Fx_rr_0 = params.Fx_rr_0;
+	double Fy_fl_0 = params.Fy_fl_0;
+	double Fy_fr_0 = params.Fy_fr_0;
+	double Fy_rl_0 = params.Fy_rl_0;
+	double Fy_rr_0 = params.Fy_rr_0;
+	double Mz_tv = params.Mz_tv;
+	double R = params.R;
+	double alpha_1 = params.alpha_1;
+	double alpha_2 = params.alpha_2;
+	double alpha_3 = params.alpha_3;
+	double ax_ref = params.ax_ref;
+	double dFx_fl_ds = params.dFx_fl_ds;
+	double dFx_fr_ds = params.dFx_fr_ds;
+	double dFx_rl_ds = params.dFx_rl_ds;
+	double dFx_rr_ds = params.dFx_rr_ds;
+	double dFy_fl_ds = params.dFy_fl_ds;
+	double dFy_fr_ds = params.dFy_fr_ds;
+	double dFy_rl_ds = params.dFy_rl_ds;
+	double dFy_rr_ds = params.dFy_rr_ds;
+	double delta_fl = params.delta_fl;
+	double delta_fr = params.delta_fr;
+	double delta_rr = params.delta_rr;
+	double lf = params.lf;
+	double lr = params.lr;
+	double mass = params.mass;
+	double s_fl_0 = params.s_fl_0;
+	double s_fr_0 = params.s_fr_0;
+	double s_rl_0 = params.s_rl_0;
+	double s_rr_0 = params.s_rr_0;
+	double tf = params.tf;
+	double tr = params.tr;
+	double w1 = params.w1;
+	double w2 = params.w2;
+	double w3 = params.w3;
+
+	// Pre-calculate common sub-expressions
     double cse1 = 1.0/(R*R);
     double cse2 = 1.0/(mass*mass)*w2;
     /* Compute P matrix elements 
