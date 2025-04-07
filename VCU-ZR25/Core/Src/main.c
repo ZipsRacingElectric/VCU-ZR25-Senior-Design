@@ -50,7 +50,8 @@ typedef StaticEventGroup_t osStaticEventGroupDef_t;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+powSupTaskArgs_t powsupArgs;
+DriverSensorTaskArgs_t driversensorArgs;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -63,8 +64,6 @@ I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim11;
 
-powSupTaskArgs_t powsupArgs;
-DriverSensorTaskArgs_t driversensorArgs;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -283,14 +282,6 @@ const osMutexAttr_t vdb_torquectrl_lock_attributes = {
   .cb_mem = &vdb_torquectrl_lockControlBlock,
   .cb_size = sizeof(vdb_torquectrl_lockControlBlock),
 };
-/* Definitions for vdb_faulttask_lock */
-osMutexId_t vdb_faulttask_lockHandle;
-osStaticMutexDef_t vdb_faulttask_lockControlBlock;
-const osMutexAttr_t vdb_faulttask_lock_attributes = {
-  .name = "vdb_faulttask_lock",
-  .cb_mem = &vdb_faulttask_lockControlBlock,
-  .cb_size = sizeof(vdb_faulttask_lockControlBlock),
-};
 /* Definitions for can_db_lock */
 osMutexId_t can_db_lockHandle;
 osStaticMutexDef_t can_db_lockControlBlock;
@@ -298,6 +289,14 @@ const osMutexAttr_t can_db_lock_attributes = {
   .name = "can_db_lock",
   .cb_mem = &can_db_lockControlBlock,
   .cb_size = sizeof(can_db_lockControlBlock),
+};
+/* Definitions for vdb_faulttask_lock */
+osMutexId_t vdb_faulttask_lockHandle;
+osStaticMutexDef_t vdb_faulttask_lockControlBlock;
+const osMutexAttr_t vdb_faulttask_lock_attributes = {
+  .name = "vdb_faulttask_lock",
+  .cb_mem = &vdb_faulttask_lockControlBlock,
+  .cb_size = sizeof(vdb_faulttask_lockControlBlock),
 };
 /* Definitions for amkEventFlags */
 osEventFlagsId_t amkEventFlagsHandle;
@@ -451,7 +450,7 @@ int main(void)
   /* creation of can_db_lock */
   can_db_lockHandle = osMutexNew(&can_db_lock_attributes);
 
-  /* creation of faulttask_lock */
+  /* creation of vdb_faulttask_lock */
   vdb_faulttask_lockHandle = osMutexNew(&vdb_faulttask_lock_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
