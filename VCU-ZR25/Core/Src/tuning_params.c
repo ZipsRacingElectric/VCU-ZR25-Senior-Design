@@ -3627,18 +3627,12 @@ float lookup_motor_efficiency(float motor_speed_rpm, float motor_current_amps, f
 float lookup_p_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle) {
 	int x_idx = vref_index(vref_meters_per_second, NULL);
 	int y_idx = sw_angle_index(steering_wheel_angle, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 	return torque_control_params.pid_params.p[x_idx][y_idx];
 }
 
 float lookup_i_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle) {
 	int x_idx = vref_index(vref_meters_per_second, NULL);
 	int y_idx = sw_angle_index(steering_wheel_angle, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 	return torque_control_params.pid_params.i[x_idx][y_idx];
 }
 
@@ -3646,9 +3640,6 @@ float lookup_p_gain(float vref_meters_per_second, float steering_wheel_angle) {
 	float interp_x, interp_y;
 	int x_idx = vref_index(vref_meters_per_second, &interp_x);
 	int y_idx = sw_angle_index(steering_wheel_angle, &interp_y);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 
 	float point_square[2][2];
 	BOUNDS_SQUARE(torque_control_params.pid_params.p, point_square, x_idx, y_idx);
@@ -3661,9 +3652,6 @@ float lookup_i_gain(float vref_meters_per_second, float steering_wheel_angle) {
 	float interp_x, interp_y;
 	int x_idx = vref_index(vref_meters_per_second, &interp_x);
 	int y_idx = sw_angle_index(steering_wheel_angle, &interp_y);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 
 	float point_square[2][2];
 	BOUNDS_SQUARE(torque_control_params.pid_params.i, point_square, x_idx, y_idx);

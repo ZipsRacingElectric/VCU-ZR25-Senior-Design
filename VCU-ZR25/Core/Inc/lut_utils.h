@@ -152,9 +152,6 @@ static float __attribute__((unused)) lookup_1d_nointerp(
 	float x
 ) {
 	int x_idx = get_index(bp_x, x, NULL);
-	// error check
-	if (x_idx == -1)
-		{/*TODO: Raise a fault*/}
 	return lut[x_idx];
 }
 
@@ -175,9 +172,6 @@ static float __attribute__((unused)) lookup_1d(
 ) {
 	float interp_x;
 	int x_idx = get_index(bp_x, x, &interp_x);
-	// error check
-	if (x_idx == -1)
-		{/*TODO: Raise a fault*/}
 
 	float point_segment[2];
 	BOUNDS_SEGMENT(lut, point_segment, x_idx);
@@ -205,9 +199,6 @@ static float __attribute__((unused)) lookup_2d_nointerp(
 ) {
 	int x_idx = get_index(bp_x, x, NULL);
 	int y_idx = get_index(bp_y, y, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 	return lut[x_idx][y_idx];
 }
 
@@ -233,9 +224,6 @@ static float __attribute__((unused)) lookup_2d(
 	float interp_x, interp_y;
 	int x_idx = get_index(bp_x, x, &interp_x);
 	int y_idx = get_index(bp_y, y, &interp_y);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 
 	float point_square[2][2];
 	BOUNDS_SQUARE(lut, point_square, x_idx, y_idx);
@@ -270,9 +258,6 @@ static float lookup_3d_nointerp(
 	int x_idx = get_index(bp_x, x, NULL);
 	int y_idx = get_index(bp_y, y, NULL);
 	int z_idx = get_index(bp_z, z, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1 || z_idx == -1)
-		{/*TODO: Raise a fault*/}
 	return lut[x_idx][y_idx][z_idx];
 }
 
@@ -303,9 +288,6 @@ static float lookup_3d(
 	int x_idx = get_index(bp_x, x, &interp_x);
 	int y_idx = get_index(bp_y, y, &interp_y);
 	int z_idx = get_index(bp_z, z, &interp_z);
-	// error check
-	if (x_idx == -1 || y_idx == -1 || z_idx == -1)
-		{/*TODO: Raise a fault*/}
 
 	float point_cube[2][2][2];
 	BOUNDS_CUBE(lut, point_cube, x_idx, y_idx, z_idx);
