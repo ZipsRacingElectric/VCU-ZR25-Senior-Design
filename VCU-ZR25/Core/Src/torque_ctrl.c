@@ -2,13 +2,14 @@
  * torque_ctrl.c
  *
  *  Created on: Feb 23, 2025
- *      Author: John
+ *      Author: John, Tetra
  */
 
 #include "vehicle_data.h"
 #include "power_supply.h"
 #include "main.h"
 #include "driver_sensors.h"
+#include "stm32f4xx_hal_flash.h"
 
 void update_torque_ctrl_data(TorqueCtrlData_t torquectrl) {
 	osMutexAcquire(vdb_torquectrl_lockHandle, osWaitForever);
@@ -25,7 +26,6 @@ TorqueCtrlData_t torquectrl = {.controlmode = 0, .torque_percent = 10};
 uint8_t preFaultTorque = 10;
 
 void StartTorqueCtrlTask(void *argument) {
-
 	while (1) {
 		torquectrl.controlmode = check_control_mode();
 		update_torque_ctrl_data(torquectrl);
