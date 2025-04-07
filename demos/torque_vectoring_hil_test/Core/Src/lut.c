@@ -14,16 +14,35 @@
 // Function Definitions
 
 // Use a breakpoint array to convert from raw measurement -> LUT index
-// Returns -1 if out of bounds
+// Clamps high/low if out of bounds.
+// Low clamping edge will be index zero, with interp=0.
+// High clamping edge will be second-to-last index, with interp=1.
+// Never returns index of last point (num_points-1).
 // If `interp` is non-NULL, it will be written with an interpolation value between 0-1.
-int get_index(const breakpoints_t *breakpoints, float value, float* interp) {
-	if (value < breakpoints->min_point || value > breakpoints->max_point) {
-		return -1;
+static inline int get_index(const breakpoints_t *breakpoints, float value, float* interp) {
+	if (value < breakpoints->min_point) {
+		// Clamp low.
+		if (interp) {
+			*interp = 0.0;
+		}
+		return 0;
+	}
+	if (value > breakpoints->max_point) {
+		// Clamp high.
+		if (interp) {
+			*interp = 1.0;
+		}
+		return breakpoints->num_points-2;
 	}
 	float idx_f = floor((value - breakpoints->min_point)/breakpoints->point_spacing);
 	int idx = (int)idx_f;
+	if (idx == breakpoints->num_points-1) {
+		// Never return index of last point,
+		// rather return index of 2nd-to-last point with interp set to 1.
+		idx--;
+	}
 	if (interp) {
-		*interp = (value - idx_f*breakpoints->point_spacing)/breakpoints->point_spacing;
+		*interp = (value - (breakpoints->min_point + idx_f*breakpoints->point_spacing))/breakpoints->point_spacing;
 	}
 	return idx;
 }

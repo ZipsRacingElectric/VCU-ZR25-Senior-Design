@@ -96,16 +96,35 @@ typedef struct {
 	BOUNDS_SQUARE((lut_3d)[x+1], cube[1], y,z)
 
 // Use a breakpoint array to convert from raw measurement -> LUT index
-// Returns -1 if out of bounds
+// Clamps high/low if out of bounds.
+// Low clamping edge will be index zero, with interp=0.
+// High clamping edge will be second-to-last index, with interp=1.
+// Never returns index of last point (num_points-1).
 // If `interp` is non-NULL, it will be written with an interpolation value between 0-1.
 static inline int get_index(const breakpoints_t *breakpoints, float value, float* interp) {
-	if (value < breakpoints->min_point || value > breakpoints->max_point) {
-		return -1;
+	if (value < breakpoints->min_point) {
+		// Clamp low.
+		if (interp) {
+			*interp = 0.0;
+		}
+		return 0;
+	}
+	if (value > breakpoints->max_point) {
+		// Clamp high.
+		if (interp) {
+			*interp = 1.0;
+		}
+		return breakpoints->num_points-2;
 	}
 	float idx_f = floor((value - breakpoints->min_point)/breakpoints->point_spacing);
 	int idx = (int)idx_f;
+	if (idx == breakpoints->num_points-1) {
+		// Never return index of last point,
+		// rather return index of 2nd-to-last point with interp set to 1.
+		idx--;
+	}
 	if (interp) {
-		*interp = (value - idx_f*breakpoints->point_spacing)/breakpoints->point_spacing;
+		*interp = (value - (breakpoints->min_point + idx_f*breakpoints->point_spacing))/breakpoints->point_spacing;
 	}
 	return idx;
 }
@@ -119,6 +138,13 @@ static inline int get_index(const breakpoints_t *breakpoints, float value, float
 //    d(lut)/dx = d(lut)/d(interp_x) * d(interp_x)/dx
 //              = (bi-)(tri-)lerp_ddx(lut) / point_spacing_x
 
+/*
+General 1-D lookup table function, no interpolation
+	const breakpoints_t* bp_x - Structure containing breakpoint information
+	int length_x - Length of lookup table
+	const int16_t lut[length_x] - Lookup table data
+	float x - Value of breakpoint to lookup data at
+*/
 static float __attribute__((unused)) lookup_1d_nointerp(
 	const breakpoints_t* bp_x,
 	int length_x,
@@ -132,7 +158,14 @@ static float __attribute__((unused)) lookup_1d_nointerp(
 	return lut[x_idx];
 }
 
-// Generalized lookup-and-gradient for 1d LUTs.
+/*
+ General 1-D lookup table function with interpolation and optional gradient
+	const breakpoints_t* bp_x - Structure containing breakpoint data
+	int length_x - Length of lookup table
+	const int16_t lut[length_x] - Lookup table data
+	float x - Value of breakpoint to lookup data at
+	float* ddx - (optional) Pass a non-NULL pointer which gets populated with the gradient value
+ */
 static float __attribute__((unused)) lookup_1d(
 	const breakpoints_t* bp_x,
 	int length_x,
@@ -155,6 +188,15 @@ static float __attribute__((unused)) lookup_1d(
 	return r;
 }
 
+/*
+General 2-D lookup table function, no interpolation
+	const breakpoints_t* bp_x - Structure containing breakpoint data 1st dimension
+	const breakpoints_t* bp_y - Structure containing breakpoint data 2nd dimension
+	int length_x - Length of lookup table 1st dimension
+	int length_y - Length of lookup table 2nd dimension
+	const int16_t lut[length_x][length_y] - Lookup table data
+	float x - Value to lookup data at
+*/
 static float __attribute__((unused)) lookup_2d_nointerp(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
 	int length_x, int length_y,
@@ -169,7 +211,18 @@ static float __attribute__((unused)) lookup_2d_nointerp(
 	return lut[x_idx][y_idx];
 }
 
-// Generalized lookup-and-gradient for 2d LUTs.
+/*
+ General 2-D lookup table function with interpolation and optional gradient
+	const breakpoints_t* bp_x - Structure containing breakpoint data 1st dimension
+	const breakpoints_t* bp_y - Structure containing breakpoint data 2nd dimension
+	int length_x - Length of lookup table 1st dimension
+	int length_y - Length of lookup table 2nd dimension
+	const int16_t lut[length_x][length_y] - Lookup table data
+	float x - Value of 1st dimension to lookup data at
+	float y - Value of 2nd dimension to lookup data at
+	float* ddx - (optional) Pass a non-NULL pointer which gets populated with the partial derivative value
+	float* ddy - (optional) Pass a non-NULL pointer which gets populated with the partial derivative value
+ */
 static float __attribute__((unused)) lookup_2d(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
 	int length_x, int length_y,
@@ -195,6 +248,19 @@ static float __attribute__((unused)) lookup_2d(
 	return r;
 }
 
+/*
+General 3-D lookup table function, no interpolation
+	const breakpoints_t* bp_x - Structure containing breakpoint data 1st dimension
+	const breakpoints_t* bp_y - Structure containing breakpoint data 2nd dimension
+	const breakpoints_t* bp_z - Structure containing breakpoint data 2nd dimension
+	int length_x - Length of lookup table 1st dimension
+	int length_y - Length of lookup table 2nd dimension
+	int length_z - Length of lookup table 2nd dimension
+	const int16_t lut[length_x][length_y][length_z] - Lookup table data
+	float x - Value of 1st dimension to lookup data at
+	float y - Value of 2nd dimension to lookup data at
+	float z - Value of 3rd dimension to lookup data at
+*/
 static float lookup_3d_nointerp(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
 	int length_x, int length_y, int length_z,
@@ -210,7 +276,22 @@ static float lookup_3d_nointerp(
 	return lut[x_idx][y_idx][z_idx];
 }
 
-// Generalized lookup-and-gradient for 3d LUTs.
+/*
+General 3-D lookup table function with interpolation and optional gradient
+	const breakpoints_t* bp_x - Structure containing breakpoint data 1st dimension
+	const breakpoints_t* bp_y - Structure containing breakpoint data 2nd dimension
+	const breakpoints_t* bp_z - Structure containing breakpoint data 2nd dimension
+	int length_x - Length of lookup table 1st dimension
+	int length_y - Length of lookup table 2nd dimension
+	int length_z - Length of lookup table 2nd dimension
+	const int16_t lut[length_x][length_y][length_z] - Lookup table data
+	float x - Value of 1st dimension to lookup data at
+	float y - Value of 2nd dimension to lookup data at
+	float z - Value of 3rd dimension to lookup data at
+	float* ddx - (optional) Pass a non-NULL pointer which gets populated with the partial derivative value
+	float* ddy - (optional) Pass a non-NULL pointer which gets populated with the partial derivative value
+	float* ddz - (optional) Pass a non-NULL pointer which gets populated with the partial derivative value
+*/
 static float lookup_3d(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
 	int length_x, int length_y, int length_z,
