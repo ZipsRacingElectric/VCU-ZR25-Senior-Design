@@ -10,43 +10,56 @@
 
 // Includes
 #include <ref_gen.h>
+#include <stdlib.h>
+#include "lut.h"
 
 // Defines
 #ifndef PI
 #define PI 3.14159265358979323846f
 #endif
 
-#define SW_MIN_ANGLE -90        // min angle for LUT, degrees
-#define SW_MAX_ANGLE 90         // max angle for LUT, degrees
-#define SW_STEP 18              // breakpoint step for LUT, degrees
 #define MIN_REF_VELOCITY 0.01f  // Minimum velocity for yaw reference generation
 
 // Constants
 
 // Steering Angle Lookup Table, degrees
 // TODO: store these in radians
-static const DeltaPair_t stering_angle_table[11] = {
-    {-18.2240f, -19.1260f},
-    {-14.5580f, -15.1260f},
-    {-10.9180f, -11.2340f},
-    { -7.2890f,  -7.4280f},
-    { -3.6540f,  -3.6890f},
-    {  0.0000f,   0.0000f},
-    {  3.6890f,   3.6540f},
-    {  7.4280f,   7.2890f},
-    { 11.2340f,  10.9180f},
-    { 15.1260f,  14.5580f},
-    { 19.1270f,  18.2250f},
+static const float steering_lf_table[11] = {
+    -18.2240f,
+    -14.5580f,
+    -10.9180f,
+     -7.2890f,
+     -3.6540f,
+      0.0000f,
+      3.6890f,
+      7.4280f,
+     11.2340f,
+     15.1260f,
+     19.1270f,
 };
 
+static const float steering_rf_table[11] = {
+    -19.1260f,
+    -15.1260f,
+    -11.2340f,
+     -7.4280f,
+     -3.6890f,
+      0.0000f,
+      3.6540f,
+      7.2890f,
+     10.9180f,
+     14.5580f,
+     18.2250f,
+};
+
+static const breakpoints_t steering_breakpoints = {-90, 90, 11, 18};
 static const float g = 9.81f;     // graviationa acceleration, m/s
 
 // Static Variables
-static float sigma = 1.0f;  // Tuning parameter for maximum yaw rate
-static float mu = 2.0f;     // Maximum tire friction coefficient
-static float ku = 0.0f;     // Target understeer gradient, d_delta / d_ay. Tune to adjust reference yaw rate.
+static float sigma = 1.0f;          // Tuning parameter for maximum yaw rate
+static float mu = 2.0f;             // Maximum tire friction coefficient
+static float ku = 0.0f;             // Target understeer gradient, d_delta / d_ay. Tune to adjust reference yaw rate.
 static float wheelbase = 1.528f;    // TODO: replace with vehicle_data.h
-
 
 // Private Function Prototypes
 static inline float deg_to_rad(float deg);
@@ -54,32 +67,30 @@ static inline float rad_to_deg(float rad);
 
 // Function Definitions
 
-/*
-Calculates FL and FR steer angles given steering wheel angle
-Inputs:
+/* 
+Returns FL and FR steer angles given steering wheel angle
     float sw_angle - Steering Wheel Angle in radians
-Outputs:
     DeltaPair_t -  delta_fl and delta_fr in radians
 */
+// TODO: handle faults from interpolation
 DeltaPair_t get_steering_angle(float sw_angle) {
     sw_angle = rad_to_deg(sw_angle);
 
-    // Interpolate LUT
-    // TODO: use tetra's LUT functions for interpolation
-    DeltaPair_t angles = {1, 1};
+    // 1-D Interpolation of lookup table
+    double delta_lf = lookup_1d(&steering_breakpoints, 11, steering_lf_table, sw_angle, NULL);
+    double delta_rf = lookup_1d(&steering_breakpoints, 11, steering_rf_table, sw_angle, NULL);
+    delta_lf = deg_to_rad(delta_lf);
+    delta_rf = deg_to_rad(delta_rf);
 
-    angles.delta_lf = deg_to_rad(angles.delta_lf);
-    angles.delta_rf = deg_to_rad(angles.delta_rf);
+    DeltaPair_t angles = {delta_lf, delta_rf};
 
     return angles;
 }
 
 /*
 Calculates the Yaw Reference Signal for the Yaw Controller
-Inputs:
     float sw_angle - Steering wheel angle, radians
     float ref_velocity - Reference velocity, m/s
-Output:
     float yaw_ref - Yaw rate reference, rad/s
 */
 float calculate_yaw_reference(float sw_angle, float ref_velocity) {
@@ -105,12 +116,10 @@ float calculate_yaw_reference(float sw_angle, float ref_velocity) {
 
 /*
 Calculates the Yaw Reference Signal for the Yaw Controller
-Inputs:
     float apps_percent - Accelerator pedal percentage, percent
-Output:
     float ax_ref - Longitudinal acceleration reference, m/s^2
 */
-float calculate_acceleration_reference(float apps_percent, float ref_velocity) {
+float __attribute__((unused)) calculate_acceleration_reference(float apps_percent, float ref_velocity) {
     // TODO
     return 0.0f;
 }
@@ -118,6 +127,7 @@ float calculate_acceleration_reference(float apps_percent, float ref_velocity) {
 // Private Function Declarations
 
 // Converts degrees to radians
+// TODO: remove these in the future
 static inline float deg_to_rad(float deg) {
     return deg * (PI / 180.0f);
 }

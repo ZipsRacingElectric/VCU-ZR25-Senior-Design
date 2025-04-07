@@ -15,11 +15,14 @@
 // Constants
 
 // Types
+typedef struct {
+	double kp;
+	double ki;
+	double kd;
+} gain_t;
 
 typedef struct {
-	double kp; 		// Kp gain
-	double ki; 		// Ki gain
-	double kd; 		// Kd gain
+	gain_t gain;	// Struct of currently used gains
 
 	double T; 		// Sampling period in seconds
 	double tau;		// Time constant for kd 1st order filter
@@ -38,25 +41,31 @@ typedef struct {
  *
  * Inputs:
  * pid_t pid_data - pid_t struct storing PID data
- *
+ * double T - sampling period in seconds
+ * double tau - time constant of optional D filter, can be 0
  */
 void init_pid(pid_t* pid_data, double T, double tau);
 
 /*
- * Updates PID gains
- *
+ * Updates PID gains used by the controller
  */
-void update_gains(pid_t* pid_data, double kp, double ki, double kd);
+void update_gains(pid_t* pid_data, gain_t new_gain);
 
 /*
- * Updates the PID controller data
+ * Schedules gains by interpolating the gain lookup table
+ */
+gain_t schedule_gains(float ref_velocity, float sw_angle);
+
+/*
+ * Updates the PID controller
  *
  * Inputs:
- * double e - containts discrete input value e[k]
+ * double e - holds discrete input value e[k]
  * pid_t pid_data - pid_t struct storing PID data
+ *
+ * Output:
+ * double containing u[k]
  */
 void update_pid(double e, pid_t* pid_data);
-
-
 
 #endif /* INC_PID_H_ */

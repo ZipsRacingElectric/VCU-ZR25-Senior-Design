@@ -12,6 +12,7 @@
 #define INC_REF_GEN_H_
 
 // Includes
+#include "lut.h"
 
 // Constants
 
@@ -23,33 +24,26 @@ typedef struct {
 
 // Function Prototypes
 
-/*
+/* 
 Returns FL and FR steer angles given steering wheel angle
-
-Inputs:
     float sw_angle - Steering Wheel Angle in radians
-Outputs:
     DeltaPair_t -  delta_fl and delta_fr in radians
 */
 DeltaPair_t get_steering_angle(float steer_angle);
 
 /*
 Calculates the Yaw Reference Signal for the Yaw Controller
-Inputs:
     float sw_angle - Steering wheel angle, radians
     float ref_velocity - Reference velocity, m/s
-Output:
     float yaw_ref - Yaw rate reference, rad/s
 */
 float calculate_yaw_reference(float sw_angle, float ref_velocity);
 
 /*
 Calculates the Yaw Reference Signal for the Yaw Controller
-Inputs:
     float apps_percent - Accelerator pedal percentage, percent
-Output:
     float ax_ref - Longitudinal acceleration reference, m/s^2
 */
-float calculate_acceleration_reference(float apps_percent, float ref_velocity);
+float __attribute__((unused)) calculate_acceleration_reference(float apps_percent, float ref_velocity);
 
 #endif /* INC_REF_GEN_H_ */

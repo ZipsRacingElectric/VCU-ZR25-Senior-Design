@@ -107,11 +107,11 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-	  // Wait to recieve a CAN message
+	  // 1. Wait to recieve a CAN message
 
-	  // Compute the algorithm
+	  // 2. Compute the algorithm
 
-	  // Send a CAN message out
+	  // 3. Send a CAN message out
 
     /* USER CODE BEGIN 3 */
   }

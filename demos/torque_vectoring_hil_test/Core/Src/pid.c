@@ -10,6 +10,25 @@
 // Includes
 #include <pid.h>
 
+// Defines
+#define PID_LUT_V_MIN 2			// Minimum breakpoint value for velocity, m/s
+#define PID_LUT_V_MAX 50		// Maximum breakpoint value for velocity, m/s
+#define PID_LUT_V_STEP	9.6		// Step size for velocity breakpoint
+#define PID_LUT_DELTA_MIN 10	// Minimum breakpoint value for steering angle, degrees
+#define PID_LUT_DELTA_MAX 90	// Maximum breakpoint value for steering angle, degrees
+#define PID_LUT_DELTA_STEP 20	// Step size for steering breakpoint
+
+// Constants
+// PID gain Lut has breakpoints for velocity and steering angle
+// TODO: replace with evenly spaced breakpoint data (tetras got this)
+static const gain_t pid_gains[30] = {
+	{25320, 11396, 0}, { 8344, 11663, 0}, { 2484,  5680, 0}, { 1000,  1000, 0}, {34132, 29683, 0}, {21997, 66594, 0},
+	{25320, 11396, 0}, { 8300, 12000, 0}, { 2484,  5680, 0}, { 6993,  8782, 0}, {34132, 29683, 0}, {34452, 70850, 0},
+	{25320, 11396, 0}, { 8300, 12000, 0}, { 2484,  5680, 0}, { 8642,  2194, 0}, {35054, 34602, 0}, {46685, 83942, 0},
+	{25320, 11396, 0}, { 8300, 12000, 0}, { 2484,  5680, 0}, {71300, 13884, 0}, {44181, 42895, 0}, {50763, 50763, 0},
+	{25320, 11396, 0}, { 8300, 12000, 0}, { 2484,  5680, 0}, {71300, 13884, 0}, {48881, 49547, 0}, {50763, 99999, 0}
+};
+
 // Static variables
 
 // Private Function Prototypes
@@ -25,9 +44,9 @@
  * double tau - time constant of optional D filter, can be 0
  */
 void init_pid(pid_t* pid_data, double T, double tau) {
-	pid_data->kp = 0;
-	pid_data->ki = 0;
-	pid_data->kd = 0;
+	pid_data->gain.kp = 0;
+	pid_data->gain.ki = 0;
+	pid_data->gain.kd = 0;
 	pid_data->T = T;
 	pid_data->tau = tau;
 	pid_data->e_1 = 0;
@@ -37,13 +56,22 @@ void init_pid(pid_t* pid_data, double T, double tau) {
 }
 
 /*
- * Updates PID gains
- *
+ * Updates PID gains used by the controller
  */
-void update_gains(pid_t* pid_data, double kp, double ki, double kd) {
-	pid_data->kp = kp;
-	pid_data->ki = ki;
-	pid_data->kd = kd;
+void update_gains(pid_t* pid_data, gain_t new_gain) {
+	pid_data->gain.kp = new_gain.kp;
+	pid_data->gain.ki = new_gain.ki;
+	pid_data->gain.kd = new_gain.kd;
+}
+
+/*
+ * Schedules gains by interpolating the gain lookup table
+ */
+gain_t schedule_gains(float ref_velocity, float sw_angle) {
+	// Interpolate gain LUT at sample points
+	// TODO: replace with tetra functions
+	gain_t new_gains = {1, 1, 0};
+	return new_gains;
 }
 
 /*
@@ -67,9 +95,9 @@ void update_gains(pid_t* pid_data, double kp, double ki, double kd) {
  */
 void update_pid(double e, pid_t* pid_data) {
 	double u = 0;
-	double kp = pid_data->kp;
-	double ki = pid_data->ki;
-	double kd = pid_data->kd;
+	double kp = pid_data->gain.kp;
+	double ki = pid_data->gain.ki;
+	double kd = pid_data->gain.kd;
 	double T = pid_data->T;
 	double tau = pid_data->tau;
 	double e_1 = pid_data->e_1;
