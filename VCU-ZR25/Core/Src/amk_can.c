@@ -8,6 +8,7 @@
  */
 #include "amk_can.h"
 #include "vehicle_data.h"
+#include "fault_mgmt.h"
 #include "cmsis_os.h"
 #include "can_db.h"
 
@@ -93,6 +94,13 @@ void initialize_motor_info(enum MotorId mid) {
 
 void update_motor(enum MotorId mid);
 
+// Records the last tick on which a motor feedback message was received.
+uint32_t lastTickFeedbackReceived[4];
+
+// How long to wait between motor feedback messages before raising a fault.
+uint32_t motorFeedbackTimeoutMilliseconds = 500;
+uint32_t motorFeedbackTimeoutTicks;
+
 void StartAMKTask(void *argument) {
 	// Initialize state machines
 	FORALL_MOTORS(mid)
@@ -101,11 +109,16 @@ void StartAMKTask(void *argument) {
 		initialize_motor_info(mid);
 	state.controller_state = MOTORS_DISABLED;
 	update_vehicle_state(osWaitForever);
+	FORALL_MOTORS(mid)
+		lastTickFeedbackReceived[mid] = -1; // Have not gotten motor feedback yet.
+	// Calculate the motor feedback timeout in OS ticks.
+	motorFeedbackTimeoutTicks = osKernelGetTickFreq() * motorFeedbackTimeoutMilliseconds / 1000;
 
 
 	while (1) {
 		AMKControllerEventFlags_t flags;
 		flags.flagInt = osEventFlagsWait(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits=AMK_FLAGS_ALL}.flagInt, osFlagsWaitAny, osWaitForever);
+		uint32_t currentTick = osKernelGetTickCount();
 
 		if (state.controller_state == MOTORS_DISABLED && flags.flagBits.start_motors) {
 			// Begin startup sequence
@@ -115,16 +128,30 @@ void StartAMKTask(void *argument) {
 		}
 
 		if (flags.flagBits.motor_feedback_fl_received) {
+			lastTickFeedbackReceived[MOTOR_FL] = currentTick;
 			update_motor(MOTOR_FL);
 		}
 		if (flags.flagBits.motor_feedback_fr_received) {
+			lastTickFeedbackReceived[MOTOR_FR] = currentTick;
 			update_motor(MOTOR_FR);
 		}
 		if (flags.flagBits.motor_feedback_rl_received) {
+			lastTickFeedbackReceived[MOTOR_RL] = currentTick;
 			update_motor(MOTOR_RL);
 		}
 		if (flags.flagBits.motor_feedback_rr_received) {
+			lastTickFeedbackReceived[MOTOR_RR] = currentTick;
 			update_motor(MOTOR_RR);
+		}
+
+		FORALL_MOTORS(mid) {
+			uint32_t timeSinceLastTick = currentTick - lastTickFeedbackReceived[mid];
+			if (timeSinceLastTick > motorFeedbackTimeoutTicks) {
+				fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 1);
+			}
+			else{
+				fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 0);
+			}
 		}
 
 		update_vehicle_state(osWaitForever);

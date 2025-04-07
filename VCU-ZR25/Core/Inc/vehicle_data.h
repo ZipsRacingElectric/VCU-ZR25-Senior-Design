@@ -10,6 +10,7 @@
 #ifndef INC_VEHICLE_DATA_H_
 #define INC_VEHICLE_DATA_H_
 
+#include "fault_mgmt.h"
 #include "driver_sensors.h"
 #include "amk_can.h"
 #include "vehicle_fsm.h"
@@ -28,6 +29,7 @@ extern osMutexId_t vdb_powsup_lockHandle;
 extern osMutexId_t vdb_cooling_lockHandle;
 extern osMutexId_t vdb_dashboard_lockHandle;
 extern osMutexId_t vdb_torquectrl_lockHandle;
+extern osMutexId_t vdb_faulttask_lockHandle;
 
 typedef struct {
   APPSSensor_t apps;
@@ -40,12 +42,12 @@ typedef struct {
   CoolingData_t cooling;
   DashboardData_t dashboard;
   TorqueCtrlData_t torquectrl;
+  FaultType_t faultmgmt;
 } VehicleData_t;
 
 extern VehicleData_t VehicleData;
 
 void initVehicleData();
-VehicleData_t get_vehicle_data();
 
 
 #endif /* INC_VEHICLE_DATA_H_ */

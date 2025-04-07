@@ -50,7 +50,8 @@ typedef StaticEventGroup_t osStaticEventGroupDef_t;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+powSupTaskArgs_t powsupArgs;
+DriverSensorTaskArgs_t driversensorArgs;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -62,6 +63,7 @@ CAN_HandleTypeDef hcan2;
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim11;
+
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -288,6 +290,14 @@ const osMutexAttr_t can_db_lock_attributes = {
   .cb_mem = &can_db_lockControlBlock,
   .cb_size = sizeof(can_db_lockControlBlock),
 };
+/* Definitions for vdb_faulttask_lock */
+osMutexId_t vdb_faulttask_lockHandle;
+osStaticMutexDef_t vdb_faulttask_lockControlBlock;
+const osMutexAttr_t vdb_faulttask_lock_attributes = {
+  .name = "vdb_faulttask_lock",
+  .cb_mem = &vdb_faulttask_lockControlBlock,
+  .cb_size = sizeof(vdb_faulttask_lockControlBlock),
+};
 /* Definitions for amkEventFlags */
 osEventFlagsId_t amkEventFlagsHandle;
 osStaticEventGroupDef_t amkEventFlagsControlBlock;
@@ -399,8 +409,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   initVehicleData();
 
-  powSupTaskArgs_t powsupArgs = {.hadc1 = hadc1, .sConfig = {0}};
-  DriverSensorTaskArgs_t driversensorArgs = {.hadc1 = hadc1, .sConfig = {0}};
+  powsupArgs = (powSupTaskArgs_t){.hadc1 = hadc1, .sConfig = {0}};
+  driversensorArgs = (DriverSensorTaskArgs_t){.hadc1 = hadc1, .sConfig = {0}};
 
   /* USER CODE END 2 */
 
@@ -439,6 +449,9 @@ int main(void)
 
   /* creation of can_db_lock */
   can_db_lockHandle = osMutexNew(&can_db_lock_attributes);
+
+  /* creation of vdb_faulttask_lock */
+  vdb_faulttask_lockHandle = osMutexNew(&vdb_faulttask_lock_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -781,11 +794,11 @@ static void MX_GPIO_Init(void)
                           |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin|PUMP_2_CONTROL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|VCU_FAULT_Pin|BRAKE_LIGHT_CONTROL_Pin
                           |BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(DASH_INPUT_1_GPIO_Port, DASH_INPUT_1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : DEBUG_LED_1_Pin DEBUG_LED_2_Pin DEBUG_LED_3_Pin CAN_1_STANDBY_Pin
                            CAN_2_STANDBY_Pin RAIL_POWER_ENABLE_5V_Pin PUMP_1_CONTROL_Pin PUMP_2_CONTROL_Pin */
@@ -796,11 +809,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_IN_Pin VCU_SHUTDOWN_LOOP_RESET_Pin START_BUTTON_Pin */
-  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  /*Configure GPIO pins : VCU_SHUTDOWN_LOOP_IN_Pin VCU_SHUTDOWN_LOOP_RESET_Pin START_BUTTON_Pin DASH_INPUT_2_Pin
+                           DASH_INPUT_3_Pin DASH_INPUT_4_Pin */
+  GPIO_InitStruct.Pin = VCU_SHUTDOWN_LOOP_IN_Pin|VCU_SHUTDOWN_LOOP_RESET_Pin|START_BUTTON_Pin|DASH_INPUT_2_Pin
+                          |DASH_INPUT_3_Pin|DASH_INPUT_4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : FAN_1_CONTROL_Pin FAN_2_CONTROL_Pin VCU_FAULT_Pin BRAKE_LIGHT_CONTROL_Pin
@@ -814,15 +828,23 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : BOOT_1_Pin */
   GPIO_InitStruct.Pin = BOOT_1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BOOT_1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DASH_INPUT_1_Pin DASH_INPUT_2_Pin DASH_INPUT_3_Pin DASH_INPUT_4_Pin */
-  GPIO_InitStruct.Pin = DASH_INPUT_1_Pin|DASH_INPUT_2_Pin|DASH_INPUT_3_Pin|DASH_INPUT_4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pin : DASH_INPUT_1_Pin */
+  GPIO_InitStruct.Pin = DASH_INPUT_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DASH_INPUT_1_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

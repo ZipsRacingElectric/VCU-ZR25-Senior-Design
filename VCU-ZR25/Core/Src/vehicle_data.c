@@ -27,13 +27,10 @@ extern const osMutexAttr_t powSupMutexAttrs;
 extern const osMutexAttr_t coolingMutexAttrs;
 extern const osMutexAttr_t dashboardMutexAttrs;
 extern const osMutexAttr_t torquectrlMutexAttrs;
+extern const osMutexAttr_t faultTaskMutexAttrs;
 
 
 void initVehicleData() {
 	VehicleData = (VehicleData_t){0};
 
-}
-
-VehicleData_t get_vehicle_data(){
-	return VehicleData;
 }
