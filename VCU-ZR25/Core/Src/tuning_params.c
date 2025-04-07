@@ -17,7 +17,7 @@
 // LUT access functions found at bottom of file.
 
 __attribute__((__section__(".rodata"))) // Tells the linker that this should live in read-only flash memory.
-const torqueControlParameters_t params = {
+const torqueControlParameters_t torque_control_params = {
 	.td_params = {
 		.sl_breakpoints = {
 			.min_point = -0.3f,
@@ -3543,28 +3543,28 @@ int get_index(const breakpoints_t *breakpoints, float value, float* interp) {
 }
 
 int sl_index(float sl_value, float* interp) {
-	return get_index(&params.td_params.sl_breakpoints, sl_value, interp);
+	return get_index(&torque_control_params.td_params.sl_breakpoints, sl_value, interp);
 }
 int sa_index(float sa_value_degrees, float* interp) {
-	return get_index(&params.td_params.sa_breakpoints, sa_value_degrees, interp);
+	return get_index(&torque_control_params.td_params.sa_breakpoints, sa_value_degrees, interp);
 }
 int fz_index(float fz_value_newtons, float* interp) {
-	return get_index(&params.td_params.fz_breakpoints, fz_value_newtons, interp);
+	return get_index(&torque_control_params.td_params.fz_breakpoints, fz_value_newtons, interp);
 }
 int motor_speed_index(float speed_value_rpm, float* interp) {
-	return get_index(&params.td_params.motor_speed_breakpoints, speed_value_rpm, interp);
+	return get_index(&torque_control_params.td_params.motor_speed_breakpoints, speed_value_rpm, interp);
 }
 int motor_current_index(float current_value_amps, float* interp) {
-	return get_index(&params.td_params.motor_current_breakpoints, current_value_amps, interp);
+	return get_index(&torque_control_params.td_params.motor_current_breakpoints, current_value_amps, interp);
 }
 int motor_temp_index(float temp_value_celcius, float* interp) {
-	return get_index(&params.td_params.motor_temp_breakpoints, temp_value_celcius, interp);
+	return get_index(&torque_control_params.td_params.motor_temp_breakpoints, temp_value_celcius, interp);
 }
 int vref_index(float vref_value_meters_per_second, float* interp) {
-	return get_index(&params.pid_params.vref_breakpoints, vref_value_meters_per_second, interp);
+	return get_index(&torque_control_params.pid_params.vref_breakpoints, vref_value_meters_per_second, interp);
 }
 int sw_angle_index(float sw_value_degrees, float* interp) {
-	return get_index(&params.pid_params.sw_angle_breakpoints, sw_value_degrees, interp);
+	return get_index(&torque_control_params.pid_params.sw_angle_breakpoints, sw_value_degrees, interp);
 }
 
 // helpers to get all points around a segment/square/cube cell of an LUT
@@ -3709,22 +3709,22 @@ static float lookup_3d(
 
 float lookup_fx_nointerp(float slip_ratio, float slip_angle_degrees, float fz_newtons) {
 	return lookup_3d_nointerp(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fx,
+		torque_control_params.td_params.fx,
 		slip_ratio, slip_angle_degrees, fz_newtons
 	);
 }
 
 float lookup_fx(float slip_ratio, float slip_angle_degrees, float fz_newtons, float* ddsl, float* ddsa, float* ddfz) {
 	return lookup_3d(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fx,
+		torque_control_params.td_params.fx,
 		slip_ratio, slip_angle_degrees, fz_newtons,
 		ddsl, ddsa, ddfz
 	);
@@ -3732,22 +3732,22 @@ float lookup_fx(float slip_ratio, float slip_angle_degrees, float fz_newtons, fl
 
 float lookup_fy_nointerp(float slip_ratio, float slip_angle_degrees, float fz_newtons) {
 	return lookup_3d_nointerp(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fy,
+		torque_control_params.td_params.fy,
 		slip_ratio, slip_angle_degrees, fz_newtons
 	);
 }
 
 float lookup_fy(float slip_ratio, float slip_angle_degrees, float fz_newtons, float* ddsl, float* ddsa, float* ddfz) {
 	return lookup_3d(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fy,
+		torque_control_params.td_params.fy,
 		slip_ratio, slip_angle_degrees, fz_newtons,
 		ddsl, ddsa, ddfz
 	);
@@ -3755,22 +3755,22 @@ float lookup_fy(float slip_ratio, float slip_angle_degrees, float fz_newtons, fl
 
 float lookup_motor_efficiency_nointerp(float motor_speed_rpm, float motor_current_amps, float motor_temp_celcius) {
 	return lookup_3d_nointerp(
-		&params.td_params.motor_speed_breakpoints,
-		&params.td_params.motor_current_breakpoints,
-		&params.td_params.motor_temp_breakpoints,
+		&torque_control_params.td_params.motor_speed_breakpoints,
+		&torque_control_params.td_params.motor_current_breakpoints,
+		&torque_control_params.td_params.motor_temp_breakpoints,
 		MOTOR_SPEED_AXIS_LENGTH, MOTOR_CURRENT_AXIS_LENGTH, MOTOR_TEMP_AXIS_LENGTH,
-		params.td_params.motor_efficiency,
+		torque_control_params.td_params.motor_efficiency,
 		motor_speed_rpm, motor_current_amps, motor_temp_celcius
 	);
 }
 
 float lookup_motor_efficiency(float motor_speed_rpm, float motor_current_amps, float motor_temp_celcius, float* ddms, float* ddmc, float* ddmt) {
 	return lookup_3d(
-		&params.td_params.motor_speed_breakpoints,
-		&params.td_params.motor_current_breakpoints,
-		&params.td_params.motor_temp_breakpoints,
+		&torque_control_params.td_params.motor_speed_breakpoints,
+		&torque_control_params.td_params.motor_current_breakpoints,
+		&torque_control_params.td_params.motor_temp_breakpoints,
 		MOTOR_SPEED_AXIS_LENGTH, MOTOR_CURRENT_AXIS_LENGTH, MOTOR_TEMP_AXIS_LENGTH,
-		params.td_params.motor_efficiency,
+		torque_control_params.td_params.motor_efficiency,
 		motor_speed_rpm, motor_current_amps, motor_temp_celcius,
 		ddms, ddmc, ddmt
 	);
@@ -3784,7 +3784,7 @@ float lookup_p_gain_nointerp(float vref_meters_per_second, float steering_wheel_
 	// error check
 	if (x_idx == -1 || y_idx == -1)
 		{/*TODO: Raise a fault*/}
-	return params.pid_params.p[x_idx][y_idx];
+	return torque_control_params.pid_params.p[x_idx][y_idx];
 }
 
 float lookup_i_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle) {
@@ -3793,7 +3793,7 @@ float lookup_i_gain_nointerp(float vref_meters_per_second, float steering_wheel_
 	// error check
 	if (x_idx == -1 || y_idx == -1)
 		{/*TODO: Raise a fault*/}
-	return params.pid_params.i[x_idx][y_idx];
+	return torque_control_params.pid_params.i[x_idx][y_idx];
 }
 
 float lookup_p_gain(float vref_meters_per_second, float steering_wheel_angle) {
@@ -3805,7 +3805,7 @@ float lookup_p_gain(float vref_meters_per_second, float steering_wheel_angle) {
 		{/*TODO: Raise a fault*/}
 
 	float point_square[2][2];
-	BOUNDS_SQUARE(params.pid_params.p, point_square, x_idx, y_idx);
+	BOUNDS_SQUARE(torque_control_params.pid_params.p, point_square, x_idx, y_idx);
 
 	float r = bilerp(point_square, interp_x, interp_y);
 	return r;
@@ -3820,7 +3820,7 @@ float lookup_i_gain(float vref_meters_per_second, float steering_wheel_angle) {
 		{/*TODO: Raise a fault*/}
 
 	float point_square[2][2];
-	BOUNDS_SQUARE(params.pid_params.i, point_square, x_idx, y_idx);
+	BOUNDS_SQUARE(torque_control_params.pid_params.i, point_square, x_idx, y_idx);
 
 	float r = bilerp(point_square, interp_x, interp_y);
 	return r;
@@ -3829,7 +3829,7 @@ float lookup_i_gain(float vref_meters_per_second, float steering_wheel_angle) {
 void program_pid_params(torqueControlPIDParams_t *new_pid_params) {
 	size_t pid_size = sizeof(torqueControlPIDParams_t);
 	uint8_t * src = (uint8_t*) new_pid_params;
-	uint8_t * dst = (uint8_t*) &params.pid_params;
+	uint8_t * dst = (uint8_t*) &torque_control_params.pid_params;
 	for (int i = 0; i<pid_size; i++) {
 		HAL_FLASH_Unlock();
 		HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, (uint32_t)(src+i), *(dst+i));
