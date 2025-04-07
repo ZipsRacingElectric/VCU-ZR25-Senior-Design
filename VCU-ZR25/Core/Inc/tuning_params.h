@@ -9,6 +9,7 @@
 #define INC_TUNING_PARAMS_H_
 
 #include <stdint.h>
+#include "lut_utils.h"
 
 // LUT Dimensions
 #define SL_AXIS_LENGTH 31
@@ -23,18 +24,6 @@
 // TODO: need vref and steering angle breakpoints if we're doing those
 #define PID_LENGTH_VREF_AXIS 26
 #define PID_LENGTH_SW_ANGLE_AXIS 10
-
-// Used to convert from raw measurements to LUT indexes.
-typedef struct {
-	float min_point; // Value corresponding to lowest index
-	float max_point; // Value corresponding to highest index
-	int num_points; // Length of (axis of) lookup table
-	// Should be equal to (max_point-min_point)/(num_points-1).
-	// i.e. min_point + (num_points-1)*point_spacing == max_point
-	// Pre-computed to save CPU cycles.
-	// Also useful for gradient calculation.
-	float point_spacing;
-} breakpoints_t;
 
 typedef struct {
 	breakpoints_t sl_breakpoints; // Slip angle (degrees)
@@ -76,67 +65,6 @@ int motor_temp_index(float temp_value_celcius, float* interp);
 int vref_index(float vref_value_meters_per_second, float* interp);
 int sw_angle_index(float sw_value_degrees, float* interp);
 
-// Linear interpolation.
-static inline float lerp(float a, float b, float interp) {
-	return a*(1-interp) + b*interp;
-}
-
-// Linear interpolation partial derivative w.r.t. interp.
-static inline float lerp_ddx(float a, float b, float interp) {
-	return b-a;
-}
-
-// Bilinear interpolation.
-// interp_x is the interpolation value along the first axis, interp_y the second axis.
-static inline float bilerp(float points[2][2], float interp_x, float interp_y) {
-	float c0 = lerp(points[0][0], points[0][1], interp_y);
-	float c1 = lerp(points[1][0], points[1][1], interp_y);
-	return lerp(c0, c1, interp_x);
-}
-
-// Bilinear interpolation partial derivative w.r.t. interp_x.
-static inline float bilerp_ddx(float points[2][2], float interp_x, float interp_y) {
-	return lerp(points[1][0],points[1][1], interp_y) - lerp(points[0][0], points[0][1], interp_y);
-}
-// Bilinear interpolation partial derivative w.r.t. interp_y.
-static inline float bilerp_ddy(float points[2][2], float interp_x, float interp_y) {
-	return lerp(points[0][1],points[1][1], interp_x) - lerp(points[0][0], points[1][0], interp_x);
-}
-
-// Trilinear interpolation.
-static inline float trilerp(float points[2][2][2], float interp_x, float interp_y, float interp_z) {
-	return lerp(
-		bilerp(points[0], interp_y, interp_z),
-		bilerp(points[1], interp_y, interp_z),
-		interp_x
-	);
-}
-
-static inline float trilerp_ddx(float points[2][2][2], float interp_x, float interp_y, float interp_z) {
-	return bilerp(points[1],interp_y,interp_z) - bilerp(points[0],interp_y,interp_z);
-}
-static inline float trilerp_ddy(float points[2][2][2], float interp_x, float interp_y, float interp_z) {
-	float c1 = lerp(
-			lerp(points[0][1][0], points[0][1][1], interp_z),
-			lerp(points[1][1][0], points[1][1][1], interp_z),
-			interp_x);
-	float c0 = lerp(
-			lerp(points[0][0][0], points[0][0][1], interp_z),
-			lerp(points[1][0][0], points[1][0][1], interp_z),
-			interp_x);
-	return c1-c0;
-}
-static inline float trilerp_ddz(float points[2][2][2], float interp_x, float interp_y, float interp_z) {
-	float c1 = lerp(
-			lerp(points[0][0][1], points[0][1][1], interp_y),
-			lerp(points[1][0][1], points[1][1][1], interp_y),
-			interp_x);
-	float c0 = lerp(
-			lerp(points[0][0][0], points[0][1][0], interp_y),
-			lerp(points[1][0][0], points[1][1][0], interp_y),
-			interp_x);
-	return c1-c0;
-}
 
 // Non-interpolating lookup functions
 // May have discontinuous jumps between points.

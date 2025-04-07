@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_flash.h"
+#include "lut_utils.h"
 
 // LUT access functions found at bottom of file.
 
@@ -3527,21 +3528,6 @@ const torqueControlParameters_t torque_control_params = {
 	}
 };
 
-// Use a breakpoint array to convert from raw measurement -> LUT index
-// Returns -1 if out of bounds
-// If `interp` is non-NULL, it will be written with an interpolation value between 0-1.
-int get_index(const breakpoints_t *breakpoints, float value, float* interp) {
-	if (value < breakpoints->min_point || value > breakpoints->max_point) {
-		return -1;
-	}
-	float idx_f = floor((value - breakpoints->min_point)/breakpoints->point_spacing);
-	int idx = (int)idx_f;
-	if (interp) {
-		*interp = (value - idx_f*breakpoints->point_spacing)/breakpoints->point_spacing;
-	}
-	return idx;
-}
-
 int sl_index(float sl_value, float* interp) {
 	return get_index(&torque_control_params.td_params.sl_breakpoints, sl_value, interp);
 }
@@ -3565,146 +3551,6 @@ int vref_index(float vref_value_meters_per_second, float* interp) {
 }
 int sw_angle_index(float sw_value_degrees, float* interp) {
 	return get_index(&torque_control_params.pid_params.sw_angle_breakpoints, sw_value_degrees, interp);
-}
-
-// helpers to get all points around a segment/square/cube cell of an LUT
-#define BOUNDS_SEGMENT(lut_1d,segment,x) \
-	(segment)[0] = (lut_1d)[x]; \
-	(segment)[1] = (lut_1d)[x+1]
-#define BOUNDS_SQUARE(lut_2d,square,x,y) \
-	BOUNDS_SEGMENT((lut_2d)[x],square[0],y); \
-	BOUNDS_SEGMENT((lut_2d)[x+1],square[1],y)
-#define BOUNDS_CUBE(lut_3d,cube,x,y,z) \
-	BOUNDS_SQUARE((lut_3d)[x], cube[0], y,z); \
-	BOUNDS_SQUARE((lut_3d)[x+1], cube[1], y,z)
-
-// Derivative calculations:
-// 1. Get derivative w.r.t. interpolation factors from trilerp_ddx and friends.
-// 2. Get derivative of interpolation factors w.r.t. measurements.
-//    Since interpolation factor varies from 0-1 across one cell,
-//    this rate is actually just 1/(distance between breakpoints)!
-// 3. Multiply the above derivatives to get the derivative via chain rule:
-//    d(lut)/dx = d(lut)/d(interp_x) * d(interp_x)/dx
-//              = (bi-)(tri-)lerp_ddx(lut) / point_spacing_x
-
-static float __attribute__((unused)) lookup_1d_nointerp(
-	const breakpoints_t* bp_x,
-	int length_x,
-	const int16_t lut[length_x],
-	float x
-) {
-	int x_idx = get_index(bp_x, x, NULL);
-	// error check
-	if (x_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return lut[x_idx];
-}
-
-// Generalized lookup-and-gradient for 1d LUTs.
-static float __attribute__((unused)) lookup_1d(
-	const breakpoints_t* bp_x,
-	int length_x,
-	const int16_t lut[length_x],
-	float x,
-	float* ddx
-) {
-	float interp_x;
-	int x_idx = get_index(bp_x, x, &interp_x);
-	// error check
-	if (x_idx == -1)
-		{/*TODO: Raise a fault*/}
-
-	float point_segment[2];
-	BOUNDS_SEGMENT(lut, point_segment, x_idx);
-
-	float r = lerp(point_segment[0], point_segment[1], interp_x);
-	if (ddx)
-		*ddx = lerp_ddx(point_segment[0], point_segment[1], interp_x) / bp_x->point_spacing;
-	return r;
-}
-
-static float __attribute__((unused)) lookup_2d_nointerp(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
-	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
-	float x, float y
-) {
-	int x_idx = get_index(bp_x, x, NULL);
-	int y_idx = get_index(bp_y, y, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return lut[x_idx][y_idx];
-}
-
-// Generalized lookup-and-gradient for 2d LUTs.
-static float __attribute__((unused)) lookup_2d(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
-	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
-	float x, float y,
-	float* ddx, float* ddy
-) {
-	float interp_x, interp_y;
-	int x_idx = get_index(bp_x, x, &interp_x);
-	int y_idx = get_index(bp_y, y, &interp_y);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
-
-	float point_square[2][2];
-	BOUNDS_SQUARE(lut, point_square, x_idx, y_idx);
-
-	float r = bilerp(point_square, interp_x, interp_y);
-	if (ddx)
-		*ddx = bilerp_ddx(point_square, interp_x, interp_y) / bp_x->point_spacing;
-	if (ddy)
-		*ddy = bilerp_ddy(point_square, interp_x, interp_y) / bp_y->point_spacing;
-	return r;
-}
-
-static float lookup_3d_nointerp(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
-	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
-	float x, float y, float z
-) {
-	int x_idx = get_index(bp_x, x, NULL);
-	int y_idx = get_index(bp_y, y, NULL);
-	int z_idx = get_index(bp_z, z, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1 || z_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return lut[x_idx][y_idx][z_idx];
-}
-
-// Generalized lookup-and-gradient for 3d LUTs.
-static float lookup_3d(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
-	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
-	float x, float y, float z,
-	float* ddx, float* ddy, float* ddz
-) {
-	float interp_x, interp_y, interp_z;
-	int x_idx = get_index(bp_x, x, &interp_x);
-	int y_idx = get_index(bp_y, y, &interp_y);
-	int z_idx = get_index(bp_z, z, &interp_z);
-	// error check
-	if (x_idx == -1 || y_idx == -1 || z_idx == -1)
-		{/*TODO: Raise a fault*/}
-
-	float point_cube[2][2][2];
-	BOUNDS_CUBE(lut, point_cube, x_idx, y_idx, z_idx);
-
-	float r = trilerp(point_cube, interp_x, interp_y, interp_z);
-	if (ddx)
-		*ddx = trilerp_ddx(point_cube, interp_x, interp_y, interp_z) / bp_x->point_spacing;
-	if (ddy)
-		*ddy = trilerp_ddy(point_cube, interp_x, interp_y, interp_z) / bp_y->point_spacing;
-	if (ddz)
-		*ddz = trilerp_ddz(point_cube, interp_x, interp_y, interp_z) / bp_z->point_spacing;
-	return r;
 }
 
 float lookup_fx_nointerp(float slip_ratio, float slip_angle_degrees, float fz_newtons) {
