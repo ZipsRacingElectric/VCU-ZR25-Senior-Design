@@ -33,7 +33,7 @@ General 1-D lookup table function, no interpolation
 float __attribute__((unused)) lookup_1d_nointerp(
 	const breakpoints_t* bp_x,
 	int length_x,
-	const int16_t lut[length_x],
+	const float lut[length_x],
 	float x
 );
 
@@ -48,7 +48,7 @@ float __attribute__((unused)) lookup_1d_nointerp(
 float __attribute__((unused)) lookup_1d(
 	const breakpoints_t* bp_x,
 	int length_x,
-	const int16_t lut[length_x],
+	const float lut[length_x],
 	float x,
 	float* ddx
 );
@@ -65,7 +65,7 @@ General 2-D lookup table function, no interpolation
 float __attribute__((unused)) lookup_2d_nointerp(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
 	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
+	const float lut[length_x][length_y],
 	float x, float y
 );
 
@@ -84,7 +84,7 @@ float __attribute__((unused)) lookup_2d_nointerp(
 float __attribute__((unused)) lookup_2d(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
 	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
+	const float lut[length_x][length_y],
 	float x, float y,
 	float* ddx, float* ddy
 );
@@ -105,7 +105,7 @@ General 3-D lookup table function, no interpolation
 float lookup_3d_nointerp(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
 	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
+	const float lut[length_x][length_y][length_z],
 	float x, float y, float z
 );
 
@@ -128,23 +128,10 @@ General 3-D lookup table function with interpolation and optional gradient
 float lookup_3d(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
 	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
+	const float lut[length_x][length_y][length_z],
 	float x, float y, float z,
 	float* ddx, float* ddy, float* ddz
 );
-
-// Non-interpolating lookup functions
-// May have discontinuous jumps between points.
-float lookup_fx_nointerp(float slip_ratio, float slip_angle_degrees, float fz_newtons);
-float lookup_fy_nointerp(float slip_ratio, float slip_angle_degrees, float fz_newtons);
-float lookup_motor_efficiency_nointerp(float motor_speed_rpm, float motor_current_amps, float motor_temp_celcius);
-float lookup_p_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle);
-float lookup_i_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle);
-
-// Interpolating lookup functions
-// Performs n-linear interpolation between LUT points.
-// Also returns partial derivatives if passed non-NULL pointer arguments.
-float lookup_fx(float slip_ratio, float slip_angle_degrees, float fz_newtons, float* ddsl, float* ddsa, float* ddfz);
 
 // Inline Functions
 

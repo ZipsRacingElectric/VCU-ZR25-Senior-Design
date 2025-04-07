@@ -12,7 +12,6 @@
 #define INC_REF_GEN_H_
 
 // Includes
-#include "lut.h"
 
 // Constants
 

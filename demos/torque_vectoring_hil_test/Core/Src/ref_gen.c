@@ -52,7 +52,7 @@ static const float steering_rf_table[11] = {
      18.2250f,
 };
 
-static const breakpoints_t steering_breakpoints = {-90, 90, 11, 18};
+static const breakpoints_t steering_breakpoints = {-90.0f, 90.0f, 11, 18.0f};
 static const float g = 9.81f;     // graviationa acceleration, m/s
 
 // Static Variables

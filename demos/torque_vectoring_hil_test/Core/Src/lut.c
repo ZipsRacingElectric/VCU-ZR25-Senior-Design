@@ -49,7 +49,7 @@ General 1-D lookup table function, no interpolation
 float __attribute__((unused)) lookup_1d_nointerp(
 	const breakpoints_t* bp_x,
 	int length_x,
-	const int16_t lut[length_x],
+	const float lut[length_x],
 	float x
 ) {
 	int x_idx = get_index(bp_x, x, NULL);
@@ -70,7 +70,7 @@ float __attribute__((unused)) lookup_1d_nointerp(
 float __attribute__((unused)) lookup_1d(
 	const breakpoints_t* bp_x,
 	int length_x,
-	const int16_t lut[length_x],
+	const float lut[length_x],
 	float x,
 	float* ddx
 ) {
@@ -101,7 +101,7 @@ General 2-D lookup table function, no interpolation
 float __attribute__((unused)) lookup_2d_nointerp(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
 	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
+	const float lut[length_x][length_y],
 	float x, float y
 ) {
 	int x_idx = get_index(bp_x, x, NULL);
@@ -127,7 +127,7 @@ float __attribute__((unused)) lookup_2d_nointerp(
 float __attribute__((unused)) lookup_2d(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
 	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
+	const float lut[length_x][length_y],
 	float x, float y,
 	float* ddx, float* ddy
 ) {
@@ -165,7 +165,7 @@ General 3-D lookup table function, no interpolation
 float lookup_3d_nointerp(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
 	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
+	const float lut[length_x][length_y][length_z],
 	float x, float y, float z
 ) {
 	int x_idx = get_index(bp_x, x, NULL);
@@ -196,7 +196,7 @@ General 3-D lookup table function with interpolation and optional gradient
 float lookup_3d(
 	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
 	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
+	const float lut[length_x][length_y][length_z],
 	float x, float y, float z,
 	float* ddx, float* ddy, float* ddz
 ) {

@@ -14,6 +14,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "pid.h"
 
 /* USER CODE END Includes */
 
@@ -43,6 +44,21 @@ I2C_HandleTypeDef hi2c1;
 TIM_HandleTypeDef htim11;
 
 /* USER CODE BEGIN PV */
+CAN_RxHeaderTypeDef rxHeader;
+uint8_t rxData[8];  // CAN max payload is 8 bytes
+
+int16_t input_data = 0;
+int16_t output_data = 0;
+int16_t time_step = 0;
+
+uint8_t recieved_message = 0;
+
+pid_t pid_data;
+float sampling_period = 0.01f;
+float tau = 1.0f;
+
+// Sample gains for the HIL test model
+gain_t sample_gains = {2.0f, 2.0f, 0.0f};
 
 /* USER CODE END PV */
 
@@ -55,6 +71,9 @@ static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM11_Init(void);
 /* USER CODE BEGIN PFP */
+
+void process_can_message(void);
+void send_can_message(int16_t actuating_signal);
 
 /* USER CODE END PFP */
 
@@ -98,6 +117,11 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
+  HAL_CAN_Start(&hcan1);
+
+  // Initialize PID controller and set gains
+  (void)init_pid(&pid_data, sampling_period, tau);
+  (void)update_gains(&pid_data, sample_gains);
 
   /* USER CODE END 2 */
 
@@ -107,11 +131,21 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-	  // 1. Wait to recieve a CAN message
+	// 1. Wait to recieve a CAN message. This is non-blocking so we only want to compute the PID if we receive a message
+    (void)process_can_message();
 
-	  // 2. Compute the algorithm
+    if(recieved_message) {
+    	// 2. Compute PID controller
+    	// Note: this only works because this is not computed real-time. Simulation data between messages is sent every simulation 0.01s time step, which is what the sample_time is set to.
+    	float error = ((float)input_data / 100) - ((float)output_data / 10); // The simulink model scales the values before sending over CAN
+    	update_pid(&pid_data, error);
 
-	  // 3. Send a CAN message out
+    	// 3. Send a CAN message out
+    	float actuating_signal = pid_data.u;
+    	(void)send_can_message((int16_t)(actuating_signal * 100));
+
+    	recieved_message = 0;
+    }
 
     /* USER CODE BEGIN 3 */
   }
@@ -433,6 +467,46 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void process_can_message() {
+  CAN_RxHeaderTypeDef rxHeader;
+  uint8_t rxData[8];
+
+  if (HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0) {
+      if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rxHeader, rxData) == HAL_OK) {
+          if (rxHeader.StdId == 0x123 && rxHeader.DLC >= 6) {
+              input_data = (int16_t)((rxData[1] << 8) | rxData[0]);
+              output_data = (int16_t)((rxData[3] << 8) | rxData[2]);
+              time_step = (int16_t)((rxData[5] << 8) | rxData[4]);
+
+              recieved_message = 1;
+          }
+      }
+  }
+}
+
+void send_can_message(int16_t actuating_signal) {
+    CAN_TxHeaderTypeDef txHeader;
+    uint8_t txData[2];
+    uint32_t txMailbox;
+
+    // Prepare CAN header
+    txHeader.StdId = 0x124;
+    txHeader.ExtId = 0;
+    txHeader.RTR = CAN_RTR_DATA;
+    txHeader.IDE = CAN_ID_STD;
+    txHeader.DLC = 2;
+    txHeader.TransmitGlobalTime = DISABLE;
+
+    // Pack the 16-bit value into 2 bytes (little-endian)
+    txData[0] = actuating_signal & 0xFF;
+    txData[1] = (actuating_signal >> 8) & 0xFF;
+
+    // Transmit the message
+    if (HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox) != HAL_OK) {
+        // Optionally handle error
+    }
+}
 
 /* USER CODE END 4 */
 
