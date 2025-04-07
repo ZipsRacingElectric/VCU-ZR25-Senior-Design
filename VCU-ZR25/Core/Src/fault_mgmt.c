@@ -20,8 +20,10 @@
 #define IMPLAUSIBILITY_TIMEOUT osKernelGetSysTimerFreq()/10
 
 const uint8_t fault_critical[NUM_FAULTS] = {
-    1, // critical
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical
+	1, 0, 1, // critical
+	0, 0, 0, 0, 0, 0, 0 // non-critical
+    //1, // critical
+    //0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical
 };
 
 static uint32_t apps_bps_implausibility_timer = 0;
@@ -92,7 +94,6 @@ void fault_check(){
 	apps_bps_implausibility_check(&fault);
 	sas_implausibility_check(&fault);
 	gps_check(&fault);
-	gnss_check(&fault);
 	inverter_check(&fault);
 	glv_check(&fault);
 	vcu_check(&fault);
@@ -149,17 +150,6 @@ void gps_check(FaultType_t *fault){
 	}
 	else {
 		faultsToClear.faultInt |= (1 << FAULT_INDEX_GPS_FAILURE);
-	}
-}
-
-void gnss_check(FaultType_t *fault){
-	if (0) { // fault detected
-		ControlMode_t ctrl_mode = 0;
-		fault->faultBits.Fault_gnss = 1;
-		update_control_mode(ctrl_mode);
-	}
-	else {
-		faultsToClear.faultInt |= (1 << FAULT_INDEX_GNSS_FAILURE);
 	}
 }
 

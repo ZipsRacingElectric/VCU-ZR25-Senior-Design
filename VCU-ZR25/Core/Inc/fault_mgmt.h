@@ -11,7 +11,7 @@
 #include "cmsis_os.h"
 #include "gpio.h"
 
-#define NUM_FAULTS 11
+#define NUM_FAULTS 10
 #define FAULT_MGMT_TASK_PERIOD 50
 /* Critical Fault Indexes */
 
@@ -23,11 +23,10 @@
 #define FAULT_INDEX_APPS_BPS_FAILURE 3 // motor commands 0, after 100ms
 #define FAULT_INDEX_SS_FAILURE 4 // limp mode, until manual press
 #define FAULT_INDEX_GPS_FAILURE 5 // limp mode, until manual press
-#define FAULT_INDEX_GNSS_FAILURE 6 // limp mode, until manual press
-#define FAULT_INDEX_BMS_COM_FAILURE 7 // limp mode, until manual press
-#define FAULT_INDEX_GPS_COM_FAILURE 8 // limp mode, until manual press
-#define FAULT_INDEX_VIM_COM_FAILURE 9 // unsure if LED should be on, needs to update vehicle data, torque control determine calculating tire normal loads
-#define FAULT_INDEX_GLV_FAILURE 10
+#define FAULT_INDEX_BMS_COM_FAILURE 6 // limp mode, until manual press
+#define FAULT_INDEX_GPS_COM_FAILURE 7 // limp mode, until manual press
+#define FAULT_INDEX_VIM_COM_FAILURE 8 // unsure if LED should be on, needs to update vehicle data, torque control determine calculating tire normal loads
+#define FAULT_INDEX_GLV_FAILURE 9
 
 typedef union {
 	struct FaultTypeBits{
@@ -37,7 +36,6 @@ typedef union {
 		uint8_t Fault_apps_bps : 1;
 		uint8_t Fault_ss : 1;
 		uint8_t Fault_gps : 1;
-		uint8_t Fault_gnss : 1;
 		uint8_t Fault_bms : 1;
 		uint8_t Fault_gps_com : 1;
 		uint8_t Fault_vim_com : 1;
@@ -55,7 +53,6 @@ void fault_check();
 void apps_bps_implausibility_check(FaultType_t *fault);
 void sas_implausibility_check(FaultType_t *fault);
 void gps_check(FaultType_t *fault);
-void gnss_check(FaultType_t *fault);
 void inverter_check(FaultType_t *fault);
 void glv_check(FaultType_t *fault);
 void vcu_check(FaultType_t *fault);

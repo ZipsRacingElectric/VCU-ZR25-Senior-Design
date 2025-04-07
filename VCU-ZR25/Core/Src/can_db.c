@@ -265,8 +265,7 @@ void StartCanDbTask(void* _argument) {
 				osMutexRelease(can_db_lockHandle);
 			}
 		}
-
-		osThreadFlagsWait(CAN_DB_FLAGS_ALL.flagInt, osFlagsWaitAny, 10);
+		osThreadFlagsWait(CAN_DB_FLAGS_ALL.flagInt, osFlagsNoClear | osFlagsWaitAny, 10);
 	}
 }
 
