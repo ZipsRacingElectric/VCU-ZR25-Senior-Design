@@ -11,7 +11,7 @@
 // Includes
 #include <ref_gen.h>
 #include <stdlib.h>
-#include "lut.h"
+#include "lut_utils.h"
 
 // Defines
 #ifndef PI

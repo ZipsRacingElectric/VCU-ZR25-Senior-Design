@@ -2,7 +2,7 @@
  * lut_utils.h
  *
  *  Created on: Apr 7, 2025
- *      Author: tetra
+ *      Author: tetra, bglen
  */
 
 #ifndef INC_LUT_UTILS_H_
