@@ -10,7 +10,7 @@
 // Includes
 #include <stdlib.h>
 #include "pid.h"
-#include "lut.h"
+#include "lut_utils.h"
 
 // Defines
 
@@ -18,7 +18,6 @@
 
 // PI gain tables has breakpoints for steering angle and velocity
 // TODO: We need to fix these, they got messed up when they got extrapolated
-// TODO: Need to switch dimensions so it is kp_gains[ref_velocity][sw_angle]
 static const float kp_gains[26][10] = {
 	{25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f},
 	{25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f, 25320.0f},

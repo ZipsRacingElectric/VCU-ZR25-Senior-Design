@@ -59,6 +59,10 @@ typedef union {
 		uint8_t motor_feedback_fr_received : 1;
 		uint8_t motor_feedback_rl_received : 1;
 		uint8_t motor_feedback_rr_received : 1;
+		uint8_t motor_statistics_fl_update : 1;
+		uint8_t motor_statistics_fr_update : 1;
+		uint8_t motor_statistics_rl_update : 1;
+		uint8_t motor_statistics_rr_update : 1;
 	} flagBits;
 	uint32_t flagInt;
 } AMKControllerEventFlags_t;
@@ -84,6 +88,17 @@ typedef enum {
 	READY_TO_SET_DC_OFF,
 	WAITING_FOR_QUIT_DC_OFF,
 } AMKMotorState_t;
+
+typedef struct {
+	int16_t temp_internal;
+	int16_t temp_external;
+	uint16_t temp_sensor;
+	int16_t temp_igbt;
+
+	uint16_t bus_voltage;
+	int16_t torque_current;
+	uint16_t actual_power;
+} AMKMotorStatistics_t;
 
 // This should be identical to the CANMessage_AMK_**_MOTOR_REQUEST structs
 typedef union {
@@ -123,10 +138,19 @@ typedef struct {
 	bool isConfigured;
 	CANDatabaseEntryId motorRequestMessageEntry;
 	CANDatabaseEntryId motorFeedbackMessageEntry;
+	CANDatabaseEntryId motorTemperaturesMessageEntry;
+	CANDatabaseEntryId motorPowerConsumptionMessageEntry;
 	AMKMotorRequestMessage_t motorRequestMessage;
 	AMKMotorFeedbackMessage_t motorFeedbackMessage;
 	CAN_HandleTypeDef* canInterface;
 } AMKMotorInfo_t;
+
+enum MotorId {
+	MOTOR_FL = 0,
+	MOTOR_FR = 1,
+	MOTOR_RL = 2,
+	MOTOR_RR = 3
+};
 
 typedef enum {
 	MOTORS_DISABLED,
@@ -146,6 +170,11 @@ typedef struct {
 	AMKMotorInfo_t motor_info_rl;
 	AMKMotorInfo_t motor_info_rr;
 
+	AMKMotorStatistics_t motor_statistics_fl;
+	AMKMotorStatistics_t motor_statistics_fr;
+	AMKMotorStatistics_t motor_statistics_rl;
+	AMKMotorStatistics_t motor_statistics_rr;
+
 	AMKMotorState_t motor_state_fl;
 	AMKMotorState_t motor_state_fr;
 	AMKMotorState_t motor_state_rl;
@@ -155,7 +184,14 @@ typedef struct {
 
 void StartAMKTask(void *argument);
 
+int16_t convert_torque(float torque_newtonmeters);
 void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints);
-void AMKCANInterruptCallback();
+AMKMotorState_t * MotorState(enum MotorId mid);
+
+#define MOTOR_POS_TORQUE_LIMIT 50
+#define MOTOR_NEG_TORQUE_LIMIT -50
+#define MOTOR_MN_NEWTONMETERS 9.8
+#define MOTOR_TORQUE_UNITS_PER_NEWTONMETER (1000.0/MOTOR_MN_NEWTONMETERS)
+#define MOTOR_NEWTONMETERS_PER_TORQUE_UNIT (MOTOR_MN_NEWTONMETERS/1000.0)
 
 #endif /* INC_AMK_CAN_H_ */

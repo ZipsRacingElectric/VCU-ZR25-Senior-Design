@@ -13,11 +13,12 @@
 #include <stdlib.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_flash.h"
+#include "lut_utils.h"
 
 // LUT access functions found at bottom of file.
 
 __attribute__((__section__(".rodata"))) // Tells the linker that this should live in read-only flash memory.
-const torqueControlParameters_t params = {
+const torqueControlParameters_t torque_control_params = {
 	.td_params = {
 		.sl_breakpoints = {
 			.min_point = -0.3f,
@@ -3527,204 +3528,49 @@ const torqueControlParameters_t params = {
 	}
 };
 
-// Use a breakpoint array to convert from raw measurement -> LUT index
-// Returns -1 if out of bounds
-// If `interp` is non-NULL, it will be written with an interpolation value between 0-1.
-int get_index(const breakpoints_t *breakpoints, float value, float* interp) {
-	if (value < breakpoints->min_point || value > breakpoints->max_point) {
-		return -1;
-	}
-	float idx_f = floor((value - breakpoints->min_point)/breakpoints->point_spacing);
-	int idx = (int)idx_f;
-	if (interp) {
-		*interp = (value - idx_f*breakpoints->point_spacing)/breakpoints->point_spacing;
-	}
-	return idx;
-}
-
 int sl_index(float sl_value, float* interp) {
-	return get_index(&params.td_params.sl_breakpoints, sl_value, interp);
+	return get_index(&torque_control_params.td_params.sl_breakpoints, sl_value, interp);
 }
 int sa_index(float sa_value_degrees, float* interp) {
-	return get_index(&params.td_params.sa_breakpoints, sa_value_degrees, interp);
+	return get_index(&torque_control_params.td_params.sa_breakpoints, sa_value_degrees, interp);
 }
 int fz_index(float fz_value_newtons, float* interp) {
-	return get_index(&params.td_params.fz_breakpoints, fz_value_newtons, interp);
+	return get_index(&torque_control_params.td_params.fz_breakpoints, fz_value_newtons, interp);
 }
 int motor_speed_index(float speed_value_rpm, float* interp) {
-	return get_index(&params.td_params.motor_speed_breakpoints, speed_value_rpm, interp);
+	return get_index(&torque_control_params.td_params.motor_speed_breakpoints, speed_value_rpm, interp);
 }
 int motor_current_index(float current_value_amps, float* interp) {
-	return get_index(&params.td_params.motor_current_breakpoints, current_value_amps, interp);
+	return get_index(&torque_control_params.td_params.motor_current_breakpoints, current_value_amps, interp);
 }
 int motor_temp_index(float temp_value_celcius, float* interp) {
-	return get_index(&params.td_params.motor_temp_breakpoints, temp_value_celcius, interp);
+	return get_index(&torque_control_params.td_params.motor_temp_breakpoints, temp_value_celcius, interp);
 }
 int vref_index(float vref_value_meters_per_second, float* interp) {
-	return get_index(&params.pid_params.vref_breakpoints, vref_value_meters_per_second, interp);
+	return get_index(&torque_control_params.pid_params.vref_breakpoints, vref_value_meters_per_second, interp);
 }
 int sw_angle_index(float sw_value_degrees, float* interp) {
-	return get_index(&params.pid_params.sw_angle_breakpoints, sw_value_degrees, interp);
-}
-
-// helpers to get all points around a segment/square/cube cell of an LUT
-#define BOUNDS_SEGMENT(lut_1d,segment,x) \
-	(segment)[0] = (lut_1d)[x]; \
-	(segment)[1] = (lut_1d)[x+1]
-#define BOUNDS_SQUARE(lut_2d,square,x,y) \
-	BOUNDS_SEGMENT((lut_2d)[x],square[0],y); \
-	BOUNDS_SEGMENT((lut_2d)[x+1],square[1],y)
-#define BOUNDS_CUBE(lut_3d,cube,x,y,z) \
-	BOUNDS_SQUARE((lut_3d)[x], cube[0], y,z); \
-	BOUNDS_SQUARE((lut_3d)[x+1], cube[1], y,z)
-
-// Derivative calculations:
-// 1. Get derivative w.r.t. interpolation factors from trilerp_ddx and friends.
-// 2. Get derivative of interpolation factors w.r.t. measurements.
-//    Since interpolation factor varies from 0-1 across one cell,
-//    this rate is actually just 1/(distance between breakpoints)!
-// 3. Multiply the above derivatives to get the derivative via chain rule:
-//    d(lut)/dx = d(lut)/d(interp_x) * d(interp_x)/dx
-//              = (bi-)(tri-)lerp_ddx(lut) / point_spacing_x
-
-static float __attribute__((unused)) lookup_1d_nointerp(
-	const breakpoints_t* bp_x,
-	int length_x,
-	const int16_t lut[length_x],
-	float x
-) {
-	int x_idx = get_index(bp_x, x, NULL);
-	// error check
-	if (x_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return lut[x_idx];
-}
-
-// Generalized lookup-and-gradient for 1d LUTs.
-static float __attribute__((unused)) lookup_1d(
-	const breakpoints_t* bp_x,
-	int length_x,
-	const int16_t lut[length_x],
-	float x,
-	float* ddx
-) {
-	float interp_x;
-	int x_idx = get_index(bp_x, x, &interp_x);
-	// error check
-	if (x_idx == -1)
-		{/*TODO: Raise a fault*/}
-
-	float point_segment[2];
-	BOUNDS_SEGMENT(lut, point_segment, x_idx);
-
-	float r = lerp(point_segment[0], point_segment[1], interp_x);
-	if (ddx)
-		*ddx = lerp_ddx(point_segment[0], point_segment[1], interp_x) / bp_x->point_spacing;
-	return r;
-}
-
-static float __attribute__((unused)) lookup_2d_nointerp(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
-	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
-	float x, float y
-) {
-	int x_idx = get_index(bp_x, x, NULL);
-	int y_idx = get_index(bp_y, y, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return lut[x_idx][y_idx];
-}
-
-// Generalized lookup-and-gradient for 2d LUTs.
-static float __attribute__((unused)) lookup_2d(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y,
-	int length_x, int length_y,
-	const int16_t lut[length_x][length_y],
-	float x, float y,
-	float* ddx, float* ddy
-) {
-	float interp_x, interp_y;
-	int x_idx = get_index(bp_x, x, &interp_x);
-	int y_idx = get_index(bp_y, y, &interp_y);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
-
-	float point_square[2][2];
-	BOUNDS_SQUARE(lut, point_square, x_idx, y_idx);
-
-	float r = bilerp(point_square, interp_x, interp_y);
-	if (ddx)
-		*ddx = bilerp_ddx(point_square, interp_x, interp_y) / bp_x->point_spacing;
-	if (ddy)
-		*ddy = bilerp_ddy(point_square, interp_x, interp_y) / bp_y->point_spacing;
-	return r;
-}
-
-static float lookup_3d_nointerp(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
-	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
-	float x, float y, float z
-) {
-	int x_idx = get_index(bp_x, x, NULL);
-	int y_idx = get_index(bp_y, y, NULL);
-	int z_idx = get_index(bp_z, z, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1 || z_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return lut[x_idx][y_idx][z_idx];
-}
-
-// Generalized lookup-and-gradient for 3d LUTs.
-static float lookup_3d(
-	const breakpoints_t* bp_x, const breakpoints_t* bp_y, const breakpoints_t* bp_z,
-	int length_x, int length_y, int length_z,
-	const int16_t lut[length_x][length_y][length_z],
-	float x, float y, float z,
-	float* ddx, float* ddy, float* ddz
-) {
-	float interp_x, interp_y, interp_z;
-	int x_idx = get_index(bp_x, x, &interp_x);
-	int y_idx = get_index(bp_y, y, &interp_y);
-	int z_idx = get_index(bp_z, z, &interp_z);
-	// error check
-	if (x_idx == -1 || y_idx == -1 || z_idx == -1)
-		{/*TODO: Raise a fault*/}
-
-	float point_cube[2][2][2];
-	BOUNDS_CUBE(lut, point_cube, x_idx, y_idx, z_idx);
-
-	float r = trilerp(point_cube, interp_x, interp_y, interp_z);
-	if (ddx)
-		*ddx = trilerp_ddx(point_cube, interp_x, interp_y, interp_z) / bp_x->point_spacing;
-	if (ddy)
-		*ddy = trilerp_ddy(point_cube, interp_x, interp_y, interp_z) / bp_y->point_spacing;
-	if (ddz)
-		*ddz = trilerp_ddz(point_cube, interp_x, interp_y, interp_z) / bp_z->point_spacing;
-	return r;
+	return get_index(&torque_control_params.pid_params.sw_angle_breakpoints, sw_value_degrees, interp);
 }
 
 float lookup_fx_nointerp(float slip_ratio, float slip_angle_degrees, float fz_newtons) {
 	return lookup_3d_nointerp(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fx,
+		torque_control_params.td_params.fx,
 		slip_ratio, slip_angle_degrees, fz_newtons
 	);
 }
 
 float lookup_fx(float slip_ratio, float slip_angle_degrees, float fz_newtons, float* ddsl, float* ddsa, float* ddfz) {
 	return lookup_3d(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fx,
+		torque_control_params.td_params.fx,
 		slip_ratio, slip_angle_degrees, fz_newtons,
 		ddsl, ddsa, ddfz
 	);
@@ -3732,22 +3578,22 @@ float lookup_fx(float slip_ratio, float slip_angle_degrees, float fz_newtons, fl
 
 float lookup_fy_nointerp(float slip_ratio, float slip_angle_degrees, float fz_newtons) {
 	return lookup_3d_nointerp(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fy,
+		torque_control_params.td_params.fy,
 		slip_ratio, slip_angle_degrees, fz_newtons
 	);
 }
 
 float lookup_fy(float slip_ratio, float slip_angle_degrees, float fz_newtons, float* ddsl, float* ddsa, float* ddfz) {
 	return lookup_3d(
-		&params.td_params.sl_breakpoints,
-		&params.td_params.sa_breakpoints,
-		&params.td_params.fz_breakpoints,
+		&torque_control_params.td_params.sl_breakpoints,
+		&torque_control_params.td_params.sa_breakpoints,
+		&torque_control_params.td_params.fz_breakpoints,
 		SL_AXIS_LENGTH, SA_AXIS_LENGTH, FZ_AXIS_LENGTH,
-		params.td_params.fy,
+		torque_control_params.td_params.fy,
 		slip_ratio, slip_angle_degrees, fz_newtons,
 		ddsl, ddsa, ddfz
 	);
@@ -3755,22 +3601,22 @@ float lookup_fy(float slip_ratio, float slip_angle_degrees, float fz_newtons, fl
 
 float lookup_motor_efficiency_nointerp(float motor_speed_rpm, float motor_current_amps, float motor_temp_celcius) {
 	return lookup_3d_nointerp(
-		&params.td_params.motor_speed_breakpoints,
-		&params.td_params.motor_current_breakpoints,
-		&params.td_params.motor_temp_breakpoints,
+		&torque_control_params.td_params.motor_speed_breakpoints,
+		&torque_control_params.td_params.motor_current_breakpoints,
+		&torque_control_params.td_params.motor_temp_breakpoints,
 		MOTOR_SPEED_AXIS_LENGTH, MOTOR_CURRENT_AXIS_LENGTH, MOTOR_TEMP_AXIS_LENGTH,
-		params.td_params.motor_efficiency,
+		torque_control_params.td_params.motor_efficiency,
 		motor_speed_rpm, motor_current_amps, motor_temp_celcius
 	);
 }
 
 float lookup_motor_efficiency(float motor_speed_rpm, float motor_current_amps, float motor_temp_celcius, float* ddms, float* ddmc, float* ddmt) {
 	return lookup_3d(
-		&params.td_params.motor_speed_breakpoints,
-		&params.td_params.motor_current_breakpoints,
-		&params.td_params.motor_temp_breakpoints,
+		&torque_control_params.td_params.motor_speed_breakpoints,
+		&torque_control_params.td_params.motor_current_breakpoints,
+		&torque_control_params.td_params.motor_temp_breakpoints,
 		MOTOR_SPEED_AXIS_LENGTH, MOTOR_CURRENT_AXIS_LENGTH, MOTOR_TEMP_AXIS_LENGTH,
-		params.td_params.motor_efficiency,
+		torque_control_params.td_params.motor_efficiency,
 		motor_speed_rpm, motor_current_amps, motor_temp_celcius,
 		ddms, ddmc, ddmt
 	);
@@ -3781,31 +3627,22 @@ float lookup_motor_efficiency(float motor_speed_rpm, float motor_current_amps, f
 float lookup_p_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle) {
 	int x_idx = vref_index(vref_meters_per_second, NULL);
 	int y_idx = sw_angle_index(steering_wheel_angle, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return params.pid_params.p[x_idx][y_idx];
+	return torque_control_params.pid_params.p[x_idx][y_idx];
 }
 
 float lookup_i_gain_nointerp(float vref_meters_per_second, float steering_wheel_angle) {
 	int x_idx = vref_index(vref_meters_per_second, NULL);
 	int y_idx = sw_angle_index(steering_wheel_angle, NULL);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
-	return params.pid_params.i[x_idx][y_idx];
+	return torque_control_params.pid_params.i[x_idx][y_idx];
 }
 
 float lookup_p_gain(float vref_meters_per_second, float steering_wheel_angle) {
 	float interp_x, interp_y;
 	int x_idx = vref_index(vref_meters_per_second, &interp_x);
 	int y_idx = sw_angle_index(steering_wheel_angle, &interp_y);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 
 	float point_square[2][2];
-	BOUNDS_SQUARE(params.pid_params.p, point_square, x_idx, y_idx);
+	BOUNDS_SQUARE(torque_control_params.pid_params.p, point_square, x_idx, y_idx);
 
 	float r = bilerp(point_square, interp_x, interp_y);
 	return r;
@@ -3815,12 +3652,9 @@ float lookup_i_gain(float vref_meters_per_second, float steering_wheel_angle) {
 	float interp_x, interp_y;
 	int x_idx = vref_index(vref_meters_per_second, &interp_x);
 	int y_idx = sw_angle_index(steering_wheel_angle, &interp_y);
-	// error check
-	if (x_idx == -1 || y_idx == -1)
-		{/*TODO: Raise a fault*/}
 
 	float point_square[2][2];
-	BOUNDS_SQUARE(params.pid_params.i, point_square, x_idx, y_idx);
+	BOUNDS_SQUARE(torque_control_params.pid_params.i, point_square, x_idx, y_idx);
 
 	float r = bilerp(point_square, interp_x, interp_y);
 	return r;
@@ -3829,7 +3663,7 @@ float lookup_i_gain(float vref_meters_per_second, float steering_wheel_angle) {
 void program_pid_params(torqueControlPIDParams_t *new_pid_params) {
 	size_t pid_size = sizeof(torqueControlPIDParams_t);
 	uint8_t * src = (uint8_t*) new_pid_params;
-	uint8_t * dst = (uint8_t*) &params.pid_params;
+	uint8_t * dst = (uint8_t*) &torque_control_params.pid_params;
 	for (int i = 0; i<pid_size; i++) {
 		HAL_FLASH_Unlock();
 		HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, (uint32_t)(src+i), *(dst+i));

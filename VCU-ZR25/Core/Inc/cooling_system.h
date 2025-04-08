@@ -14,17 +14,6 @@
 #define MAX_TEMP_THRESHOLD 45 // Max and Min based off requirement 1.1.12
 #define MIN_TEMP_THRESHOLD 30
 
-typedef struct {
-  uint32_t fl_inverter_temp;
-  uint32_t fr_inverter_temp;
-  uint32_t rl_inverter_temp;
-  uint32_t rr_inverter_temp;
-  uint32_t fl_motor_temp;
-  uint32_t fr_motor_temp;
-  uint32_t rl_motor_temp;
-  uint32_t rr_motor_temp;
-} CoolingData_t;
-
 void StartCoolingTask(void *argument);
 void CoolingSystemTurnOnLeft();
 void CoolingSystemTurnOnRight();

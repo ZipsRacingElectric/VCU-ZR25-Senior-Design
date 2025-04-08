@@ -15,13 +15,6 @@
 static AMKState_t state;
 extern osEventFlagsId_t amkEventFlagsHandle;
 
-enum MotorId {
-	MOTOR_FL = 0,
-	MOTOR_FR = 1,
-	MOTOR_RL = 2,
-	MOTOR_RR = 3
-};
-
 #define FORALL_MOTORS(mid) for (enum MotorId mid = 0; mid < 4; mid++)
 
 AMKMotorState_t * MotorState(enum MotorId mid) {
@@ -54,6 +47,16 @@ AMKMotorInfo_t * MotorInfo(enum MotorId mid) {
 	}
 }
 
+AMKMotorStatistics_t * MotorStatistics(enum MotorId mid) {
+	switch (mid) {
+	case MOTOR_FL: return &state.motor_statistics_fl;
+	case MOTOR_FR: return &state.motor_statistics_fr;
+	case MOTOR_RL: return &state.motor_statistics_rl;
+	case MOTOR_RR: return &state.motor_statistics_rr;
+	default: return NULL;
+	}
+}
+
 void update_vehicle_state(uint32_t timeout) {
 	osMutexAcquire(vdb_inverter_lockHandle, timeout);
 	VehicleData.inverter = state;
@@ -76,27 +79,95 @@ void motor_feedback_callback(uint32_t can_id, uint64_t message_int, void* void_m
 	osEventFlagsSet(amkEventFlagsHandle, flags.flagInt);
 }
 
+void motor_temperatures_callback(uint32_t can_id, uint64_t message_int, void* void_motor_id) {
+	enum MotorId mid = (enum MotorId) void_motor_id;
+	AMKMotorStatistics_t * stats = MotorStatistics(mid);
+	CANMessage_AMK_RL_TEMPERATURES msg;
+	msg.as_u64 = message_int;
+
+	stats->temp_internal = msg.fields.RL_TEMPERATURE_INTERNAL;
+	stats->temp_external = msg.fields.RL_TEMPERATURE_EXTERNAL;
+	stats->temp_sensor = msg.fields.RL_TEMPERATURE_SENSOR_MOTOR;
+	stats->temp_igbt = msg.fields.RL_IGBT_TEMPERATURE;
+
+	AMKControllerEventFlags_t flags = {0};
+	switch (mid) {
+	case MOTOR_FL: flags.flagBits.motor_statistics_fl_update = 1; break;
+	case MOTOR_FR: flags.flagBits.motor_statistics_fr_update = 1; break;
+	case MOTOR_RL: flags.flagBits.motor_statistics_rl_update = 1; break;
+	case MOTOR_RR: flags.flagBits.motor_statistics_rr_update = 1; break;
+	default: break;
+	}
+	osEventFlagsSet(amkEventFlagsHandle, flags.flagInt);
+}
+
+void motor_power_consumption_callback(uint32_t can_id, uint64_t message_int, void* void_motor_id) {
+	enum MotorId mid = (enum MotorId) void_motor_id;
+	AMKMotorStatistics_t * stats = MotorStatistics(mid);
+	CANMessage_AMK_RL_POWER_CONSUMPTION msg;
+	msg.as_u64 = message_int;
+
+	stats->actual_power = msg.fields.RL_ACTUAL_POWER_VALUE;
+	stats->bus_voltage = msg.fields.RL_DC_BUS_VOLTAGE;
+	stats->torque_current = msg.fields.RL_TORQUE_CURRENT_FEEDBACK;
+
+	AMKControllerEventFlags_t flags = {0};
+	switch (mid) {
+	case MOTOR_FL: flags.flagBits.motor_statistics_fl_update = 1; break;
+	case MOTOR_FR: flags.flagBits.motor_statistics_fr_update = 1; break;
+	case MOTOR_RL: flags.flagBits.motor_statistics_rl_update = 1; break;
+	case MOTOR_RR: flags.flagBits.motor_statistics_rr_update = 1; break;
+	default: break;
+	}
+	osEventFlagsSet(amkEventFlagsHandle, flags.flagInt);
+}
+
 void initialize_motor_info(enum MotorId mid) {
 	AMKMotorInfo_t * motor_info = MotorInfo(mid);
-	uint32_t request_can_id, feedback_can_id;
+	uint32_t request_can_id, feedback_can_id, temperature_can_id, power_consumption_can_id;
 	CAN_HandleTypeDef* canInterface;
+
+	// Motor CAN IDs are all identically shifted by an offset
+	uint32_t motor_can_offset;
 	switch (mid) {
 	case MOTOR_RL:
-		request_can_id = CAN_DB_AMK_RL_MOTOR_REQUEST_ID;
-		feedback_can_id = CAN_DB_AMK_RL_MOTOR_FEEDBACK_ID;
-		canInterface = &hcan2;
+		motor_can_offset = 0;
+		motor_info->isConfigured = true;
+		break;
+	case MOTOR_RR:
+		motor_can_offset = 1;
+		motor_info->isConfigured = false;
+		break;
+	case MOTOR_FL:
+		motor_can_offset = 2;
+		motor_info->isConfigured = false;
+		break;
+	case MOTOR_FR:
+		motor_can_offset = 3;
+		motor_info->isConfigured = false;
 		break;
 	default:
 		motor_info->isConfigured = false;
 		return;
 	}
+
+	request_can_id = CAN_DB_AMK_RL_MOTOR_REQUEST_ID + motor_can_offset;
+	feedback_can_id = CAN_DB_AMK_RL_MOTOR_FEEDBACK_ID + motor_can_offset;
+	temperature_can_id = CAN_DB_AMK_RL_TEMPERATURES_ID + motor_can_offset;
+	power_consumption_can_id = CAN_DB_AMK_RL_POWER_CONSUMPTION_ID + motor_can_offset;
+	canInterface = &hcan2;
+
 	motor_info->isConfigured = true;
 	motor_info->motorRequestMessageEntry = CANGetDbEntry(request_can_id);
 	motor_info->motorFeedbackMessageEntry = CANGetDbEntry(feedback_can_id);
+	motor_info->motorTemperaturesMessageEntry = CANGetDbEntry(temperature_can_id);
+	motor_info->motorPowerConsumptionMessageEntry = CANGetDbEntry(power_consumption_can_id);
 	motor_info->motorRequestMessage = (AMKMotorRequestMessage_t){0};
 	motor_info->canInterface = canInterface;
 
 	CANRegisterCallback(motor_info->motorFeedbackMessageEntry, motor_feedback_callback, (void*) mid);
+	CANRegisterCallback(motor_info->motorTemperaturesMessageEntry, motor_temperatures_callback, (void*) mid);
+	CANRegisterCallback(motor_info->motorPowerConsumptionMessageEntry, motor_power_consumption_callback, (void*) mid);
 }
 
 void update_motor(enum MotorId mid);
@@ -124,7 +195,7 @@ void StartAMKTask(void *argument) {
 
 	while (1) {
 		AMKControllerEventFlags_t flags;
-		flags.flagInt = osEventFlagsWait(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits=AMK_FLAGS_ALL}.flagInt, osFlagsWaitAny, osWaitForever);
+		flags.flagInt = osEventFlagsWait(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits=AMK_FLAGS_ALL}.flagInt, osFlagsWaitAny, 10);
 		uint32_t currentTick = osKernelGetTickCount();
 
 		if (state.controller_state == MOTORS_DISABLED && flags.flagBits.start_motors) {
@@ -165,6 +236,15 @@ void StartAMKTask(void *argument) {
 	}
 }
 
+int16_t convert_torque(float torque_newtonmeters) {
+	return (int16_t)(MOTOR_TORQUE_UNITS_PER_NEWTONMETER * torque_newtonmeters);
+}
+
+void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints) {
+	state.torqueSetpoints = setpoints;
+	update_vehicle_state(0);
+}
+
 void update_motor(enum MotorId mid) {
 	AMKMotorState_t * motor_state = MotorState(mid);
 	AMKMotorInfo_t * motor_info = MotorInfo(mid);
@@ -202,6 +282,8 @@ void update_motor(enum MotorId mid) {
 
 	case MOTOR_READY:
 		motor_info->motorRequestMessage.fields.TORQUE_SETPOINT = torque_setpoint;
+		motor_info->motorRequestMessage.fields.POSITIVE_TORQUE_LIMIT = MOTOR_POS_TORQUE_LIMIT;
+		motor_info->motorRequestMessage.fields.NEGATIVE_TORQUE_LIMIT = MOTOR_NEG_TORQUE_LIMIT;
 		break;
 
 	case READY_TO_DISABLE:
