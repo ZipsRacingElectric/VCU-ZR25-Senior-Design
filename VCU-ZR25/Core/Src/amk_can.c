@@ -47,7 +47,7 @@ AMKMotorInfo_t * MotorInfo(enum MotorId mid) {
 	}
 }
 
-AMKMotorInfo_t * MotorStatistics(enum MotorId mid) {
+AMKMotorStatistics_t * MotorStatistics(enum MotorId mid) {
 	switch (mid) {
 	case MOTOR_FL: return &state.motor_statistics_fl;
 	case MOTOR_FR: return &state.motor_statistics_fr;
@@ -126,18 +126,37 @@ void initialize_motor_info(enum MotorId mid) {
 	AMKMotorInfo_t * motor_info = MotorInfo(mid);
 	uint32_t request_can_id, feedback_can_id, temperature_can_id, power_consumption_can_id;
 	CAN_HandleTypeDef* canInterface;
+
+	// Motor CAN IDs are all identically shifted by an offset
+	uint32_t motor_can_offset;
 	switch (mid) {
 	case MOTOR_RL:
-		request_can_id = CAN_DB_AMK_RL_MOTOR_REQUEST_ID;
-		feedback_can_id = CAN_DB_AMK_RL_MOTOR_FEEDBACK_ID;
-		temperature_can_id = CAN_DB_AMK_RL_TEMPERATURES_ID;
-		power_consumption_can_id = CAN_DB_AMK_RL_POWER_CONSUMPTION_ID;
-		canInterface = &hcan2;
+		motor_can_offset = 0;
+		motor_info->isConfigured = true;
+		break;
+	case MOTOR_RR:
+		motor_can_offset = 1;
+		motor_info->isConfigured = false;
+		break;
+	case MOTOR_FL:
+		motor_can_offset = 2;
+		motor_info->isConfigured = false;
+		break;
+	case MOTOR_FR:
+		motor_can_offset = 3;
+		motor_info->isConfigured = false;
 		break;
 	default:
 		motor_info->isConfigured = false;
 		return;
 	}
+
+	request_can_id = CAN_DB_AMK_RL_MOTOR_REQUEST_ID + motor_can_offset;
+	feedback_can_id = CAN_DB_AMK_RL_MOTOR_FEEDBACK_ID + motor_can_offset;
+	temperature_can_id = CAN_DB_AMK_RL_TEMPERATURES_ID + motor_can_offset;
+	power_consumption_can_id = CAN_DB_AMK_RL_POWER_CONSUMPTION_ID + motor_can_offset;
+	canInterface = &hcan2;
+
 	motor_info->isConfigured = true;
 	motor_info->motorRequestMessageEntry = CANGetDbEntry(request_can_id);
 	motor_info->motorFeedbackMessageEntry = CANGetDbEntry(feedback_can_id);
