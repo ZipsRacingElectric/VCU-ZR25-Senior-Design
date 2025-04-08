@@ -47,6 +47,16 @@ AMKMotorInfo_t * MotorInfo(enum MotorId mid) {
 	}
 }
 
+AMKMotorInfo_t * MotorStatistics(enum MotorId mid) {
+	switch (mid) {
+	case MOTOR_FL: return &state.motor_statistics_fl;
+	case MOTOR_FR: return &state.motor_statistics_fr;
+	case MOTOR_RL: return &state.motor_statistics_rl;
+	case MOTOR_RR: return &state.motor_statistics_rr;
+	default: return NULL;
+	}
+}
+
 void update_vehicle_state(uint32_t timeout) {
 	osMutexAcquire(vdb_inverter_lockHandle, timeout);
 	VehicleData.inverter = state;
@@ -69,14 +79,59 @@ void motor_feedback_callback(uint32_t can_id, uint64_t message_int, void* void_m
 	osEventFlagsSet(amkEventFlagsHandle, flags.flagInt);
 }
 
+void motor_temperatures_callback(uint32_t can_id, uint64_t message_int, void* void_motor_id) {
+	enum MotorId mid = (enum MotorId) void_motor_id;
+	AMKMotorStatistics_t * stats = MotorStatistics(mid);
+	CANMessage_AMK_RL_TEMPERATURES msg;
+	msg.as_u64 = message_int;
+
+	stats->temp_internal = msg.fields.RL_TEMPERATURE_INTERNAL;
+	stats->temp_external = msg.fields.RL_TEMPERATURE_EXTERNAL;
+	stats->temp_sensor = msg.fields.RL_TEMPERATURE_SENSOR_MOTOR;
+	stats->temp_igbt = msg.fields.RL_IGBT_TEMPERATURE;
+
+	AMKControllerEventFlags_t flags = {0};
+	switch (mid) {
+	case MOTOR_FL: flags.flagBits.motor_statistics_fl_update = 1; break;
+	case MOTOR_FR: flags.flagBits.motor_statistics_fr_update = 1; break;
+	case MOTOR_RL: flags.flagBits.motor_statistics_rl_update = 1; break;
+	case MOTOR_RR: flags.flagBits.motor_statistics_rr_update = 1; break;
+	default: break;
+	}
+	osEventFlagsSet(amkEventFlagsHandle, flags.flagInt);
+}
+
+void motor_power_consumption_callback(uint32_t can_id, uint64_t message_int, void* void_motor_id) {
+	enum MotorId mid = (enum MotorId) void_motor_id;
+	AMKMotorStatistics_t * stats = MotorStatistics(mid);
+	CANMessage_AMK_RL_POWER_CONSUMPTION msg;
+	msg.as_u64 = message_int;
+
+	stats->actual_power = msg.fields.RL_ACTUAL_POWER_VALUE;
+	stats->bus_voltage = msg.fields.RL_DC_BUS_VOLTAGE;
+	stats->torque_current = msg.fields.RL_TORQUE_CURRENT_FEEDBACK;
+
+	AMKControllerEventFlags_t flags = {0};
+	switch (mid) {
+	case MOTOR_FL: flags.flagBits.motor_statistics_fl_update = 1; break;
+	case MOTOR_FR: flags.flagBits.motor_statistics_fr_update = 1; break;
+	case MOTOR_RL: flags.flagBits.motor_statistics_rl_update = 1; break;
+	case MOTOR_RR: flags.flagBits.motor_statistics_rr_update = 1; break;
+	default: break;
+	}
+	osEventFlagsSet(amkEventFlagsHandle, flags.flagInt);
+}
+
 void initialize_motor_info(enum MotorId mid) {
 	AMKMotorInfo_t * motor_info = MotorInfo(mid);
-	uint32_t request_can_id, feedback_can_id;
+	uint32_t request_can_id, feedback_can_id, temperature_can_id, power_consumption_can_id;
 	CAN_HandleTypeDef* canInterface;
 	switch (mid) {
 	case MOTOR_RL:
 		request_can_id = CAN_DB_AMK_RL_MOTOR_REQUEST_ID;
 		feedback_can_id = CAN_DB_AMK_RL_MOTOR_FEEDBACK_ID;
+		temperature_can_id = CAN_DB_AMK_RL_TEMPERATURES_ID;
+		power_consumption_can_id = CAN_DB_AMK_RL_POWER_CONSUMPTION_ID;
 		canInterface = &hcan2;
 		break;
 	default:
@@ -86,10 +141,14 @@ void initialize_motor_info(enum MotorId mid) {
 	motor_info->isConfigured = true;
 	motor_info->motorRequestMessageEntry = CANGetDbEntry(request_can_id);
 	motor_info->motorFeedbackMessageEntry = CANGetDbEntry(feedback_can_id);
+	motor_info->motorTemperaturesMessageEntry = CANGetDbEntry(temperature_can_id);
+	motor_info->motorPowerConsumptionMessageEntry = CANGetDbEntry(power_consumption_can_id);
 	motor_info->motorRequestMessage = (AMKMotorRequestMessage_t){0};
 	motor_info->canInterface = canInterface;
 
 	CANRegisterCallback(motor_info->motorFeedbackMessageEntry, motor_feedback_callback, (void*) mid);
+	CANRegisterCallback(motor_info->motorTemperaturesMessageEntry, motor_temperatures_callback, (void*) mid);
+	CANRegisterCallback(motor_info->motorPowerConsumptionMessageEntry, motor_power_consumption_callback, (void*) mid);
 }
 
 void update_motor(enum MotorId mid);
