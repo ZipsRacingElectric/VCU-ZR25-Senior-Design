@@ -7,7 +7,7 @@
 
 /*
  * TODO:
- * - check_cooling_data: CAN comm for updating coolingData
+ * - check_cooling_data: CAN comm for getting motor/inverter temps (are they separate)
  */
 
 #include "vehicle_data.h"

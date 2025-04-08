@@ -80,7 +80,7 @@ void fault_callback(){
 		fsm_flag_callback(FLAG_INDEX_FAULT_DETECTED, 0);
 	}
 
-	if(nonCriticalFaults){
+	if(nonCriticalFaults || criticalFaults){
 		DashboardFaultCallback(1);
 	}
 	else {
