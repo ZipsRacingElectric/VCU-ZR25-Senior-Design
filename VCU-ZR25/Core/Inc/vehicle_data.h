@@ -18,6 +18,7 @@
 #include "cooling_system.h"
 #include "dashboard.h"
 #include "torque_ctrl.h"
+#include "can_sensors.h"
 
 extern osMutexId_t vdb_apps_lockHandle;
 extern osMutexId_t vdb_bps_front_lockHandle;
@@ -30,6 +31,7 @@ extern osMutexId_t vdb_cooling_lockHandle;
 extern osMutexId_t vdb_dashboard_lockHandle;
 extern osMutexId_t vdb_torquectrl_lockHandle;
 extern osMutexId_t vdb_faulttask_lockHandle;
+extern osMutexId_t vdb_gps_lockHandle;
 
 typedef struct {
   APPSSensor_t apps;
@@ -41,6 +43,7 @@ typedef struct {
   PowSupData_t powsup;
   DashboardData_t dashboard;
   TorqueCtrlData_t torquectrl;
+  GPSState_t gps;
   FaultType_t faultmgmt;
 } VehicleData_t;
 

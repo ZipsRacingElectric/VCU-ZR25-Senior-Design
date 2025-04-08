@@ -64,7 +64,6 @@ I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim11;
 
-
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -179,6 +178,18 @@ const osThreadAttr_t amkTask_attributes = {
   .stack_mem = &amkTaskBuffer[0],
   .stack_size = sizeof(amkTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for canSensorsTask */
+osThreadId_t canSensorsTaskHandle;
+uint32_t canSensorsTaskBuffer[ 128 ];
+osStaticThreadDef_t canSensorsTaskControlBlock;
+const osThreadAttr_t canSensorsTask_attributes = {
+  .name = "canSensorsTask",
+  .cb_mem = &canSensorsTaskControlBlock,
+  .cb_size = sizeof(canSensorsTaskControlBlock),
+  .stack_mem = &canSensorsTaskBuffer[0],
+  .stack_size = sizeof(canSensorsTaskBuffer),
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for canDbTxQueue */
 osMessageQueueId_t canDbTxQueueHandle;
@@ -298,6 +309,14 @@ const osMutexAttr_t vdb_faulttask_lock_attributes = {
   .cb_mem = &vdb_faulttask_lockControlBlock,
   .cb_size = sizeof(vdb_faulttask_lockControlBlock),
 };
+/* Definitions for vdb_gps_lock */
+osMutexId_t vdb_gps_lockHandle;
+osStaticMutexDef_t vdb_gps_lockControlBlock;
+const osMutexAttr_t vdb_gps_lock_attributes = {
+  .name = "vdb_gps_lock",
+  .cb_mem = &vdb_gps_lockControlBlock,
+  .cb_size = sizeof(vdb_gps_lockControlBlock),
+};
 /* Definitions for amkEventFlags */
 osEventFlagsId_t amkEventFlagsHandle;
 osStaticEventGroupDef_t amkEventFlagsControlBlock;
@@ -335,6 +354,7 @@ extern void StartCoolingTask(void *argument);
 extern void StartDashboardTask(void *argument);
 extern void StartTorqueCtrlTask(void *argument);
 extern void StartAMKTask(void *argument);
+extern void StartCanSensorsTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -453,6 +473,9 @@ int main(void)
   /* creation of vdb_faulttask_lock */
   vdb_faulttask_lockHandle = osMutexNew(&vdb_faulttask_lock_attributes);
 
+  /* creation of vdb_gps_lock */
+  vdb_gps_lockHandle = osMutexNew(&vdb_gps_lock_attributes);
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   initCANDatabase();
@@ -507,6 +530,9 @@ int main(void)
 
   /* creation of amkTask */
   amkTaskHandle = osThreadNew(StartAMKTask, NULL, &amkTask_attributes);
+
+  /* creation of canSensorsTask */
+  canSensorsTaskHandle = osThreadNew(StartCanSensorsTask, NULL, &canSensorsTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 
