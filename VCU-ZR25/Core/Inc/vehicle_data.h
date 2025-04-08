@@ -39,7 +39,6 @@ typedef struct {
   AMKState_t inverter;
   VCU_State_t fsm_state;
   PowSupData_t powsup;
-  CoolingData_t cooling;
   DashboardData_t dashboard;
   TorqueCtrlData_t torquectrl;
   FaultType_t faultmgmt;

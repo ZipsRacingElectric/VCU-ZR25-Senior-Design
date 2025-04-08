@@ -5,56 +5,42 @@
  *      Author: John
  */
 
-/*
- * TODO:
- * - check_cooling_data: CAN comm for getting motor/inverter temps (are they separate)
- */
-
 #include "vehicle_data.h"
 #include "cooling_system.h"
 #include "main.h"
 
-void update_cooling_data(CoolingData_t coolingData) {
-	osMutexAcquire(vdb_cooling_lockHandle, osWaitForever);
-	VehicleData.cooling = coolingData;
-	osMutexRelease(vdb_cooling_lockHandle);
-}
-
-bool isOverTemp(uint32_t temp){
+bool isOverTemp(uint16_t temp){
 	return temp >= MAX_TEMP_THRESHOLD;
 }
 
-bool isUnderTemp(uint32_t temp){
+bool isUnderTemp(uint16_t temp){
 	return temp <= MIN_TEMP_THRESHOLD;
 }
 
-CoolingData_t check_cooling_data() {
-	CoolingData_t coolingData = {0};
+void check_cooling_data() {
 
-	if (isOverTemp(coolingData.fl_inverter_temp) | isOverTemp(coolingData.fl_motor_temp)
-			| isOverTemp(coolingData.rl_inverter_temp) | isOverTemp(coolingData.rl_motor_temp)){
+	if (isOverTemp(VehicleData.inverter.motor_statistics_fl.temp_sensor) |
+			isOverTemp(VehicleData.inverter.motor_statistics_rl.temp_sensor)){
 		CoolingSystemTurnOnLeft();
 	}
-	else if (isUnderTemp(coolingData.fl_inverter_temp) & isUnderTemp(coolingData.fl_motor_temp)
-			& isUnderTemp(coolingData.rl_inverter_temp) & isUnderTemp(coolingData.rl_motor_temp)){
+	else if (isUnderTemp(VehicleData.inverter.motor_statistics_fl.temp_sensor) &
+			isUnderTemp(VehicleData.inverter.motor_statistics_rl.temp_sensor)){
 		CoolingSystemTurnOffLeft();
 	}
 
-	if (isOverTemp(coolingData.fr_inverter_temp) | isOverTemp(coolingData.fr_motor_temp)
-			| isOverTemp(coolingData.rr_inverter_temp) | isOverTemp(coolingData.rr_motor_temp)){
+	if (isOverTemp(VehicleData.inverter.motor_statistics_fr.temp_sensor)
+			| isOverTemp(VehicleData.inverter.motor_statistics_rr.temp_sensor)){
 		CoolingSystemTurnOnRight();
 	}
-	else if (isUnderTemp(coolingData.fr_inverter_temp) & isUnderTemp(coolingData.fr_motor_temp)
-			& isUnderTemp(coolingData.rr_inverter_temp) & isUnderTemp(coolingData.rr_motor_temp)){
+	else if (isUnderTemp(VehicleData.inverter.motor_statistics_fr.temp_sensor)
+			| isUnderTemp(VehicleData.inverter.motor_statistics_rr.temp_sensor)){
 		CoolingSystemTurnOffRight();
 	}
-	return coolingData;
 }
 
 void StartCoolingTask(void *argument) {
 	while (1) {
-		CoolingData_t coolingData = check_cooling_data();
-		update_cooling_data(coolingData);
+		check_cooling_data();
 		osDelay(COOLING_TASK_PERIOD);
 	}
 }

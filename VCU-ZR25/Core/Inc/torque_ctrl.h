@@ -22,10 +22,12 @@ typedef enum {
 typedef struct {
   ControlMode_t controlmode;
   uint8_t torque_percent;
+  uint32_t torque_value;
 } TorqueCtrlData_t;
 
 void StartTorqueCtrlTask(void *argument);
 void update_control_mode(ControlMode_t);
+void update_torque_output();
 void increment_torque_limit();
 void decrement_torque_limit();
 void torque_fault_callback(uint8_t value);

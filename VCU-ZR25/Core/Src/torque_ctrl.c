@@ -9,6 +9,7 @@
 #include "power_supply.h"
 #include "main.h"
 #include "driver_sensors.h"
+#include "amk_can.h"
 #include "stm32f4xx_hal_flash.h"
 
 void update_torque_ctrl_data(TorqueCtrlData_t torquectrl) {
@@ -22,12 +23,13 @@ ControlMode_t check_control_mode(){
 	return control_mode;
 }
 
-TorqueCtrlData_t torquectrl = {.controlmode = 0, .torque_percent = 10};
+TorqueCtrlData_t torquectrl = {.controlmode = 0, .torque_percent = 10, .torque_value = 0};
 uint8_t preFaultTorque = 10;
 
 void StartTorqueCtrlTask(void *argument) {
 	while (1) {
 		torquectrl.controlmode = check_control_mode();
+		update_torque_output();
 		update_torque_ctrl_data(torquectrl);
 		osDelay(TORQUE_CONTROL_TASK_PERIOD);
 	}
@@ -35,6 +37,21 @@ void StartTorqueCtrlTask(void *argument) {
 
 void update_control_mode(ControlMode_t ctrl_mode){
 	torquectrl.controlmode = ctrl_mode;
+}
+
+void update_torque_output(){
+	if (!VehicleData.bps_front.brakes_engaged && !VehicleData.bps_rear.brakes_engaged){
+		torquectrl.torque_value = ((VehicleData.apps.percent_1 * torquectrl.torque_percent) / 100000) * MOTOR_POS_TORQUE_LIMIT;
+	}
+	else if (VehicleData.inverter.motor_info_rl.motorFeedbackMessage.fields.ACTUAL_SPEED_VALUE){
+		uint32_t bps_percent = (VehicleData.bps_front.voltage - BPS_MIN_VOLTAGE) / (BPS_MAX_VOLTAGE - BPS_MIN_VOLTAGE);
+		torquectrl.torque_value = (bps_percent * torquectrl.torque_percent / 100) * MOTOR_NEG_TORQUE_LIMIT;
+	}
+	else {
+		torquectrl.torque_value = 0;
+	}
+	amkTorqueSetpoints setpoint = {.rear_left = torquectrl.torque_value};
+	AMKSetInverterTorqueSetpoints(setpoint);
 }
 
 void increment_torque_limit(){
