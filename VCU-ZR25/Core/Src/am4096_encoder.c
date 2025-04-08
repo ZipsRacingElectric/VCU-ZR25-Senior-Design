@@ -18,188 +18,209 @@
 #include "stm32f4xx_hal.h"
 
 // Defines
-#define AM4096_ADDRESS (0x00 << 1) // Left shift to ensure read/write bit is free
+#define FACTORY_SETTINGS_0_ADDR			4
+#define FACTORY_SETTINGS_0_SIZE			4
 
-// Registers
-#define REG_EEPROM_0       0
-#define REG_EEPROM_1       1
-#define REG_EEPROM_2       2
-#define REG_EEPROM_3       3
-#define REG_R_POS         32
-#define REG_A_POS         33
-#define REG_MAGNET_STATUS 34
-#define REG_TACHO         35
-#define REG_SETTINGS_1    48
-#define REG_SETTINGS_2    49
-#define REG_SETTINGS_3    50
-#define REG_SETTINGS_4    51
+#define RELATIVE_POS_ADDR				32
+#define RELATIVE_POS_GET_SRCH(register)	(((register) >> 15) & 0b1)
+#define RELATIVE_POS_GET_RPOS(register)	((register) & 0xFFF)
+
+#define ABSOLUTE_POS_ADDR				33
+#define ABSOLUTE_POS_GET_SRCH(register)	(((register) >> 15) & 0b1)
+#define ABSOLUTE_POS_GET_RPOS(register)	((register) & 0xFFF)
+
+#define STATUS_ADDR						34
+#define STATUS_GET_WEL(register)		(((register) >> 13) & 0b1)
+#define STATUS_GET_WEH(register)		(((register) >> 14) & 0b1)
+
+#define TACHO_ADDR						35
+
+#define TESTING_SETTINGS_ADDR			36
+#define TESTING_SETTINGS_SIZE			12
+
+#define FACTORY_SETTINGS_1_ADDR			52
+#define FACTORY_SETTINGS_1_SIZE			4
 
 // Configuration bits
-#define STH 000 // Angular velocity 2048 Hz, 122,880 RPM
 
 // Constants
 
 // Static Variables
 
 // Private Function Prototypes
+static bool pollAck (am4096_t* am4096);
 
-/*
- * Read an individual register
- */
-HAL_StatusTypeDef read_register(AM4096_t *sensor, uint8_t reg_addresss, uint16_t *data_location);
+static bool writeRegister (am4096_t* am4096, uint8_t addr, uint16_t data);
 
-/*
- * Write to an individual register
- */
-HAL_StatusTypeDef write_register(AM4096_t *sensor, uint8_t reg_address, uint16_t *write_data);
+static bool readRegister (am4096_t* am4096, uint8_t addr, uint16_t* data);
 
-// Public Functions
+static bool writeBlock (void* object, uint16_t addr, const void* data, uint16_t dataCount);
 
-/*
- *  Initialization, device ID check. Returns error status
- */
-HAL_StatusTypeDef am4096_init(AM4096_t *sensor, I2C_HandleTypeDef *i2c_handle)
+static bool readBlock (void* object, uint16_t addr, void* data, uint16_t dataCount);
+
+// Functions ------------------------------------------------------------------------------------------------------------------
+
+bool am4096Init (am4096_t* am4096, const am4096Config_t* config)
 {
-	if (!sensor || !i2c_handle) return HAL_ERROR;
+	am4096->writeHandler	= writeBlock;
+	am4096->readHandler		= readBlock;
+	am4096->config			= config;
 
-	    sensor->i2c_handle = i2c_handle;
-
-	    // Check device ID (optional: depends on AM4096 functionality)
-	    uint16_t device_id;
-	    if (read_register(sensor, 0x00, &device_id) != HAL_OK)
-	    {
-	        return HAL_ERROR;
-	    }
-
-	    // Set register settings
-
-
-	    return HAL_OK;
+	return am4096Sample (am4096);
 }
 
-/*
- * Zero Sensor Angle at the current position
- */
-HAL_StatusTypeDef am4096_zero_angle(AM4096_t *sensor)
+bool am4096Sample (am4096_t* am4096)
 {
-	uint16_t zero_data = 0x00; // Value to set zeroing
-	return write_register(sensor, REG_SETTINGS_1, &zero_data);
+	uint16_t relativePos;
+	bool result = readRegister (am4096, RELATIVE_POS_ADDR, &relativePos);
+
+	if (result)
+	{
+		// If successful, update the sensor.
+		am4096->sample = RELATIVE_POS_GET_RPOS (relativePos);
+	}
+	else
+	{
+		// Otherwise, put the sensor in the fail state.
+		am4096->sample = 0;
+	}
+
+	#if I2C_USE_MUTUAL_EXCLUSION
+	i2cReleaseBus (am4096->config->i2c);
+	#endif // I2C_USE_MUTUAL_EXCLUSION
+
+	return result;
 }
 
-/*
- * Read angle
- */
-HAL_StatusTypeDef am4096_read_angle(AM4096_t *sensor)
+bool pollAck (am4096_t* am4096)
 {
-	uint16_t raw_angle;
-	if (read_register(sensor, REG_R_POS, &raw_angle) != HAL_OK)
-	{
-		sensor->device_status = 3;
-		return HAL_ERROR;
-	}
+	// The AM4096 will not ACK an I2C transaction unless it is available for read/write. This function uses this feature to
+	// poll the device periodically until it responds with an ACK.
 
-	// Check
+	// Track the start time so we can time out.
+	systime_t timeStart = chVTGetSystemTime ();
 
-	// Convert raw angle to radians (assuming a full range is 0xFFF = 2π radians)
-	sensor->angle = (uint16_t)((uint32_t)raw_angle * 6283) / 4096; // Scaled to radians * 1000
-	return HAL_OK;
+	// Dummy data, doesn't actually matter what we send so long as it isn't a full read/write command.
+	uint8_t tx = 0x00;
+	uint16_t rx;
+
+	// Loop until the device responds or we time out.
+	while (chTimeDiffX (timeStart, chVTGetSystemTime ()) < HAL_MAX_DELAY)
+		if (HAL_I2C_Master_Transmit (am4096->config->i2c_handle, am4096->config->i2c_handle->Devaddress, &tx, sizeof (tx),
+				HAL_MAX_DELAY) == HAL_OK)
+			return true;
+
+	// Timeout occurred, enter fail state.
+	am4096->state = AM4096_STATE_FAILED;
+	return false;
 }
 
-/*
- * Read angular velocity
- */
-HAL_StatusTypeDef am4096_read_angular_velocity(AM4096_t *sensor)
+bool writeRegister (am4096_t* am4096, uint8_t addr, uint16_t data)
 {
-	uint16_t tho;
-	if (read_register(sensor, REG_TACHO, &tho) != HAL_OK)
+	// Writes a word to the device's memory. See AM4096 datasheet, figure 6 for more details.
+
+	// Check the device is ready for data transfer.
+	if (!pollAck (am4096))
+		return false;
+
+	// Check the address is writable (can't write to factory settings, testing settings, or read-only registers).
+	if ((addr >= FACTORY_SETTINGS_0_ADDR && addr < FACTORY_SETTINGS_0_ADDR + FACTORY_SETTINGS_0_SIZE) ||
+		(addr >= TESTING_SETTINGS_ADDR && addr < TESTING_SETTINGS_ADDR + TESTING_SETTINGS_SIZE) ||
+		(addr > FACTORY_SETTINGS_1_ADDR) || addr == RELATIVE_POS_ADDR || addr == ABSOLUTE_POS_ADDR ||
+		addr == STATUS_ADDR || addr == TACHO_ADDR)
+		return false;
+
+	// Write the address and data.
+	uint8_t tx [sizeof (addr) + sizeof (data)] = { addr, data >> 8, data };
+	if (HAL_I2C_Master_Transmit (am4096->config->i2c_handle, am4096->config->i2c_handle->Devaddress, tx, sizeof (tx),
+			HAL_MAX_DELAY) != HAL_OK)
 	{
-		return HAL_ERROR;
+		am4096->state = AM4096_STATE_FAILED;
+		return false;
 	}
 
-	// Grab speed data from the register values
-	tho = tho << 5;
-
-	// Check if speed data is overflowing
-
-
-	// Convert to usable value
-
-	sensor->angular_velocity = tho;
-
-
-	return HAL_OK;
+	return true;
 }
 
-/*
- * Gets the magnet status of the sensor
- */
-HAL_StatusTypeDef am4096_magnet_status(AM4096_t *sensor)
+bool readRegister (am4096_t* am4096, uint8_t addr, uint16_t* data)
 {
-	uint16_t magnet_status;
-	if (read_register(sensor, REG_MAGNET_STATUS, &magnet_status) != HAL_OK)
+	// Reads a word from the device's memory. See AM4096 datasheet, figure 7 for more details.
+
+	// Check the device is ready for data transfer.
+	if (!pollAck (am4096))
+		return false;
+
+	// Write the address to read from, then read the data.
+	uint16_t rx;
+	if (HAL_I2C_Master_Transmit (am4096->config->i2c_handle, am4096->config->i2c_handle->Devaddress, &addr, sizeof (addr),
+			HAL_MAX_DELAY) != HAL_OK)
 	{
-		return HAL_ERROR;
+		am4096->state = AM4096_STATE_FAILED;
+		return false;
 	}
 
-	sensor->device_status = 0;
-	return HAL_OK;
+	// Convert the data from big-endian to little-endian.
+	*data = __REV16 (rx);
+	return true;
 }
 
-// Private Functions
-
-/*
- * Read an individual register
- */
-HAL_StatusTypeDef read_register(AM4096_t *sensor, uint8_t reg_address, uint16_t *data_location)
+bool writeBlock (void* object, uint16_t addr, const void* data, uint16_t dataCount)
 {
-	// Handle null pointers for sensor or write_data
-	if (!sensor || !data_location)
+	am4096_t* am4096 = (am4096_t*) object;
+
+	// Force operations to use 16-bit alignment and data size.
+	if (addr % sizeof (uint16_t) != 0 || dataCount % sizeof (uint16_t) != 0)
+		return false;
+
+	// Convert the address, data, and count into register values.
+	uint8_t registerAddr = addr / sizeof (uint16_t);
+	const uint16_t* registerData = data;
+	uint16_t registerCount = dataCount / sizeof (uint16_t);
+
+	#if I2C_USE_MUTUAL_EXCLUSION
+	i2cAcquireBus (am4096->config->i2c);
+	#endif // I2C_USE_MUTUAL_EXCLUSION
+
+	// Write each register, one by one.
+	bool result = true;
+	for (uint16_t registerOffset = 0; registerOffset < registerCount; ++registerOffset)
 	{
-		return HAL_ERROR;
+		if (!writeRegister (am4096, registerAddr + registerOffset, registerData [registerOffset]))
+		{
+			result = false;
+			break;
+		}
 	}
 
-	uint8_t command = reg_address;
-	uint8_t data[2] = {0};
+	#if I2C_USE_MUTUAL_EXCLUSION
+	i2cReleaseBus (am4096->config->i2c);
+	#endif // I2C_USE_MUTUAL_EXCLUSION
 
-	// Send write command with just register address
-	HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(sensor->i2c_handle, AM4096_ADDRESS, &command, 1, HAL_MAX_DELAY);
-
-	if (status != HAL_OK)
-	{
-		return status;
-	}
-
-	// Send read command and receive back data
-	status = HAL_I2C_Master_Receive(sensor->i2c_handle, AM4096_ADDRESS, data, 2, HAL_MAX_DELAY);
-
-	if (status == HAL_OK)
-	{
-		*data_location = (data[0] << 8) | data[1];
-	}
-
-	return status;
+	return result;
 }
 
-/*
- * Write to an individual register, sending 1 byte
- */
-HAL_StatusTypeDef write_register(AM4096_t *sensor, uint8_t reg_address, uint16_t *write_data)
+bool readBlock (void* object, uint16_t addr, void* data, uint16_t dataCount)
 {
-	// Handle null pointers for sensor or write_data
-	if (!sensor || !write_data)
+
+	// Force operations to use 16-bit alignment and data size.
+	if (addr % sizeof (uint16_t) != 0 || dataCount % sizeof (uint16_t) != 0)
+		return false;
+
+	// Convert the address, data, and count into register values.
+	uint8_t registerAddr = addr / sizeof (uint16_t);
+	uint16_t* registerData = data;
+	uint16_t registerCount = dataCount / sizeof (uint16_t);
+
+	// Read each register, one by one.
+	bool result = true;
+	for (uint16_t registerOffset = 0; registerOffset < registerCount; ++registerOffset)
 	{
-		return HAL_ERROR;
+		if (!readRegister (object, registerAddr + registerOffset, registerData + registerOffset))
+		{
+			result = false;
+			break;
+		}
 	}
 
-	// create data buffer
-	uint8_t data[3];
-	data[0] = reg_address; // register address
-	data[1] = (*write_data >> 8) & 0xFF; // MSB of write data
-	data[2] = (*write_data & 0xFF); // LSB of write data
-
-
-	// Send out device address and write bit
-	return HAL_I2C_Master_Transmit(sensor->i2c_handle, AM4096_ADDRESS, data, 3, HAL_MAX_DELAY);
-
-	// Note: device cannot be addressed for 20 ms after write command
+	return result;
 }

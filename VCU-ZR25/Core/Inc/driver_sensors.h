@@ -88,7 +88,7 @@ typedef struct
 
 typedef struct
 {
-	AM4096_t i2c_device;       // AM4096 device
+	am4096_t i2c_device;       // AM4096 device
     uint16_t angle;            // Steering angle in radians * 1000
     uint16_t angular_velocity; // Angular velocity in rad * 1000 / s
     bool plausible;		       // Plausibility of sensor

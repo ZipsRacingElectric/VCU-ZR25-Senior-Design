@@ -92,7 +92,9 @@ void StartDriverSensorTask(
 void init_driver_input(I2C_HandleTypeDef *i2c)
 {
 	// Initialize the AM4096
-	(void)am4096_init(&s_steering_angle.i2c_device, i2c);
+	am4096Config_t* i2c_config = {0};
+	i2c_config->i2c_handle = i2c;
+	(void)am4096Init(&s_steering_angle.i2c_device, i2c_config);
 }
 
 /*
@@ -177,7 +179,7 @@ void print_driver_input(void)
 		  (uint8_t)s_bps_front.plausible,
 		  (uint8_t)s_bps_rear.plausible,
 
-		  s_steering_angle.i2c_device.device_status,
+		  s_steering_angle.i2c_device.state,
 		  s_steering_angle.angle,
 		  (uint8_t)s_steering_angle.plausible);
 
