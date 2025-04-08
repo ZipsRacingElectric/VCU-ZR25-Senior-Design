@@ -117,7 +117,7 @@ void StartAMKTask(void *argument) {
 
 	while (1) {
 		AMKControllerEventFlags_t flags;
-		flags.flagInt = osEventFlagsWait(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits=AMK_FLAGS_ALL}.flagInt, osFlagsNoClear | osFlagsWaitAny, osWaitForever);
+		flags.flagInt = osEventFlagsWait(amkEventFlagsHandle, (AMKControllerEventFlags_t){.flagBits=AMK_FLAGS_ALL}.flagInt, osFlagsWaitAny, 10);
 		uint32_t currentTick = osKernelGetTickCount();
 
 		if (state.controller_state == MOTORS_DISABLED && flags.flagBits.start_motors) {
