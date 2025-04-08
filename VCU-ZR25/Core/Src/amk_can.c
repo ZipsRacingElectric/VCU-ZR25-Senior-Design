@@ -158,6 +158,10 @@ void StartAMKTask(void *argument) {
 	}
 }
 
+int16_t convert_torque(float torque_newtonmeters) {
+	return (int16_t)(MOTOR_TORQUE_UNITS_PER_NEWTONMETER * torque_newtonmeters);
+}
+
 void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints) {
 	state.torqueSetpoints = setpoints;
 	update_vehicle_state(0);
