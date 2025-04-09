@@ -11,12 +11,7 @@
 // Includes
 #include <ref_gen.h>
 #include <stdlib.h>
-<<<<<<< Updated upstream
 #include "lut_utils.h"
-=======
-#include <math.h>
-#include "lut.h"
->>>>>>> Stashed changes
 
 // Defines
 #ifndef PI
