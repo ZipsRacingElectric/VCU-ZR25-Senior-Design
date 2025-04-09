@@ -38,11 +38,9 @@ typedef struct {
 
 /*
  * Initializes PID controller with gains and sampling time.
- *
- * Inputs:
- * pid_t pid_data - pid_t struct storing PID data
- * double T - sampling period in seconds
- * double tau - time constant of optional D filter, can be 0
+ *	pid_t pid_data - pid_t struct storing PID data
+ *	float T - sampling period in seconds
+ *	float tau - time constant of optional D filter, can be 0
  */
 void init_pid(pid_t* pid_data, float T, float tau);
 
@@ -58,13 +56,9 @@ gain_t schedule_gains(float ref_velocity, float sw_angle);
 
 /*
  * Updates the PID controller
- *
- * Inputs:
- * double e - holds discrete input value e[k]
- * pid_t pid_data - pid_t struct storing PID data
- *
- * Output:
- * double containing u[k]
+ *	float e - holds discrete input value e[k]
+ *	pid_t pid_data - pid_t struct storing PID data
+ *	float containing u[k]
  */
 void update_pid(pid_t* pid_data, float e);
 

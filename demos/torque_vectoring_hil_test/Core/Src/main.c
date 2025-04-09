@@ -25,6 +25,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define CAN_DATA_SCALING_FACTOR 1000
 
 /* USER CODE END PD */
 
@@ -44,21 +45,27 @@ I2C_HandleTypeDef hi2c1;
 TIM_HandleTypeDef htim11;
 
 /* USER CODE BEGIN PV */
+
+// CAN Data and message identifiers
 CAN_RxHeaderTypeDef rxHeader;
 uint8_t rxData[8];  // CAN max payload is 8 bytes
+uint8_t received_message_yaw = 0;
+uint8_t received_message_vehicle_state = 0;
 
-int16_t input_data = 0;
-int16_t output_data = 0;
-int16_t time_step = 0;
+// Vehicle Data
+float ref_velocity = 0.0f;
+float sw_angle = 0.0f;
 
-uint8_t recieved_message = 0;
+// Yaw Controller Data
+float input_data = 0.0f;
+float output_data = 0.0f;
+float time_step = 0.0f;
 
+// PID Data
 pid_t pid_data;
 float sampling_period = 0.01f;
-float tau = 1.0f;
-
-// Sample gains for the HIL test model
-gain_t sample_gains = {2.0f, 2.0f, 0.0f};
+float tau = 0.0f;
+gain_t sample_gains = {7000.0, 2000.0, 0.0};  // Sample gains for the HIL test model
 
 /* USER CODE END PV */
 
@@ -117,7 +124,23 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
+  uint32_t last_toggle = HAL_GetTick();
+
+  // Enable the 5V Power rail
+  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
+
+  // Pull The standby pin low to put the CAN tranceivers in normal mode
+  HAL_GPIO_WritePin(GPIOC, CAN_1_STANDBY_Pin, GPIO_PIN_RESET);
+
   HAL_CAN_Start(&hcan1);
+
+  // Set CAN Bus filter to find ID = 0x120 to 0x125 messages
+  CAN_FilterTypeDef canfilter;
+  (void)init_can_filter();
+
+  if (HAL_CAN_ConfigFilter(&hcan1, &canfilter) != HAL_OK) {
+      Error_Handler();  // Or debug print
+  }
 
   // Initialize PID controller and set gains
   (void)init_pid(&pid_data, sampling_period, tau);
@@ -131,20 +154,36 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
+	// Heatnbeat to ensure it is running
+	if (HAL_GetTick() - last_toggle >= 500) {
+		HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_1_Pin);
+	    last_toggle = HAL_GetTick();
+	}
+
 	// 1. Wait to recieve a CAN message. This is non-blocking so we only want to compute the PID if we receive a message
     (void)process_can_message();
 
-    if(recieved_message) {
-    	// 2. Compute PID controller
+    // Schedule Gains
+    if(received_message_vehicle_state) {
+      // Interpolate the lookup table to find the closes gain values
+      gain_t new_gains = schedule_gains(ref_velocity, sw_angle);
+      update_gains(&pid_data, new_gains);
+      received_message_vehicle_state = 0;
+    }
+
+    // Compute PID controller
+    if(received_message_yaw) {
     	// Note: this only works because this is not computed real-time. Simulation data between messages is sent every simulation 0.01s time step, which is what the sample_time is set to.
-    	float error = ((float)input_data / 100) - ((float)output_data / 10); // The simulink model scales the values before sending over CAN
+
+      // Calculate error signal
+    	float error = input_data - output_data; 
     	update_pid(&pid_data, error);
 
-    	// 3. Send a CAN message out
+    	// Send a CAN message out
     	float actuating_signal = pid_data.u;
-    	(void)send_can_message((int16_t)(actuating_signal * 100));
+    	(void)send_can_message((int16_t)(actuating_signal));
 
-    	recieved_message = 0;
+    	received_message_yaw = 0;
     }
 
     /* USER CODE BEGIN 3 */
@@ -468,19 +507,64 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void init_can_filter() {
+  canfilter.FilterActivation = ENABLE;
+  canfilter.FilterBank = 0;                         // Use filter bank 0
+  canfilter.FilterFIFOAssignment = CAN_RX_FIFO0;
+  canfilter.FilterMode = CAN_FILTERMODE_IDMASK;
+  canfilter.FilterScale = CAN_FILTERSCALE_32BIT;
+
+  // Accept IDs from 0x120 to 0x125
+  // Mask: match bits that define 0x120 to 0x125
+  // ID bits 10:3 must match 0x24 (0b100100) -> bits 10:3 of 0x120 to 0x125 are the same
+  // Bits 2:0 can vary, so mask those out
+
+  canfilter.FilterIdHigh     = 0x120 << 5;          // Shifted left 5 to align with CAN ID format
+  canfilter.FilterIdLow      = 0x0000;
+
+  canfilter.FilterMaskIdHigh = 0x1F8 << 5;          // Mask bits 10:3 (0x1F8 = 0b1111111000)
+  canfilter.FilterMaskIdLow  = 0x0000;
+
+  canfilter.SlaveStartFilterBank = 14;              // Only needed if using CAN2
+}
+
+}
+
 void process_can_message() {
   CAN_RxHeaderTypeDef rxHeader;
   uint8_t rxData[8];
 
   if (HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0) {
       if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rxHeader, rxData) == HAL_OK) {
-          if (rxHeader.StdId == 0x123 && rxHeader.DLC >= 6) {
-              input_data = (int16_t)((rxData[1] << 8) | rxData[0]);
-              output_data = (int16_t)((rxData[3] << 8) | rxData[2]);
-              time_step = (int16_t)((rxData[5] << 8) | rxData[4]);
 
-              recieved_message = 1;
+    	  // Yaw Controller Data Message
+          if (rxHeader.StdId == 0x123 && rxHeader.DLC >= 6) {
+
+        	  // Toggle pin if the right message was recieved
+        	  HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_2_Pin);
+
+        	  // Tell everyone we recieved the message
+        	  received_message_yaw = 1;
+
+            // MSB first
+        	  input_data  = (int16_t)((rxData[0] << 8) | rxData[1]) / CAN_DATA_SCALING_FACTOR;
+        	  output_data = (int16_t)((rxData[2] << 8) | rxData[3]) / CAN_DATA_SCALING_FACTOR;
+        	  time_step   = (int16_t)((rxData[4] << 8) | rxData[5]) / CAN_DATA_SCALING_FACTOR;
           }
+
+        // Vehicle State Message
+        if (rxHeader.StdId == 0x122 && rxHeader.DLC >= 6) {
+
+          // Toggle pin if the right message was recieved
+          HAL_GPIO_TogglePin(GPIOC, DEBUG_LED_2_Pin);
+
+          // Tell everyone we recieved the message
+          received_message_vehicle_state = 1;
+
+           // MSB first
+          ref_velocity  = (float)((rxData[0] << 8) | rxData[1]) / CAN_DATA_SCALING_FACTOR;
+          sw_angle = (float)((rxData[2] << 8) | rxData[3]) / CAN_DATA_SCALING_FACTOR;
+        }
       }
   }
 }
