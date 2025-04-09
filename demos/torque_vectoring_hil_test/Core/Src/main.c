@@ -79,6 +79,7 @@ static void MX_ADC1_Init(void);
 static void MX_TIM11_Init(void);
 /* USER CODE BEGIN PFP */
 
+void init_can_filter(CAN_FilterTypeDef canfilter);
 void process_can_message(void);
 void send_can_message(int16_t actuating_signal);
 
@@ -136,7 +137,7 @@ int main(void)
 
   // Set CAN Bus filter to find ID = 0x120 to 0x125 messages
   CAN_FilterTypeDef canfilter;
-  (void)init_can_filter();
+  (void)init_can_filter(canfilter);
 
   if (HAL_CAN_ConfigFilter(&hcan1, &canfilter) != HAL_OK) {
       Error_Handler();  // Or debug print
@@ -507,7 +508,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void init_can_filter() {
+void init_can_filter(CAN_FilterTypeDef canfilter) {
   canfilter.FilterActivation = ENABLE;
   canfilter.FilterBank = 0;                         // Use filter bank 0
   canfilter.FilterFIFOAssignment = CAN_RX_FIFO0;
@@ -526,8 +527,6 @@ void init_can_filter() {
   canfilter.FilterMaskIdLow  = 0x0000;
 
   canfilter.SlaveStartFilterBank = 14;              // Only needed if using CAN2
-}
-
 }
 
 void process_can_message() {

@@ -9,6 +9,7 @@ Debug/
 debug/
 Release/
 release
+*.launch
 
 # Prerequisites
 *.d
@@ -50,6 +51,9 @@ release
 *.su
 *.idb
 *.pdb
+
+#VS Code
+.vscode/
 
 #DS_Store
 .DS_Store
