@@ -188,8 +188,8 @@ int16_t convert_torque(float torque_newtonmeters);
 void AMKSetInverterTorqueSetpoints(amkTorqueSetpoints setpoints);
 AMKMotorState_t * MotorState(enum MotorId mid);
 
-#define MOTOR_POS_TORQUE_LIMIT 50
-#define MOTOR_NEG_TORQUE_LIMIT -50
+#define MOTOR_POS_TORQUE_LIMIT 75
+#define MOTOR_NEG_TORQUE_LIMIT -75
 #define MOTOR_MN_NEWTONMETERS 9.8
 #define MOTOR_TORQUE_UNITS_PER_NEWTONMETER (1000.0/MOTOR_MN_NEWTONMETERS)
 #define MOTOR_NEWTONMETERS_PER_TORQUE_UNIT (MOTOR_MN_NEWTONMETERS/1000.0)

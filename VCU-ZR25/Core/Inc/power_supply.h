@@ -26,6 +26,7 @@ typedef struct {
 } powSupTaskArgs_t;
 
 typedef struct {
+  bool value5V;
   bool value3V;
 } PowSupData_t;
 

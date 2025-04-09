@@ -40,16 +40,14 @@ void update_control_mode(ControlMode_t ctrl_mode){
 }
 
 void update_torque_output(){
-	if (!VehicleData.bps_front.brakes_engaged && !VehicleData.bps_rear.brakes_engaged){
-		torquectrl.torque_value = ((float)(VehicleData.apps.percent_1 * torquectrl.torque_percent) / 100000.0f) * (float)MOTOR_POS_TORQUE_LIMIT;
-	}
-	else if (VehicleData.inverter.motor_info_rl.motorFeedbackMessage.fields.ACTUAL_SPEED_VALUE){
-		float bps_level = (float)(VehicleData.bps_front.voltage - BPS_MIN_VOLTAGE) / (float)(BPS_MAX_VOLTAGE - BPS_MIN_VOLTAGE);
-		torquectrl.torque_value = (bps_level * (float)torquectrl.torque_percent / 100.0f) * (float)MOTOR_NEG_TORQUE_LIMIT;
-	}
-	else {
-		torquectrl.torque_value = 0;
-	}
+	torquectrl.torque_percent = 50;
+//	if (!VehicleData.bps_front.brakes_engaged && !VehicleData.bps_rear.brakes_engaged){
+	torquectrl.torque_value = ((float)(VehicleData.apps.percent_1 * torquectrl.torque_percent) / 100000.0f) * (float)MOTOR_POS_TORQUE_LIMIT;
+//	}
+//	else {
+//		float bps_level = 1.0;
+//		torquectrl.torque_value = (bps_level * (float)torquectrl.torque_percent / 100.0f) * (float)MOTOR_NEG_TORQUE_LIMIT;
+//	}
 	amkTorqueSetpoints setpoint = {.rear_left = torquectrl.torque_value};
 	AMKSetInverterTorqueSetpoints(setpoint);
 }

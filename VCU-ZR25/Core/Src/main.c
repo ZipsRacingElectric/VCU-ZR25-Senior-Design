@@ -520,7 +520,7 @@ int main(void)
   canDbTaskHandle = osThreadNew(StartCanDbTask, (void*) &hcan1, &canDbTask_attributes);
 
   /* creation of coolingTask */
-  coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
+  //coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
 
   /* creation of dashboardTask */
   dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);
@@ -820,7 +820,7 @@ static void MX_GPIO_Init(void)
                           |CAN_2_STANDBY_Pin|RAIL_POWER_ENABLE_5V_Pin|PUMP_1_CONTROL_Pin|PUMP_2_CONTROL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|VCU_FAULT_Pin|BRAKE_LIGHT_CONTROL_Pin
+  HAL_GPIO_WritePin(GPIOB, FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|BRAKE_LIGHT_CONTROL_Pin
                           |BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -845,7 +845,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : FAN_1_CONTROL_Pin FAN_2_CONTROL_Pin VCU_FAULT_Pin BRAKE_LIGHT_CONTROL_Pin
                            BUZZER_CONTROL_Pin */
-  GPIO_InitStruct.Pin = FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|VCU_FAULT_Pin|BRAKE_LIGHT_CONTROL_Pin
+  GPIO_InitStruct.Pin = FAN_1_CONTROL_Pin|FAN_2_CONTROL_Pin|BRAKE_LIGHT_CONTROL_Pin
                           |BUZZER_CONTROL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;

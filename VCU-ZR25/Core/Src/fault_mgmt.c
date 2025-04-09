@@ -16,6 +16,7 @@
 #include "driver_sensors.h"
 #include "torque_ctrl.h"
 #include "vehicle_data.h"
+#include "can_sensors.h"
 
 #define IMPLAUSIBILITY_TIMEOUT osKernelGetSysTimerFreq()/10
 
@@ -111,7 +112,7 @@ void apps_bps_implausibility_check(FaultType_t *fault){
 		}
 		if (osKernelSysTick() - apps_bps_implausibility_timer >= IMPLAUSIBILITY_TIMEOUT) {
 			fault->faultBits.Fault_apps_bps = 1;
-			torque_fault_callback(1);
+			torque_fault_callback(0);
 			// CAN motor callback to have 0 nm
 		}
 	}

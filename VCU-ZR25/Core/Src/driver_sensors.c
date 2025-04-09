@@ -35,9 +35,9 @@ BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausibl
 SteeringAngleSensor_t s_steering_angle = {.angle = 0, .angular_velocity = 0, .plausible = false};
 
 // Static calibration variables. These hold the 0% and 100% setpoints
-static uint16_t apps_1_min = 0600; // V * 1000
-static uint16_t apps_1_max = 4400; // V * 1000
-static uint16_t apps_2_min = 0350; // V * 1000
+static uint16_t apps_1_min = 310; // V * 1000
+static uint16_t apps_1_max = 450; // V * 1000
+static uint16_t apps_2_min = 350; // V * 1000
 static uint16_t apps_2_max = 2150; // V * 1000
 
 // Private Function Prototypes
@@ -47,7 +47,7 @@ static void calc_apps_percent(APPSSensor_t *apps);
 static void calc_bps_pressure(BPSSensor_t *bps);
 static uint16_t abs_diff(uint16_t v1, uint16_t v2);
 static bool validate_apps(APPSSensor_t apps);
-static bool validate_bps(BPSSensor_t bps);
+static bool validate_bps(BPSSensor_t* bps);
 static bool validate_steering_angle(SteeringAngleSensor_t steering_angle);
 
 // Public Functions
@@ -122,8 +122,8 @@ void read_driver_input(ADC_HandleTypeDef *adc)
     // Perform Plausibility Checking
     // Handling of plausibility is outside the scope of measuring driver input sensors
     s_apps.plausible = validate_apps(s_apps);
-    s_bps_front.plausible = validate_bps(s_bps_front);
-    s_bps_rear.plausible = validate_bps(s_bps_rear);
+    s_bps_front.plausible = validate_bps(&s_bps_front);
+    s_bps_rear.plausible = validate_bps(&s_bps_rear);
     s_steering_angle.plausible = validate_steering_angle(s_steering_angle);
 }
 
@@ -474,20 +474,21 @@ bool validate_apps(APPSSensor_t apps)
 /*
  * BPS Plausibility Check
  */
-bool validate_bps(BPSSensor_t bps)
+bool validate_bps(BPSSensor_t *bps)
 {
 	// Check if voltage out of expected range, with a deadzone for noise
-	if ((bps.voltage + BPS_DEADZONE) >= BPS_MIN_VOLTAGE && (bps.voltage - BPS_DEADZONE) <= BPS_MAX_VOLTAGE)
+	if ((bps->voltage + BPS_DEADZONE) >= BPS_MIN_VOLTAGE && (bps->voltage - BPS_DEADZONE) <= BPS_MAX_VOLTAGE)
 	{
 		return true;
 	}
 
-	if ((bps.voltage + BPS_DEADZONE) >= BPS_ENGAGED_VOLTAGE_THRESHOLD){
-		bps.brakes_engaged = true;
+	if ((s_bps_front.raw_value > BPS_MIN_VOLTAGE)
+			| (s_bps_rear.raw_value > BPS_MIN_VOLTAGE)){
+		bps->brakes_engaged = true;
 		return false;
 	}
 	else {
-		bps.brakes_engaged = false;
+		bps->brakes_engaged = false;
 	}
 
     return false;

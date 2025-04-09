@@ -19,7 +19,22 @@ void update_power_supply_data(PowSupData_t powsup) {
 // Returns true if powsup changed
 PowSupData_t check_power_supply(ADC_HandleTypeDef hadc1, ADC_ChannelConfTypeDef sConfig) {
 
-	PowSupData_t powsup = {false};
+	PowSupData_t powsup = {false, false};
+
+	// Read 5V signal on PA0
+	sConfig.Channel = ADC_CHANNEL_0;
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	uint32_t adc_value_5V = HAL_ADC_GetValue(&hadc1);
+	adc_value_5V = (adc_value_5V * ADC_REF_VOLTAGE) / ADC_MAX_VALUE;
+	adc_value_5V = (adc_value_5V * 5000) / 3000;
+
+	// Check if 5V signal within range
+	if (adc_value_5V >= ADC_5V_MIN_VOLTAGE && adc_value_5V <= ADC_5V_MAX_VOLTAGE) {
+		powsup.value5V = true;
+	} else {
+		powsup.value3V = false;
+	}
 
 	// Change to PA4 for 3.3V signal
 	sConfig = (ADC_ChannelConfTypeDef){0};
