@@ -235,4 +235,18 @@ void fsm_clear_flags()
 	flagsToClear.flagBits = FSM_FLAGS_NONE;
 }
 
+const char* fsm_state_string(VCU_State_t state) {
+	switch (state) {
+	case VEHICLE_OFF:
+		return "VEHICLE_OFF";
+	case LOW_VOLTAGE_STATE:
+		return "LOW_VOLTAGE_STATE";
+	case TRACTIVE_SYSTEM_ACTIVE_STATE:
+		return "TRACTIVE_SYSTEM_ACTIVE_STATE";
+	case READY_TO_DRIVE_STATE:
+		return "READY_TO_DRIVE_STATE";
+	default:
+		return "?????";
+	}
+}
 
