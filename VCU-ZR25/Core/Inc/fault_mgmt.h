@@ -11,7 +11,7 @@
 #include "cmsis_os.h"
 #include "gpio.h"
 
-#define NUM_FAULTS 10
+#define NUM_FAULTS 11
 #define FAULT_MGMT_TASK_PERIOD 50
 
 /* Critical Fault Indexes */
@@ -27,6 +27,7 @@
 #define FAULT_INDEX_GPS_COM_FAILURE 7 // limp mode, until manual press
 #define FAULT_INDEX_BMS_FAILURE 8
 #define FAULT_INDEX_STRAIN_GAUGE_FAILURE 9
+#define FAULT_INDEX_STRAIN_GAUGE_COM_FAILURE 10
 
 // Dummy variables for GPS
 #define GPS_HEADING_MOTION_MAX       3600     // degrees * 10

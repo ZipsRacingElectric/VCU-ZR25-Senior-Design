@@ -22,9 +22,9 @@
 
 const uint8_t fault_critical[NUM_FAULTS] = {
 	1, 0, 1, // critical
-	0, 0, 0, 0, 0, 0, 0 // non-critical
+	0, 0, 0, 0, 0, 0, 0, 0 // non-critical
     //1, // critical
-    //0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical
+    //0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // non-critical
 };
 
 static uint32_t apps_bps_implausibility_timer = 0;
@@ -270,6 +270,7 @@ void fault_flag_callback(uint8_t fault, uint8_t value){
 		else if (fault == FAULT_INDEX_INV_COM_FAILURE){
 
 		}
+		else if (fault == FAULT_INDEX_STRAIN_GAUGE_COM_FAILURE)
     	faults.faultInt |= (1 << fault);
     }
     else{
