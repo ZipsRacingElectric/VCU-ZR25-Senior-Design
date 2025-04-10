@@ -7,8 +7,9 @@
 
 /*
  * TODO:
- * - CAN comm for bms, gps, vim
+ * - CAN comm for bms, gps, strain gauge
  * - fault_flag_callback: vim can - add status field in vehicle data, call torque handler to decide action to take
+ * - determine fault functionality
  */
 
 #include "fault_mgmt.h"
@@ -95,8 +96,9 @@ void fault_check(){
 	sas_implausibility_check(&fault);
 	gps_check(&fault);
 	inverter_check(&fault);
-	glv_check(&fault);
+	bms_check(&fault);
 	vcu_check(&fault);
+	strain_gauge_check(&fault);
 
 	osThreadFlagsSet(thread_id, fault.faultInt);
 }
@@ -112,7 +114,6 @@ void apps_bps_implausibility_check(FaultType_t *fault){
 		if (osKernelSysTick() - apps_bps_implausibility_timer >= IMPLAUSIBILITY_TIMEOUT) {
 			fault->faultBits.Fault_apps_bps = 1;
 			torque_fault_callback(1);
-			// CAN motor callback to have 0 nm
 		}
 	}
 	else {
@@ -142,17 +143,41 @@ void sas_implausibility_check(FaultType_t *fault){
 	}
 }
 
-void gps_check(FaultType_t *fault){
-	if (0) { // fault detected
-		ControlMode_t ctrl_mode = 0;
+void gps_check(FaultType_t *fault) {
+	uint32_t gps_plausible = 1;
+
+	if (VehicleData.gps.gps_status != GPS_3D && VehicleData.gps.gps_status != GPS_2D) {
+		gps_plausible = 0;
+	}
+
+	if (VehicleData.gps.heading_motion > GPS_HEADING_MOTION_MAX || VehicleData.gps.heading_motion < GPS_HEADING_MOTION_MIN ||
+		VehicleData.gps.heading_vehicle > GPS_HEADING_VEHICLE_MAX || VehicleData.gps.heading_vehicle > GPS_HEADING_VEHICLE_MIN) {
+		gps_plausible = 0;
+	}
+
+	if (VehicleData.gps.z_angle_rate > GPS_YAW_RATE_MAX ||
+			VehicleData.gps.z_angle_rate < GPS_YAW_RATE_MIN) {
+		gps_plausible = 0;
+	}
+
+	if (VehicleData.gps.x_acceleration < GPS_ACCEL_X_MIN || VehicleData.gps.x_acceleration > GPS_ACCEL_X_MAX) {
+		gps_plausible = 0;
+	}
+
+	if ((VehicleData.gps.y_acceleration * GPS_ACCEL_Y_INVERT) < GPS_ACCEL_Y_MIN || VehicleData.gps.y_acceleration > GPS_ACCEL_Y_MAX) {
+		gps_plausible = 0;
+	}
+
+	if(!gps_plausible) {
 		fault->faultBits.Fault_gps = 1;
-		update_control_mode(ctrl_mode);
+		update_control_mode(0);
 	}
 	else {
 		faultsToClear.faultInt |= (1 << FAULT_INDEX_GPS_FAILURE);
 	}
 }
 
+// not sure what to check
 void inverter_check(FaultType_t *fault){
 	if (0) { // fault detected
 		fault->faultBits.Fault_inverter = 1;
@@ -162,21 +187,71 @@ void inverter_check(FaultType_t *fault){
 	}
 }
 
-void glv_check(FaultType_t *fault){
-	if (0) { // fault detected
-		fault->faultBits.Fault_glv = 1;
+void bms_check(FaultType_t *fault){
+	uint32_t bms_plausible = 1;
+
+	if (VehicleData.bms.battery_temp < BMS_TEMP_MIN || VehicleData.bms.battery_temp > BMS_TEMP_MAX) {
+		bms_plausible = 0;
+	}
+
+	if (VehicleData.bms.dc_bus_voltage < BMS_VOLTAGE_MIN || VehicleData.bms.dc_bus_voltage > BMS_VOLTAGE_MAX) {
+		bms_plausible = 0;
+	}
+
+	if (VehicleData.bms.instantaneous_power < BMS_POWER_MIN || VehicleData.bms.instantaneous_power > BMS_POWER_MAX) {
+		bms_plausible = 0;
+	}
+
+	if (VehicleData.bms.soc < BMS_SOC_MIN || VehicleData.bms.soc > BMS_SOC_MAX) {
+		bms_plausible = 0;
+	}
+
+	VehicleData.bms.plausible = bms_plausible;
+
+	if (!bms_plausible) {
+		fault->faultBits.Fault_bms = 1;
+		update_control_mode(0);
 	}
 	else {
-		faultsToClear.faultInt |= (1 << FAULT_INDEX_GLV_FAILURE);
+		faultsToClear.faultInt |= (1 << FAULT_INDEX_BMS_FAILURE);
 	}
 }
 
+// not sure what this would be
 void vcu_check(FaultType_t *fault){
 	if (0) { // fault detected
 		fault->faultBits.Fault_vcu = 1;
 	}
 	else {
 		faultsToClear.faultInt |= (1 << FAULT_INDEX_VCU_FAILURE);
+	}
+}
+
+void strain_gauge_check(FaultType_t *fault) {
+	uint8_t strain_plausible = 1;
+
+	if (VehicleData.strain_gauge.fl_tire_load < STRAIN_FL_LOAD_MIN || VehicleData.strain_gauge.fl_tire_load > STRAIN_FL_LOAD_MAX) {
+		strain_plausible = 0;
+	}
+
+	if (VehicleData.strain_gauge.fr_tire_load < STRAIN_FR_LOAD_MIN || VehicleData.strain_gauge.fr_tire_load > STRAIN_FR_LOAD_MAX) {
+		strain_plausible = 0;
+	}
+
+	if (VehicleData.strain_gauge.rl_tire_load < STRAIN_RL_LOAD_MIN || VehicleData.strain_gauge.rl_tire_load > STRAIN_RL_LOAD_MAX) {
+		strain_plausible = 0;
+	}
+
+	if (VehicleData.strain_gauge.rr_tire_load < STRAIN_RR_LOAD_MIN || VehicleData.strain_gauge.rr_tire_load > STRAIN_RR_LOAD_MAX) {
+		strain_plausible = 0;
+	}
+
+	VehicleData.strain_gauge.plausible = strain_plausible;
+	if (!strain_plausible) {
+		fault->faultBits.Fault_strain_gauge = 1;
+	}
+	else {
+		faultsToClear.faultInt |= (1 << FAULT_INDEX_STRAIN_GAUGE_FAILURE);
 	}
 }
 
@@ -191,9 +266,6 @@ void fault_flag_callback(uint8_t fault, uint8_t value){
 		if(fault == (FAULT_INDEX_BMS_COM_FAILURE | FAULT_INDEX_GPS_COM_FAILURE)){
 			ControlMode_t ctrl_mode = 0;
 			update_control_mode(ctrl_mode);
-		}
-		else if (fault == FAULT_INDEX_VIM_COM_FAILURE){
-
 		}
 		else if (fault == FAULT_INDEX_INV_COM_FAILURE){
 

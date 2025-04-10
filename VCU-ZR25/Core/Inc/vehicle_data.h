@@ -45,6 +45,8 @@ typedef struct {
   TorqueCtrlData_t torquectrl;
   GPSState_t gps;
   FaultType_t faultmgmt;
+  StrainGaugeData_t strain_gauge;
+  BMSData_t bms;
 } VehicleData_t;
 
 extern VehicleData_t VehicleData;

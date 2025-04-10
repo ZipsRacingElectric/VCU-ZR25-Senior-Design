@@ -5,6 +5,11 @@
  *      Author: bre17
  */
 
+/*
+ * TODO:
+ * - Actually limit functionality in states, such as not letting motors run
+ */
+
 #include "vehicle_fsm.h"
 #include "driver_sensors.h"
 #include "vehicle_data.h"
