@@ -32,6 +32,7 @@ extern osMutexId_t vdb_dashboard_lockHandle;
 extern osMutexId_t vdb_torquectrl_lockHandle;
 extern osMutexId_t vdb_faulttask_lockHandle;
 extern osMutexId_t vdb_gps_lockHandle;
+extern osMutexId_t vdb_defaultTask_lockHandle;
 
 typedef struct {
   APPSSensor_t apps;
@@ -45,6 +46,8 @@ typedef struct {
   TorqueCtrlData_t torquectrl;
   GPSState_t gps;
   FaultType_t faultmgmt;
+  StrainGaugeData_t strain_gauge;
+  BMSData_t bms;
 } VehicleData_t;
 
 extern VehicleData_t VehicleData;

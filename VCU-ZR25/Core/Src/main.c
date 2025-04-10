@@ -15,6 +15,12 @@
   *
   ******************************************************************************
   */
+
+/*
+ * TODO:
+ * - Put watchdog back in?
+ */
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -317,6 +323,14 @@ const osMutexAttr_t vdb_gps_lock_attributes = {
   .cb_mem = &vdb_gps_lockControlBlock,
   .cb_size = sizeof(vdb_gps_lockControlBlock),
 };
+/* Definitions for vdb_defaultTask_lock */
+osMutexId_t vdb_defaultTask_lockHandle;
+osStaticMutexDef_t vdb_defaultTask_lockControlBlock;
+const osMutexAttr_t vdb_defaultTask_lock_attributes = {
+  .name = "vdb_defaultTask_lock",
+  .cb_mem = &vdb_defaultTask_lockControlBlock,
+  .cb_size = sizeof(vdb_defaultTask_lockControlBlock),
+};
 /* Definitions for amkEventFlags */
 osEventFlagsId_t amkEventFlagsHandle;
 osStaticEventGroupDef_t amkEventFlagsControlBlock;
@@ -475,6 +489,9 @@ int main(void)
 
   /* creation of vdb_gps_lock */
   vdb_gps_lockHandle = osMutexNew(&vdb_gps_lock_attributes);
+
+  /* creation of vdb_defaultTask_lock */
+  vdb_defaultTask_lockHandle = osMutexNew(&vdb_defaultTask_lock_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */

@@ -5,6 +5,11 @@
  *      Author: bre17
  */
 
+/*
+ * TODO:
+ * - Actually limit functionality in states, such as not letting motors run
+ */
+
 #include "vehicle_fsm.h"
 #include "driver_sensors.h"
 #include "vehicle_data.h"
@@ -122,6 +127,7 @@ void TransitionState(VCU_State_t newState)
       HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
       break;
 
     case LOW_VOLTAGE_STATE:
@@ -136,6 +142,9 @@ void TransitionState(VCU_State_t newState)
 	  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
+      CoolingSystemTurnOnLeft();
+      CoolingSystemTurnOnRight();
       break;
 
     case TRACTIVE_SYSTEM_ACTIVE_STATE:
@@ -143,6 +152,9 @@ void TransitionState(VCU_State_t newState)
       HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
+      CoolingSystemTurnOnLeft();
+      CoolingSystemTurnOnRight();
       break;
 
     case READY_TO_DRIVE_STATE:
@@ -150,6 +162,7 @@ void TransitionState(VCU_State_t newState)
       HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_SET);
       CoolingSystemTurnOnLeft();
       CoolingSystemTurnOnRight();
       fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 1);
@@ -231,4 +244,18 @@ void fsm_clear_flags()
 	flagsToClear.flagBits = FSM_FLAGS_NONE;
 }
 
+const char* fsm_state_string(VCU_State_t state) {
+	switch (state) {
+	case VEHICLE_OFF:
+		return "VEHICLE_OFF";
+	case LOW_VOLTAGE_STATE:
+		return "LOW_VOLTAGE_STATE";
+	case TRACTIVE_SYSTEM_ACTIVE_STATE:
+		return "TRACTIVE_SYSTEM_ACTIVE_STATE";
+	case READY_TO_DRIVE_STATE:
+		return "READY_TO_DRIVE_STATE";
+	default:
+		return "?????";
+	}
+}
 

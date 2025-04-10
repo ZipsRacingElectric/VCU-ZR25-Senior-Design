@@ -40,14 +40,37 @@ void update_control_mode(ControlMode_t ctrl_mode){
 }
 
 void update_torque_output(){
-	torquectrl.torque_percent = 50;
-//	if (!VehicleData.bps_front.brakes_engaged && !VehicleData.bps_rear.brakes_engaged){
-	torquectrl.torque_value = ((float)(VehicleData.apps.percent_1 * torquectrl.torque_percent) / 100000.0f) * (float)MOTOR_POS_TORQUE_LIMIT;
-//	}
-//	else {
-//		float bps_level = 1.0;
-//		torquectrl.torque_value = (bps_level * (float)torquectrl.torque_percent / 100.0f) * (float)MOTOR_NEG_TORQUE_LIMIT;
-//	}
+	VehicleData_t local_vehicle_data = {0};
+
+	osMutexAcquire(vdb_defaultTask_lockHandle, osWaitForever);
+	local_vehicle_data.fsm_state = VehicleData.fsm_state;
+	osMutexRelease(vdb_defaultTask_lockHandle);
+
+	osMutexAcquire(vdb_apps_lockHandle, osWaitForever);
+	local_vehicle_data.apps = VehicleData.apps;
+	osMutexRelease(vdb_apps_lockHandle);
+
+	osMutexAcquire(vdb_bps_front_lockHandle, osWaitForever);
+	local_vehicle_data.bps_front = VehicleData.bps_front;
+	osMutexRelease(vdb_bps_front_lockHandle);
+
+	osMutexAcquire(vdb_bps_rear_lockHandle, osWaitForever);
+	local_vehicle_data.bps_rear = VehicleData.bps_rear;
+	osMutexRelease(vdb_bps_rear_lockHandle);
+
+	if (!(local_vehicle_data.fsm_state == READY_TO_DRIVE_STATE)){
+		torquectrl.torque_value = 0;
+	}
+	else if (!local_vehicle_data.bps_front.brakes_engaged && !local_vehicle_data.bps_rear.brakes_engaged){
+		torquectrl.torque_value = ((float)(local_vehicle_data.apps.percent_1 * torquectrl.torque_percent) / 100000.0f) * (float)MOTOR_POS_TORQUE_LIMIT;
+	}
+	else if (local_vehicle_data.inverter.motor_info_rl.motorFeedbackMessage.fields.ACTUAL_SPEED_VALUE){
+		float bps_level = (float)(local_vehicle_data.bps_front.voltage - BPS_MIN_VOLTAGE) / (float)(BPS_MAX_VOLTAGE - BPS_MIN_VOLTAGE);
+		torquectrl.torque_value = (bps_level * (float)torquectrl.torque_percent / 100.0f) * (float)MOTOR_NEG_TORQUE_LIMIT;
+	}
+	else {
+		torquectrl.torque_value = 0;
+	}
 	amkTorqueSetpoints setpoint = {.rear_left = torquectrl.torque_value};
 	AMKSetInverterTorqueSetpoints(setpoint);
 }
