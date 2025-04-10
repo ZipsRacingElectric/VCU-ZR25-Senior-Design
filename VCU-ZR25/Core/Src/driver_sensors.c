@@ -9,6 +9,7 @@
 
 /*
  * TODO:
+ * - why are there two apps and bps for one pedal
  * - calibrate_apps: Floor min/max
  * - init_driver_input: handle HAL Error, pass adc handle to sensor structs
  * - validate_apps: report different plausibility faults in the future

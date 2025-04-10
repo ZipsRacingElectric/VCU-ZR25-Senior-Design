@@ -7,8 +7,7 @@
 
 /*
  * TODO:
- * - CAN comm for bms, gps, strain gauge
- * - fault_flag_callback: vim can - add status field in vehicle data, call torque handler to decide action to take
+ * - CAN comm for bms, strain gauge
  * - determine fault functionality
  */
 
