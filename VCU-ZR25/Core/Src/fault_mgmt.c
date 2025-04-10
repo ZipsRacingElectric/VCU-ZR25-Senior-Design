@@ -104,8 +104,22 @@ void fault_check(){
 }
 
 void apps_bps_implausibility_check(FaultType_t *fault){
-	if (!VehicleData.apps.plausible | !VehicleData.bps_front.plausible
-			| !VehicleData.bps_rear.plausible) {
+	VehicleData_t local_vehicle_data = {0};
+
+	osMutexAcquire(vdb_apps_lockHandle, osWaitForever);
+	local_vehicle_data.apps = VehicleData.apps;
+	osMutexRelease(vdb_apps_lockHandle);
+
+	osMutexAcquire(vdb_bps_front_lockHandle, osWaitForever);
+	local_vehicle_data.bps_front = VehicleData.bps_front;
+	osMutexRelease(vdb_bps_front_lockHandle);
+
+	osMutexAcquire(vdb_bps_rear_lockHandle, osWaitForever);
+	local_vehicle_data.bps_rear = VehicleData.bps_rear;
+	osMutexRelease(vdb_bps_rear_lockHandle);
+
+	if (!local_vehicle_data.apps.plausible | !local_vehicle_data.bps_front.plausible
+			| !local_vehicle_data.bps_rear.plausible) {
 
 		if (!apps_bps_implausibility_detected) {
 			apps_bps_implausibility_timer = osKernelSysTick();
@@ -124,7 +138,14 @@ void apps_bps_implausibility_check(FaultType_t *fault){
 }
 
 void sas_implausibility_check(FaultType_t *fault){
-	if (!VehicleData.sas.plausible) {
+
+	VehicleData_t local_vehicle_data = {0};
+
+	osMutexAcquire(vdb_sas_lockHandle, osWaitForever);
+	local_vehicle_data.sas = VehicleData.sas;
+	osMutexRelease(vdb_sas_lockHandle);
+
+	if (!local_vehicle_data.sas.plausible) {
 
 		if (!sas_implausibility_detected) {
 			sas_implausibility_timer = osKernelSysTick();
@@ -145,26 +166,31 @@ void sas_implausibility_check(FaultType_t *fault){
 
 void gps_check(FaultType_t *fault) {
 	uint32_t gps_plausible = 1;
+	VehicleData_t local_vehicle_data = {0};
 
-	if (VehicleData.gps.gps_status != GPS_3D && VehicleData.gps.gps_status != GPS_2D) {
+	osMutexAcquire(vdb_gps_lockHandle, osWaitForever);
+    local_vehicle_data.gps = VehicleData.gps;
+	osMutexRelease(vdb_gps_lockHandle);
+
+	if (local_vehicle_data.gps.gps_status != GPS_3D && local_vehicle_data.gps.gps_status != GPS_2D) {
 		gps_plausible = 0;
 	}
 
-	if (VehicleData.gps.heading_motion > GPS_HEADING_MOTION_MAX || VehicleData.gps.heading_motion < GPS_HEADING_MOTION_MIN ||
-		VehicleData.gps.heading_vehicle > GPS_HEADING_VEHICLE_MAX || VehicleData.gps.heading_vehicle > GPS_HEADING_VEHICLE_MIN) {
+	if (local_vehicle_data.gps.heading_motion > GPS_HEADING_MOTION_MAX || local_vehicle_data.gps.heading_motion < GPS_HEADING_MOTION_MIN ||
+			local_vehicle_data.gps.heading_vehicle > GPS_HEADING_VEHICLE_MAX || local_vehicle_data.gps.heading_vehicle > GPS_HEADING_VEHICLE_MIN) {
 		gps_plausible = 0;
 	}
 
-	if (VehicleData.gps.z_angle_rate > GPS_YAW_RATE_MAX ||
-			VehicleData.gps.z_angle_rate < GPS_YAW_RATE_MIN) {
+	if (local_vehicle_data.gps.z_angle_rate > GPS_YAW_RATE_MAX ||
+			local_vehicle_data.gps.z_angle_rate < GPS_YAW_RATE_MIN) {
 		gps_plausible = 0;
 	}
 
-	if (VehicleData.gps.x_acceleration < GPS_ACCEL_X_MIN || VehicleData.gps.x_acceleration > GPS_ACCEL_X_MAX) {
+	if (local_vehicle_data.gps.x_acceleration < GPS_ACCEL_X_MIN || local_vehicle_data.gps.x_acceleration > GPS_ACCEL_X_MAX) {
 		gps_plausible = 0;
 	}
 
-	if ((VehicleData.gps.y_acceleration * GPS_ACCEL_Y_INVERT) < GPS_ACCEL_Y_MIN || VehicleData.gps.y_acceleration > GPS_ACCEL_Y_MAX) {
+	if ((local_vehicle_data.gps.y_acceleration * GPS_ACCEL_Y_INVERT) < GPS_ACCEL_Y_MIN || local_vehicle_data.gps.y_acceleration > GPS_ACCEL_Y_MAX) {
 		gps_plausible = 0;
 	}
 
@@ -189,24 +215,29 @@ void inverter_check(FaultType_t *fault){
 
 void bms_check(FaultType_t *fault){
 	uint32_t bms_plausible = 1;
+	VehicleData_t local_vehicle_data = {0};
 
-	if (VehicleData.bms.battery_temp < BMS_TEMP_MIN || VehicleData.bms.battery_temp > BMS_TEMP_MAX) {
+	osMutexAcquire(vdb_defaultTask_lockHandle, osWaitForever);
+	local_vehicle_data.bms = VehicleData.bms;
+	osMutexRelease(vdb_defaultTask_lockHandle);
+
+	if (local_vehicle_data.bms.battery_temp < BMS_TEMP_MIN || local_vehicle_data.bms.battery_temp > BMS_TEMP_MAX) {
 		bms_plausible = 0;
 	}
 
-	if (VehicleData.bms.dc_bus_voltage < BMS_VOLTAGE_MIN || VehicleData.bms.dc_bus_voltage > BMS_VOLTAGE_MAX) {
+	if (local_vehicle_data.bms.dc_bus_voltage < BMS_VOLTAGE_MIN || local_vehicle_data.bms.dc_bus_voltage > BMS_VOLTAGE_MAX) {
 		bms_plausible = 0;
 	}
 
-	if (VehicleData.bms.instantaneous_power < BMS_POWER_MIN || VehicleData.bms.instantaneous_power > BMS_POWER_MAX) {
+	if (local_vehicle_data.bms.instantaneous_power < BMS_POWER_MIN || local_vehicle_data.bms.instantaneous_power > BMS_POWER_MAX) {
 		bms_plausible = 0;
 	}
 
-	if (VehicleData.bms.soc < BMS_SOC_MIN || VehicleData.bms.soc > BMS_SOC_MAX) {
+	if (local_vehicle_data.bms.soc < BMS_SOC_MIN || local_vehicle_data.bms.soc > BMS_SOC_MAX) {
 		bms_plausible = 0;
 	}
 
-	VehicleData.bms.plausible = bms_plausible;
+	local_vehicle_data.bms.plausible = bms_plausible;
 
 	if (!bms_plausible) {
 		fault->faultBits.Fault_bms = 1;
@@ -229,24 +260,29 @@ void vcu_check(FaultType_t *fault){
 
 void strain_gauge_check(FaultType_t *fault) {
 	uint8_t strain_plausible = 1;
+	VehicleData_t local_vehicle_data = {0};
 
-	if (VehicleData.strain_gauge.fl_tire_load < STRAIN_FL_LOAD_MIN || VehicleData.strain_gauge.fl_tire_load > STRAIN_FL_LOAD_MAX) {
+	osMutexAcquire(vdb_defaultTask_lockHandle, osWaitForever);
+	local_vehicle_data.bms = VehicleData.bms;
+	osMutexRelease(vdb_defaultTask_lockHandle);
+
+	if (local_vehicle_data.strain_gauge.fl_tire_load < STRAIN_FL_LOAD_MIN || local_vehicle_data.strain_gauge.fl_tire_load > STRAIN_FL_LOAD_MAX) {
 		strain_plausible = 0;
 	}
 
-	if (VehicleData.strain_gauge.fr_tire_load < STRAIN_FR_LOAD_MIN || VehicleData.strain_gauge.fr_tire_load > STRAIN_FR_LOAD_MAX) {
+	if (local_vehicle_data.strain_gauge.fr_tire_load < STRAIN_FR_LOAD_MIN || local_vehicle_data.strain_gauge.fr_tire_load > STRAIN_FR_LOAD_MAX) {
 		strain_plausible = 0;
 	}
 
-	if (VehicleData.strain_gauge.rl_tire_load < STRAIN_RL_LOAD_MIN || VehicleData.strain_gauge.rl_tire_load > STRAIN_RL_LOAD_MAX) {
+	if (local_vehicle_data.strain_gauge.rl_tire_load < STRAIN_RL_LOAD_MIN || local_vehicle_data.strain_gauge.rl_tire_load > STRAIN_RL_LOAD_MAX) {
 		strain_plausible = 0;
 	}
 
-	if (VehicleData.strain_gauge.rr_tire_load < STRAIN_RR_LOAD_MIN || VehicleData.strain_gauge.rr_tire_load > STRAIN_RR_LOAD_MAX) {
+	if (local_vehicle_data.strain_gauge.rr_tire_load < STRAIN_RR_LOAD_MIN || local_vehicle_data.strain_gauge.rr_tire_load > STRAIN_RR_LOAD_MAX) {
 		strain_plausible = 0;
 	}
 
-	VehicleData.strain_gauge.plausible = strain_plausible;
+	local_vehicle_data.strain_gauge.plausible = strain_plausible;
 	if (!strain_plausible) {
 		fault->faultBits.Fault_strain_gauge = 1;
 	}

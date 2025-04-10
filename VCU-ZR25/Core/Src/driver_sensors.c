@@ -136,9 +136,8 @@ void print_driver_input(void)
 
 	osMutexAcquire(vdb_gps_lockHandle, osWaitForever);
 	gps = VehicleData.gps;
-	osMutexRelease(vdb_gps_lockHandle);
-
 	fsm_state = VehicleData.fsm_state;
+	osMutexRelease(vdb_gps_lockHandle);
 
 	int length = snprintf(msg_buffer, sizeof(msg_buffer),
 		"\nAccelerator Pedal:\n"

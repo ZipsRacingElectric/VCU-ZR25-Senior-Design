@@ -18,22 +18,25 @@ bool isUnderTemp(uint16_t temp){
 }
 
 void check_cooling_data() {
+	osMutexAcquire(vdb_inverter_lockHandle, osWaitForever);
+	AMKState_t inverter = VehicleData.inverter;
+	osMutexRelease(vdb_inverter_lockHandle);
 
-	if (isOverTemp(VehicleData.inverter.motor_statistics_fl.temp_sensor) |
-			isOverTemp(VehicleData.inverter.motor_statistics_rl.temp_sensor)){
+	if (isOverTemp(inverter.motor_statistics_fl.temp_sensor) |
+			isOverTemp(inverter.motor_statistics_rl.temp_sensor)){
 		CoolingSystemTurnOnLeft();
 	}
-	else if (isUnderTemp(VehicleData.inverter.motor_statistics_fl.temp_sensor) &
-			isUnderTemp(VehicleData.inverter.motor_statistics_rl.temp_sensor)){
+	else if (isUnderTemp(inverter.motor_statistics_fl.temp_sensor) &
+			isUnderTemp(inverter.motor_statistics_rl.temp_sensor)){
 		CoolingSystemTurnOffLeft();
 	}
 
-	if (isOverTemp(VehicleData.inverter.motor_statistics_fr.temp_sensor)
-			| isOverTemp(VehicleData.inverter.motor_statistics_rr.temp_sensor)){
+	if (isOverTemp(inverter.motor_statistics_fr.temp_sensor)
+			| isOverTemp(inverter.motor_statistics_rr.temp_sensor)){
 		CoolingSystemTurnOnRight();
 	}
-	else if (isUnderTemp(VehicleData.inverter.motor_statistics_fr.temp_sensor)
-			| isUnderTemp(VehicleData.inverter.motor_statistics_rr.temp_sensor)){
+	else if (isUnderTemp(inverter.motor_statistics_fr.temp_sensor)
+			| isUnderTemp(inverter.motor_statistics_rr.temp_sensor)){
 		CoolingSystemTurnOffRight();
 	}
 }

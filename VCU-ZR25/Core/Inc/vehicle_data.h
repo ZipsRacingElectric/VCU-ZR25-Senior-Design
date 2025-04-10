@@ -32,6 +32,7 @@ extern osMutexId_t vdb_dashboard_lockHandle;
 extern osMutexId_t vdb_torquectrl_lockHandle;
 extern osMutexId_t vdb_faulttask_lockHandle;
 extern osMutexId_t vdb_gps_lockHandle;
+extern osMutexId_t vdb_defaultTask_lockHandle;
 
 typedef struct {
   APPSSensor_t apps;

@@ -119,42 +119,50 @@ void TransitionState(VCU_State_t newState)
   {
     case VEHICLE_OFF:
       if (!flags.flagBits.Fault_Detected){
-    	  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+    	  //HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       }
       else {
-    	  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
+    	  //HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
       }
       HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
       break;
 
     case LOW_VOLTAGE_STATE:
 	  if (flags.flagBits.Fault_Detected){
-		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
+		  //HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_SET);
 		  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_RESET);
 	  }
 	  else {
-		  HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+		  //HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
 		  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
 	  }
 	  HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
+      CoolingSystemTurnOnLeft();
+      CoolingSystemTurnOnRight();
       break;
 
     case TRACTIVE_SYSTEM_ACTIVE_STATE:
-      HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+      //HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_RESET);
+      CoolingSystemTurnOnLeft();
+      CoolingSystemTurnOnRight();
       break;
 
     case READY_TO_DRIVE_STATE:
-      HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
+      //HAL_GPIO_WritePin(GPIOB, VCU_FAULT_Pin, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOC, RAIL_POWER_ENABLE_5V_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_1_Pin, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, DEBUG_LED_2_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_SET);
       CoolingSystemTurnOnLeft();
       CoolingSystemTurnOnRight();
       break;
