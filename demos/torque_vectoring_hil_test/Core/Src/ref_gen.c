@@ -18,7 +18,7 @@
 #define PI 3.14159265358979323846f
 #endif
 
-#define MIN_REF_VELOCITY 0.01f  // Minimum velocity for yaw reference generation
+#define MIN_REF_VELOCITY 0.1f  // Minimum velocity for yaw reference generation
 
 // Constants
 
@@ -77,8 +77,8 @@ DeltaPair_t get_steering_angle(float sw_angle) {
     sw_angle = rad_to_deg(sw_angle);
 
     // 1-D Interpolation of lookup table
-    double delta_lf = lookup_1d(&steering_breakpoints, 11, steering_lf_table, sw_angle, NULL);
-    double delta_rf = lookup_1d(&steering_breakpoints, 11, steering_rf_table, sw_angle, NULL);
+    float delta_lf = lookup_1d(&steering_breakpoints, 11, steering_lf_table, sw_angle, NULL);
+    float delta_rf = lookup_1d(&steering_breakpoints, 11, steering_rf_table, sw_angle, NULL);
     delta_lf = deg_to_rad(delta_lf);
     delta_rf = deg_to_rad(delta_rf);
 
@@ -96,19 +96,27 @@ Calculates the Yaw Reference Signal for the Yaw Controller
 float calculate_yaw_reference(float sw_angle, float ref_velocity) {
     // Calculate average front tire steer angle
     DeltaPair_t angles = get_steering_angle(sw_angle);
-    double delta = (angles.delta_lf + angles.delta_rf) / 2;
+    float delta = (angles.delta_lf + angles.delta_rf) / 2;
 
-    double yaw_ref = 0.0f; // Default value for zero or negative speed condition
+    float yaw_ref = 0.0f; // Default value for zero or negative speed condition
 
     // Calculate maximum physical yaw rate
     if (ref_velocity > MIN_REF_VELOCITY) {
-        double yaw_rate_max = sigma * mu * g / ref_velocity;
+        float yaw_rate_max = sigma * mu * g / ref_velocity;
 
         // Calculate yaw rate reference
         yaw_ref = ref_velocity / (wheelbase + ku * ref_velocity * ref_velocity) * delta;
 
-        if(yaw_ref > yaw_rate_max) {
-            yaw_ref = yaw_rate_max;
+        // Make max yaw rate negative if we have a negative yaw reference
+        if (yaw_ref < 0.0f) {
+            // Clamp our yaw reference to the maximum limit
+            if(yaw_ref < -yaw_rate_max) {
+                yaw_ref = -yaw_rate_max;
+            }
+        } else {
+            if(yaw_ref > yaw_rate_max) {
+                yaw_ref = yaw_rate_max;
+            }
         }
     }
     return yaw_ref;
@@ -127,7 +135,7 @@ float __attribute__((unused)) calculate_acceleration_reference(float apps_percen
 // Private Function Declarations
 
 // Converts degrees to radians
-// TODO: remove these in the future
+// TODO: remove these in the future, no degrees anywhere
 static inline float deg_to_rad(float deg) {
     return deg * (PI / 180.0f);
 }

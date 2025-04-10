@@ -90,8 +90,8 @@ static const breakpoints_t pid_dim_2_breakpoints = {0.0f, 50.0f, 26, 2.0f};		// 
  *
  * Inputs:
  * pid_t pid_data - pid_t struct storing PID data
- * double T - sampling period in seconds
- * double tau - time constant of optional D filter, can be 0
+ * float T - sampling period in seconds
+ * float tau - time constant of optional D filter, can be 0
  */
 void init_pid(pid_t* pid_data, float T, float tau) {
 	pid_data->gain.kp = 0;
@@ -119,7 +119,6 @@ void update_gains(pid_t* pid_data, gain_t new_gain) {
  */
 gain_t schedule_gains(float ref_velocity, float sw_angle) {
 	// Interpolate gain LUT at sample points
-	// TODO: replace with tetra functions
 	float new_kp = lookup_2d(&pid_dim_1_breakpoints, &pid_dim_2_breakpoints, 10, 26, kp_gains, sw_angle, ref_velocity, NULL, NULL);
 	float new_ki = lookup_2d(&pid_dim_1_breakpoints, &pid_dim_2_breakpoints, 10, 26, ki_gains, sw_angle, ref_velocity, NULL, NULL);
 	gain_t new_gains = {new_kp, new_ki, 0.0f};
@@ -130,11 +129,11 @@ gain_t schedule_gains(float ref_velocity, float sw_angle) {
  * Updates the PID controller
  *
  * Inputs:
- * double e - holds discrete input value e[k]
+ * float e - holds discrete input value e[k]
  * pid_t pid_data - pid_t struct storing PID data
  *
  * Output:
- * double containing u[k]
+ * float containing u[k]
  *
  * Description:
  * PID controller with D term filtering is implemented as:

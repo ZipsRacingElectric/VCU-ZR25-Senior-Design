@@ -9,6 +9,7 @@
 
 /*
  * TODO:
+ * - why are there two apps and bps for one pedal
  * - calibrate_apps: Floor min/max
  * - init_driver_input: handle HAL Error, pass adc handle to sensor structs
  * - validate_apps: report different plausibility faults in the future
@@ -130,58 +131,86 @@ void read_driver_input(ADC_HandleTypeDef *adc)
     s_bps_rear.plausible = validate_bps(s_bps_rear);
     s_steering_angle.plausible = validate_steering_angle(s_steering_angle);
 }
+// Format data to send over USB
+char msg_buffer[4096];
 
 void print_driver_input(void)
 {
-	// Format data to send over USB
-	char msg_buffer[1024];
+	GPSState_t gps;
+	VCU_State_t fsm_state;
+
+	osMutexAcquire(vdb_gps_lockHandle, osWaitForever);
+	gps = VehicleData.gps;
+	fsm_state = VehicleData.fsm_state;
+	osMutexRelease(vdb_gps_lockHandle);
 
 	int length = snprintf(msg_buffer, sizeof(msg_buffer),
-		  "\nAccelerator Pedal:\n"
-		  "- Raw Value 1: %u\n"
-		  "- Raw Value 2: %u\n"
-		  "- Voltage 1: %u mV\n"
-		  "- Voltage 2: %u mV\n"
-		  "- Pedal Percentage: %u percent * 10\n"
-		  "- Channel 1: %u percent * 10\n"
-		  "- Channel 2: %u percent * 10\n"
-		  "- APPS Plausibility: %d\n"
-		  "\n"
-		  "Brake Pressure:\n"
-		  "- Raw Value Front: %u\n"
-		  "- Raw Value Rear: %u\n"
-		  "- Voltage Front: %u mV\n"
-		  "- Voltage Rear: %u mV\n"
-		  "- Pressure Front: %u PSI\n"
-		  "- Pressure Rear: %u PSI\n"
-		  "- Plausibility Front: %d\n"
-		  "- Plausibility Rear: %d\n"
-		  "\n"
-		  "Steering Angle:\n"
-		  "- Device status: %u\n"
-		  "- Angle: %u radians * 1000\n"
-		  "- Plausibility Front: %d\n",
-		  s_apps.raw_value_1,
-		  s_apps.raw_value_2,
-		  s_apps.voltage_1,
-		  s_apps.voltage_2,
-		  s_apps.percent,
-		  s_apps.percent_1,
-		  s_apps.percent_2,
-		  (uint8_t)s_apps.plausible,
+		"\nAccelerator Pedal:\n"
+		"- Raw Value 1: %u\n"
+		"- Raw Value 2: %u\n"
+		"- Voltage 1: %u mV\n"
+		"- Voltage 2: %u mV\n"
+		"- Pedal Percentage: %u percent * 10\n"
+		"- Channel 1: %u percent * 10\n"
+		"- Channel 2: %u percent * 10\n"
+		"- APPS Plausibility: %d\n"
+		"\n"
+		"Brake Pressure:\n"
+		"- Raw Value Front: %u\n"
+		"- Raw Value Rear: %u\n"
+		"- Voltage Front: %u mV\n"
+		"- Voltage Rear: %u mV\n"
+		"- Pressure Front: %u PSI\n"
+		"- Pressure Rear: %u PSI\n"
+		"- Plausibility Front: %d\n"
+		"- Plausibility Rear: %d\n"
+		"\n"
+		"Steering Angle:\n"
+		"- Device status: %u\n"
+		"- Angle: %u radians * 1000\n"
+		"- Plausibility Front: %d\n"
+		"\n"
+		"FSM\n"
+		"- Vehicle state: %s\n"
+		"\n"
+		"GPS\n"
+		"- Latitude: %f\n"
+		"- Longitude: %f\n"
+		"- Speed: %f km/h\n"
+			,
+		// APPS
+		s_apps.raw_value_1,
+		s_apps.raw_value_2,
+		s_apps.voltage_1,
+		s_apps.voltage_2,
+		s_apps.percent,
+		s_apps.percent_1,
+		s_apps.percent_2,
+		(uint8_t)s_apps.plausible,
 
-		  s_bps_front.raw_value,
-		  s_bps_rear.raw_value,
-		  s_bps_front.voltage,
-		  s_bps_rear.voltage,
-		  s_bps_front.pressure,
-		  s_bps_rear.pressure,
-		  (uint8_t)s_bps_front.plausible,
-		  (uint8_t)s_bps_rear.plausible,
+		// BPS
+		s_bps_front.raw_value,
+		s_bps_rear.raw_value,
+		s_bps_front.voltage,
+		s_bps_rear.voltage,
+		s_bps_front.pressure,
+		s_bps_rear.pressure,
+		(uint8_t)s_bps_front.plausible,
+		(uint8_t)s_bps_rear.plausible,
 
-		  s_steering_angle.i2c_device.state,
-		  s_steering_angle.angle,
-		  (uint8_t)s_steering_angle.plausible);
+		// SAS
+		s_steering_angle.i2c_device.device_status,
+		s_steering_angle.angle,
+		(uint8_t)s_steering_angle.plausible,
+
+		// FSM
+		fsm_state_string(fsm_state),
+
+		// GPS
+		(float)gps.latitude * 1e-7,
+		(float)gps.longitude * 1e-7,
+		(float)gps.speed * 1e-3 / 36.0
+	);
 
 	// Ensure snprintf was successful and message length is valid
 	if (length > 0 && length < sizeof(msg_buffer)) {
