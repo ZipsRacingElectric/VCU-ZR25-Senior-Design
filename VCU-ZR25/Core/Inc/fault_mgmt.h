@@ -9,7 +9,6 @@
 #define INC_FAULT_MGMT_H_
 
 #include "cmsis_os.h"
-#include "gpio.h"
 
 #define NUM_FAULTS 11
 #define FAULT_MGMT_TASK_PERIOD 50

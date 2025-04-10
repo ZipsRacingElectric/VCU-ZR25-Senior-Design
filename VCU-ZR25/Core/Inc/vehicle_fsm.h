@@ -9,8 +9,6 @@
 #define INC_VEHICLE_FSM_H_
 
 #include "cmsis_os.h"
-#include "gpio.h"
-
 #define VEHICLE_FSM_TASK_PERIOD 50
 
 #define FLAG_INDEX_GLVMS_TURNED_ON 0

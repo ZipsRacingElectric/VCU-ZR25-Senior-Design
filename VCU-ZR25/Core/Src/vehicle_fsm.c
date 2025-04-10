@@ -15,9 +15,10 @@
 #include "vehicle_data.h"
 #include "cooling_system.h"
 #include "dashboard.h"
+#include "fault_mgmt.h"
+#include "main.h"
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
-#include "fault_mgmt.h"
 
 VCU_State_t currentState = VEHICLE_OFF;
 FSMInterruptFlags_t flagsToClear = {.flagBits = FSM_FLAGS_NONE};
@@ -165,7 +166,6 @@ void TransitionState(VCU_State_t newState)
       HAL_GPIO_WritePin(GPIOB, BUZZER_CONTROL_Pin, GPIO_PIN_SET);
       CoolingSystemTurnOnLeft();
       CoolingSystemTurnOnRight();
-      fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 1);
       break;
 
     default:

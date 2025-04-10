@@ -32,20 +32,20 @@
 #define ADC_MAX_VALUE         4095  // 2^12 - 1
 #define ADC_REF_VOLTAGE       3300  // V * 1000
 
-#define APPS_1_MIN_VOLTAGE    500  // V * 1000
-#define APPS_2_MIN_VOLTAGE    250  // V * 1000
-#define APPS_1_MAX_VOLTAGE    4500  // V * 1000
-#define APPS_2_MAX_VOLTAGE    2250  // V * 1000
+#define APPS_1_MIN_VOLTAGE    295  // V * 1000
+#define APPS_2_MIN_VOLTAGE    145  // V * 1000
+#define APPS_1_MAX_VOLTAGE    470  // V * 1000
+#define APPS_2_MAX_VOLTAGE    235  // V * 1000
 #define APPS_MIN_DELTA_V	  30  // Minimum allowable voltage difference V * 1000
 #define APPS_MAX_DELTA_P   	  100  // Maximum allowable pedal position difference % * 10
 #define APPS_PEDAL_MIN        50  // Threshold for pedal travel implausibility reset
-#define APPS_PEDAL_MAX        250  // Threshold for pedal travel implausibility
+#define APPS_PEDAL_MAX        1050  // Threshold for pedal travel implausibility
 #define APPS_DEADZONE		  50  // Upper and lower pedal deadzone in % * 10
 #define APPS_OUT_OF_RANGE     100  // Allowable voltage beyond calibration limits before fault V * 1000
 
 #define BPS_MIN_VOLTAGE       250  // V * 1000
 #define BPS_MAX_VOLTAGE       265  // V * 1000
-#define BPS_ENGAGED_VOLTAGE_THRESHOLD 260  // V * 1000 Halfway between min and max
+#define BPS_ENGAGED_VOLTAGE_THRESHOLD 255  // V * 1000 Halfway between min and max
 #define BPS_MAX_PRESSURE      2500 // pressure in PSI
 #define BPS_DEADZONE    	  50  // Deadzone before plausibility fault in V * 1000
 

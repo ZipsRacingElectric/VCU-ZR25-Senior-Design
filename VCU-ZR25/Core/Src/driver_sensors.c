@@ -36,10 +36,10 @@ BPSSensor_t s_bps_rear = {.raw_value = 0, .voltage = 0, .pressure = 0, .plausibl
 SteeringAngleSensor_t s_steering_angle = {.angle = 0, .angular_velocity = 0, .plausible = false};
 
 // Static calibration variables. These hold the 0% and 100% setpoints
-static uint16_t apps_1_min = 310; // V * 1000
-static uint16_t apps_1_max = 450; // V * 1000
-static uint16_t apps_2_min = 350; // V * 1000
-static uint16_t apps_2_max = 2150; // V * 1000
+static uint16_t apps_1_min = 295; // V * 1000
+static uint16_t apps_1_max = 470; // V * 1000
+static uint16_t apps_2_min = 145; // V * 1000
+static uint16_t apps_2_max = 235; // V * 1000
 
 // Private Function Prototypes
 static uint16_t read_adc(ADC_HandleTypeDef *adc, uint32_t channel);
@@ -475,7 +475,7 @@ bool validate_apps(APPSSensor_t apps)
 	    }
 
 	    // Check for out of range for APPS2
-	    if (apps.voltage_2 < (apps_1_min - APPS_OUT_OF_RANGE) || apps.voltage_2 > (apps_1_max + APPS_OUT_OF_RANGE))
+	    if (apps.voltage_2 < (apps_2_min - APPS_OUT_OF_RANGE) || apps.voltage_2 > (apps_2_max + APPS_OUT_OF_RANGE))
 	    {
 	        return false;
 	    }
@@ -511,10 +511,8 @@ bool validate_bps(BPSSensor_t *bps)
 		return true;
 	}
 
-	if ((s_bps_front.raw_value > BPS_MIN_VOLTAGE)
-			| (s_bps_rear.raw_value > BPS_MIN_VOLTAGE)){
+	if ((bps->voltage + BPS_DEADZONE) >= BPS_ENGAGED_VOLTAGE_THRESHOLD){
 		bps->brakes_engaged = true;
-		return false;
 	}
 	else {
 		bps->brakes_engaged = false;

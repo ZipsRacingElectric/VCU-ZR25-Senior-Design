@@ -6,7 +6,6 @@
  */
 
 #include "can_db.h"
-#include "gpio.h"
 #include "main.h"
 #include "stdbool.h"
 #include "can_messages.h"

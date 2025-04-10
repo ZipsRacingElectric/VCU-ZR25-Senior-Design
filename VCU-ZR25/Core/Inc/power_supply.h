@@ -14,8 +14,6 @@
 
 #define POWER_SUPPLY_TASK_PERIOD 50
 
-#define ADC_5V_MIN_VOLTAGE    4950  // V * 1000
-#define ADC_5V_MAX_VOLTAGE    5050  // V * 1000
 #define ADC_3V_MIN_VOLTAGE    3025  // V * 1000  set to 11V compared to 12V
 #define ADC_3V_MAX_VOLTAGE    3350  // V * 1000
 
@@ -26,7 +24,6 @@ typedef struct {
 } powSupTaskArgs_t;
 
 typedef struct {
-  bool value5V;
   bool value3V;
 } PowSupData_t;
 

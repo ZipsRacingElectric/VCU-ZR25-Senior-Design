@@ -537,7 +537,7 @@ int main(void)
   canDbTaskHandle = osThreadNew(StartCanDbTask, (void*) &hcan1, &canDbTask_attributes);
 
   /* creation of coolingTask */
-  //coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
+  coolingTaskHandle = osThreadNew(StartCoolingTask, NULL, &coolingTask_attributes);
 
   /* creation of dashboardTask */
   dashboardTaskHandle = osThreadNew(StartDashboardTask, NULL, &dashboardTask_attributes);

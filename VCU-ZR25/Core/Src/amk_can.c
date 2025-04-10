@@ -225,7 +225,9 @@ void StartAMKTask(void *argument) {
 		FORALL_MOTORS(mid) {
 			uint32_t timeSinceLastTick = currentTick - lastTickFeedbackReceived[mid];
 			if (MotorInfo(mid)->isConfigured && timeSinceLastTick > motorFeedbackTimeoutTicks) {
-				fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 0);
+				if (mid == MOTOR_RL){
+					fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 1);
+				}
 			}
 			else{
 				fault_flag_callback(FAULT_INDEX_INV_COM_FAILURE, 0);

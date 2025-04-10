@@ -23,8 +23,8 @@ ControlMode_t check_control_mode(){
 	return control_mode;
 }
 
-TorqueCtrlData_t torquectrl = {.controlmode = 0, .torque_percent = 10, .torque_value = 0};
-uint8_t preFaultTorque = 10;
+TorqueCtrlData_t torquectrl = {.controlmode = 0, .torque_percent = 30, .torque_value = 0};
+uint8_t preFaultTorque = 30;
 
 void StartTorqueCtrlTask(void *argument) {
 	while (1) {
